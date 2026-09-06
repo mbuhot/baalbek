@@ -1,9 +1,22 @@
-# Stage 1 stub — see PLAN.md Component inventory.
-# Gleam. Schema `timeline`: event-sourced technician shift / travel /
-# on-site events; availability projections. No Gleam toolchain plugin
-# exists for Moon yet, so this falls back to `system` (fine — no real
-# tasks until Stage 5). timeline_facade (Elixir) is its sole caller; that
-# cross-language edge is declared as an explicit dependsOn starting Stage 5
-# (PLAN.md "Two facades, one pattern").
+# Event-sourced technician timeline (Gleam). No Gleam toolchain plugin
+# exists for Moon yet, so this is a system task, same as other
+# non-first-party projects here.
 language: gleam
 layer: library
+
+tasks:
+  test:
+    description: >-
+      Bootstraps the timeline Postgres role/schema/tables (idempotent),
+      then runs the Gleam test suite. Requires a live Postgres (the
+      postgres service in .devcontainer/docker-compose.yml).
+    command: "bash"
+    args:
+      - "scripts/moon-test.sh"
+    toolchain: "system"
+    inputs:
+      - "gleam.toml"
+      - "manifest.toml"
+      - "src/**/*"
+      - "test/**/*"
+      - "scripts/moon-test.sh"

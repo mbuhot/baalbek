@@ -27,3 +27,7 @@ target/
 # would only match a nonexistent top-level priv/native/ and silently let
 # the real nested pricing_native/priv/native/ path get committed.
 **/priv/native/
+
+# Gleam (timeline, Stage 5). gleam build's own output dir. manifest.toml
+# (the lockfile) is NOT ignored, same reason as mix.lock/Cargo.lock.
+timeline/build/

@@ -1,7 +1,31 @@
-# Stage 1 stub — see PLAN.md Component inventory.
-# Elixir. Sole caller of the Gleam `timeline` modules; boundary-enforced.
-# The dependsOn edge to `timeline` (a non-Mix, cross-language edge) is
-# declared explicitly starting Stage 5, not inferred by the drift-check
-# script (check-deps-drift.py only reconciles Mix-to-Mix path deps).
+# Cross-language edge: timeline is a Gleam project, not a Mix path dep.
+# check-deps-drift.py correctly ignores it (Mix-to-Mix only).
 language: elixir
 layer: library
+
+dependsOn:
+  - "timeline"
+
+tasks:
+  test:
+    description: >-
+      Runs the ExUnit suite against timeline's compiled Gleam output.
+      Also runs a compensating check standing in for boundary, which
+      cannot classify Gleam's bare-atom modules (see
+      docs/adr-0001-gleam-elixir-interop.md).
+    command: "bash"
+    args:
+      - "scripts/moon-test.sh"
+    # Project-level dependsOn alone does not force timeline:test to run
+    # before this task for a direct `moon run timeline_facade:test`; only
+    # a task-level dep does (verified in this stage).
+    deps:
+      - "timeline:test"
+    toolchain: "system"
+    inputs:
+      - "mix.exs"
+      - "mix.lock"
+      - ".formatter.exs"
+      - "lib/**/*"
+      - "test/**/*"
+      - "scripts/moon-test.sh"

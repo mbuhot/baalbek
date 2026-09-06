@@ -1,0 +1,34 @@
+name = "timeline"
+version = "0.1.0"
+
+# Stage 5 of PLAN.md: event-sourced technician shift / travel / on-site
+# events; availability projections. Owns Postgres schema `timeline`,
+# connecting via `pog` as the `timeline` role (PLAN.md "Data layer").
+#
+# `timeline_facade` (Elixir) is this project's sole caller — see that
+# project's mix.exs and ../timeline_facade/docs/adr-0001-gleam-elixir-interop.md for exactly
+# how a plain Mix project (no gleam.toml, no mix_gleam) loads this
+# project's compiled `.beam` output from its own code path.
+
+description = "Event-sourced technician timeline: shifts, travel, on-site events, and availability projections."
+licences = ["Apache-2.0"]
+target = "erlang"
+
+# gleam_stdlib is pinned below 1.0 deliberately: stdlib >= 1.0.0 declares
+# `gleam = ">=1.14.0"` in its own gleam.toml, but this repo's root
+# .prototools pins "asdf:gleam" = "1.13" (verified: proto install resolves
+# and installs gleam 1.13.0 end-to-end; bumping the pin is a workspace-wide
+# decision outside this stage's scope). 0.63.2 is the newest stdlib release
+# that does NOT bump its own minimum-gleam requirement past 1.13, confirmed
+# empirically in this stage (a plain `gleam test` against 1.0.5 fails with
+# "Incompatible Gleam version ... requires >=1.14.0"; 0.63.2 compiles and
+# runs clean). Whoever bumps the gleam proto pin past 1.14 should also lift
+# this ceiling.
+[dependencies]
+gleam_stdlib = "0.63.2"
+pog = ">= 4.0.0 and < 5.0.0"
+gleam_erlang = ">= 1.2.0 and < 2.0.0"
+gleam_otp = ">= 1.0.0 and < 2.0.0"
+
+[dev-dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"

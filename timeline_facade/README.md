@@ -2,8 +2,19 @@
 
 **Language:** Elixir
 
-**Purpose:** Sole caller of the Gleam `timeline` modules; `boundary`-enforced.
+**Purpose:** Sole caller of the Gleam `timeline` modules; `boundary`-enforced
+for calls within this app (see the ADR for why `boundary` can't police the
+`:timeline` edge itself, and the compensating check in moon.yml).
 
-Declares an explicit Moon `dependsOn` edge to the `timeline` (Gleam) project
-so a Gleam change invalidates this facade's tests. Skeleton only (Stage 0) —
-no `mix.exs` or `moon.yml` yet; those land in Stage 1 and Stage 5.
+## Local setup
+
+```bash
+docker compose -f ../.devcontainer/docker-compose.yml up -d postgres
+cd ../timeline && gleam run -m timeline/bootstrap && gleam build
+cd ../timeline_facade && mix deps.get && mix test
+```
+
+Or via Moon: `moon run timeline:test timeline_facade:test`.
+
+See `docs/adr-0001-gleam-elixir-interop.md` for how this project loads
+timeline's compiled Gleam output with no Mix dependency between them.

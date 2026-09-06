@@ -6,6 +6,18 @@
 availability projections.
 
 Owns Postgres schema `timeline`; connects via `pog` as the `timeline` role.
-Skeleton only (Stage 0) — no `gleam.toml` or `moon.yml` yet; those land in
-Stage 1 (Moon workspace) and Stage 5 (event-sourced Gleam component +
-`timeline_facade`).
+
+## Local setup
+
+```bash
+docker compose -f ../.devcontainer/docker-compose.yml up -d postgres
+gleam deps download
+gleam run -m timeline/bootstrap   # one-time-per-database: role + schema + tables
+gleam test
+```
+
+Or via Moon: `moon run timeline:test`.
+
+`timeline_facade` (Elixir) is this project's sole caller. See
+`../timeline_facade/docs/adr-0001-gleam-elixir-interop.md` for how that
+works with no Mix dependency between them.
