@@ -16,6 +16,13 @@ node:
 pnpm:
   versionFromPrototools: true
 
+# syncProjectReferences (default true) was set to false earlier in Stage 6 —
+# re-tested (moon check --all against a clean cache, several times) after the
+# tsconfig.base.json move to config/tsconfig.base.json, and it's no longer
+# needed either way: `web` and `core-api-client` hand-maintain their own
+# tsconfig.json `references`, and there's still no workspace-root
+# tsconfig.json for Moon's auto-sync to fight over (config/tsconfig.base.json
+# is a shared base, not a root project config). Left at its default.
 typescript:
   versionFromPrototools: true
 

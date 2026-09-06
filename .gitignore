@@ -37,3 +37,16 @@ timeline/build/
 # introspected from, same rationale as pricing_native's gitignored
 # priv/native/*.so — the source of truth is the DSL, not this artefact.
 server/priv/static/
+
+# TypeScript (Stage 6): pnpm workspace (web, core-api-client). pnpm-lock.yaml
+# is NOT ignored, same hermeticity reason mix.lock/Cargo.lock aren't.
+node_modules/
+.pnpm-store/
+dist/
+*.tsbuildinfo
+
+# core-api-client's one generated artifact (moon.yml's `build` task,
+# openapi-typescript from server's OpenAPI spec) — same rationale as
+# server/priv/static/ above, the source of truth is server's Ash/AshJsonApi
+# resources, not this file.
+core-api-client/src/generated/

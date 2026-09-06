@@ -4,7 +4,28 @@
 
 **Purpose:** Generated from `core`'s OpenAPI spec. Build-time edge.
 
-The consumer's (`web`) build declares a dependency on this package, which in
-turn depends on `core`'s published OpenAPI spec — turning a runtime edge into
-a build-time one (PLAN.md §6). Skeleton only (Stage 0) — no `package.json` or
-`moon.yml` yet; those land in Stage 1 and Stage 6.
+## Stage 6 (this stage)
+
+The only generated artifact is `src/generated/schema.d.ts` — produced by
+[`openapi-typescript`](https://openapi-ts.dev) from `server/priv/static/openapi.json`
+(gitignored, same as the spec it's generated from). `src/index.ts` is a
+thin, hand-written wrapper: it creates an [`openapi-fetch`](https://openapi-ts.dev/openapi-fetch/)
+client typed against those generated types, and re-exports the JSON:API
+resource-object types (`Customer`, `Site`, `Job`, `WorkOrder`) that `web`
+renders. Nothing here hand-declares the API shape — a breaking change to
+`server`'s JSON:API surface changes the generated types, and `web`'s
+`tsc` build fails instead of drifting silently (seed.md §6).
+
+`moon.yml`'s `build` task regenerates the schema from `server`'s published
+spec and type-checks this package against it; `dependsOn: [server]` plus a
+`project://server` task input make a `server` API change invalidate this
+task's cache — see that file's comments for the proof.
+
+## Usage
+
+```ts
+import { createCoreApiClient } from "core-api-client";
+
+const api = createCoreApiClient("http://localhost:4004/api/json/core");
+const { data, error } = await api.GET("/jobs", {});
+```

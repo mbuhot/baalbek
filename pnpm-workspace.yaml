@@ -1,0 +1,18 @@
+# pnpm workspace members. Explicit paths, not a glob — the Elixir/Rust/Gleam
+# project directories have no package.json and must never be swept in.
+# `e2e`, `explorer`, `mobile` join in later stages (PLAN.md Stages 7-10).
+#
+# No root package.json: this file alone is sufficient for pnpm to detect the
+# workspace root — verified empirically (`pnpm install`, `pnpm --filter web
+# run test`, and every `moon run`/`moon check --all` task all work with no
+# package.json here) — so no placeholder file is kept just to hold one.
+packages:
+  - "web"
+  - "core-api-client"
+
+# msw isn't a direct dependency here (web/src/test/mockFetch.ts stubs fetch
+# directly instead — see web/README.md) but vitest's own @vitest/mocker
+# pulls it in as an optional peer; its postinstall only copies an unused
+# browser service-worker shim, so it's harmless to allow.
+allowBuilds:
+  msw: true

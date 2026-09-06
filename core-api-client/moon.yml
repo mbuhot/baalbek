@@ -1,5 +1,43 @@
-# Stage 1 stub — see PLAN.md Component inventory.
-# TypeScript (generated) from `core`'s OpenAPI spec. Build-time edge to
-# `core` lands in Stage 6, when generation is wired up.
+# Stage 6 of PLAN.md: TypeScript client generated from `core`'s OpenAPI
+# spec (seed.md §6, "Runtime edges become build-time edges"). The only
+# generated artifact is src/generated/schema.d.ts (via openapi-typescript);
+# src/index.ts is a thin hand-written wrapper (openapi-fetch) around those
+# types, so a breaking API change fails `tsc`, not just a runtime request.
 language: typescript
-layer: library
+
+# No `layer:` (stays `unknown`) — moon's `enforceLayerRelationships`
+# constraint (on by default) ignores unknown-layer projects, so this
+# scopes the exemption to core-api-client's edges only, instead of
+# disabling the constraint workspace-wide, for the deliberate library →
+# application edge onto `server` (seed.md §6).
+dependsOn:
+  - "server"
+
+tasks:
+  build:
+    description: >-
+      Regenerates src/generated/schema.d.ts from server's published OpenAPI
+      spec, then type-checks the hand-written client against it. `deps` on
+      server:openapi is a *sequencing* edge only — Moon does not hash a
+      dependency task's own inputs into this task's hash unless it also has
+      declared `outputs` (Stage 4 lesson, pricing_native/moon.yml); server's
+      openapi task does declare `outputs: [priv/static/openapi.json]`, and
+      the `project://server` input below additionally folds that file's
+      content into this task's own hash directly, so both mechanisms agree.
+    command: "bash"
+    args:
+      - "-lc"
+      - >-
+        pnpm install --frozen-lockfile &&
+        pnpm run generate &&
+        pnpm exec tsc --noEmit
+    deps:
+      - "server:openapi"
+    toolchain: "node"
+    inputs:
+      - "package.json"
+      - "tsconfig.json"
+      - "src/index.ts"
+      - "project://server"
+    outputs:
+      - "src/generated/schema.d.ts"

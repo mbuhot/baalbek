@@ -1,5 +1,79 @@
-# Stage 1 stub — see PLAN.md Component inventory.
-# TypeScript. PWA: dispatch board + technician view. Real tasks land in
-# Stage 6.
+# Stage 6 of PLAN.md: the PWA, consuming `core-api-client`'s generated
+# client (seed.md §6, "Runtime edges become build-time edges").
 language: typescript
 layer: application
+
+dependsOn:
+  - "core-api-client"
+
+tasks:
+  lint:
+    description: >-
+      ESLint's `no-restricted-imports` rule blocks reaching past
+      core-api-client's package root into its internals (seed.md §3,
+      "module-boundary enforcement is lint-level ... CI blocks it") — see
+      web/eslint.config.js. A separate task, not folded into `test`'s
+      command, so it's independently runnable; `test` depends on it below
+      so the Stage 6 gate (`moon run web:test`) still enforces it.
+    command: "bash"
+    args:
+      - "-lc"
+      - "pnpm install --frozen-lockfile && pnpm run lint"
+    toolchain: "node"
+    inputs:
+      - "package.json"
+      - "eslint.config.js"
+      - "src/**/*"
+
+  test:
+    description: >-
+      Runs the vitest suite (component tests against a stubbed
+      `globalThis.fetch` — see web/README.md's testing-scope note). `deps`
+      on core-api-client:build both sequences generation before this task and
+      (since that task declares `outputs`) folds its generated schema into
+      this task's hash, same pattern proven for core-api-client:build
+      itself against server:openapi (see that project's moon.yml). `deps`
+      on `lint` makes this gate also enforce the module-boundary rule.
+      `deps` on `build` makes this gate also enforce real type-checking:
+      vitest's esbuild transform strips types and never type-checks, so
+      without this, `moon run web:test` alone would pass against a breaking
+      API change even though `tsc -b` (run by `build`) genuinely fails on
+      it — seed.md §6's guarantee has to hold for this exact gate command,
+      not just for `moon check --all`.
+    command: "bash"
+    args:
+      - "-lc"
+      - "pnpm install --frozen-lockfile && pnpm run test"
+    deps:
+      - "core-api-client:build"
+      - "lint"
+      - "build"
+    toolchain: "node"
+    inputs:
+      - "package.json"
+      - "tsconfig.json"
+      - "vite.config.ts"
+      - "index.html"
+      - "src/**/*"
+      - "public/**/*"
+      - "project://core-api-client"
+
+  build:
+    description: Type-checks (via project references) and produces the production Vite build.
+    command: "bash"
+    args:
+      - "-lc"
+      - "pnpm install --frozen-lockfile && pnpm run build"
+    deps:
+      - "core-api-client:build"
+    toolchain: "node"
+    inputs:
+      - "package.json"
+      - "tsconfig.json"
+      - "vite.config.ts"
+      - "index.html"
+      - "src/**/*"
+      - "public/**/*"
+      - "project://core-api-client"
+    outputs:
+      - "dist"
