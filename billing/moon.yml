@@ -1,5 +1,38 @@
-# Stage 1 stub — see PLAN.md Component inventory.
-# Elixir / Ash. Schema `billing`: invoices raised from completed jobs.
-# Real tasks land in Stage 3.
+# Stage 3 of PLAN.md: Ash resources, schema `billing` + role `billing`,
+# boundary (via ash_boundary), ExUnit. Domain: invoices raised from
+# completed jobs. Task shape mirrors core/moon.yml exactly (see that
+# file's comment for the full rationale) — just renamed core -> billing.
 language: elixir
 layer: library
+
+tasks:
+  test:
+    description: >-
+      Fetch Mix deps, bootstrap the `billing` Postgres role/schema
+      (idempotent — see priv/repo/bootstrap.sql), create+migrate the test
+      database, then run the ExUnit suite. Elixir isn't a Moon-native
+      toolchain yet (Stage 11 adds moon-elixir-plugin), so this is
+      declared as a `system` task that shells out to `mix`, resolved via
+      proto's PATH activation (assumed already on PATH — proto/moon are
+      set up in Stage 0). Requires a live Postgres (the `postgres` service
+      in .devcontainer/docker-compose.yml) reachable with the connection
+      details in config/config.exs / lib/mix/tasks/billing.bootstrap.ex's
+      defaults.
+    command: "bash"
+    args:
+      - "-lc"
+      - >-
+        mix deps.get &&
+        mix billing.bootstrap &&
+        MIX_ENV=test mix ecto.create --quiet &&
+        MIX_ENV=test mix ecto.migrate --quiet &&
+        MIX_ENV=test mix test
+    toolchain: "system"
+    inputs:
+      - "mix.exs"
+      - "mix.lock"
+      - ".formatter.exs"
+      - "config/**/*"
+      - "lib/**/*"
+      - "priv/**/*"
+      - "test/**/*"
