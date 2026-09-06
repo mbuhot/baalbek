@@ -18,9 +18,15 @@ tasks:
       - "scripts/moon-test.sh"
     # Project-level dependsOn alone does not force timeline:test to run
     # before this task for a direct `moon run timeline_facade:test`; only
-    # a task-level dep does (verified in this stage).
+    # a task-level dep does (verified in Stage 5). `timeline:package` is
+    # not optional: this project's mix.exs reads ../timeline/build/otp to
+    # build its dependency list, and raises if that directory is missing.
     deps:
       - "timeline:test"
+      - "timeline:package"
+      # Uncached, so a warm Moon cache against a fresh database still
+      # creates the schema this suite writes to.
+      - "timeline:bootstrap"
     toolchain: "system"
     inputs:
       - "mix.exs"
@@ -34,7 +40,14 @@ tasks:
       # [timeline:test]` above is a *sequencing* edge only — that task
       # declares no `outputs`, so it contributes nothing to this task's
       # hash (the same rule pricing_native/moon.yml documents). Without
-      # this `project://` input a Gleam source change left this task on a
-      # cache hit, replaying a stale pass. See
+      # these inputs a Gleam source change left this task on a cache hit,
+      # replaying a stale pass. See
       # ../spec/decisions/adr-0002-cross-language-edges-need-project-inputs.md.
-      - "project://timeline"
+      #
+      # Timeline's *sources*, not `project://timeline`: a whole-project
+      # input makes Moon walk timeline/build while `timeline:package` is
+      # deleting and rewriting it.
+      - "/timeline/gleam.toml"
+      - "/timeline/manifest.toml"
+      - "/timeline/src/**/*"
+      - "/timeline/scripts/**/*"

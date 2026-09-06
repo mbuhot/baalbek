@@ -41,7 +41,13 @@ tasks:
       pricing_native/moon.yml — compiling `pricing_native` as a path dep of
       `server` hits the same rustc/virtiofs directory-creation race
       otherwise. Requires a live Postgres (the `postgres` service in
-      .devcontainer/docker-compose.yml).
+      .devcontainer/docker-compose.yml), including the `timeline` schema —
+      test/server_web/timeline_router_test.exs writes to it, so
+      `timeline:bootstrap` (uncached, like the three `mix *.bootstrap`
+      calls below) is a dependency.
+    deps:
+      - "timeline:bootstrap"
+      - "timeline:package"
     command: "bash"
     args:
       - "-lc"
@@ -79,7 +85,13 @@ tasks:
       # Both foreign sources need their own entry or a change in either
       # leaves this task on a stale cache hit.
       - "project://pricing"
-      - "project://timeline"
+      # Timeline's *sources*, not `project://timeline`: a whole-project
+      # input makes Moon walk timeline/build while `timeline:package` is
+      # deleting and rewriting it, which fails the run outright.
+      - "/timeline/gleam.toml"
+      - "/timeline/manifest.toml"
+      - "/timeline/src/**/*"
+      - "/timeline/scripts/**/*"
 
   openapi:
     description: >-
@@ -91,6 +103,8 @@ tasks:
       `ServerWeb.JsonApiRouter.spec/0` can introspect the compiled routes),
       hence the same Postgres bootstrap as the `test` task, even though
       spec generation itself never queries the database.
+    deps:
+      - "timeline:package"
     command: "bash"
     args:
       - "-lc"
@@ -113,3 +127,87 @@ tasks:
       - "project://timeline_facade"
     outputs:
       - "priv/static/openapi.json"
+
+  release:
+    description: >-
+      Assembles the `MIX_ENV=prod` release (PLAN.md Stage 6c). The release
+      carries its own ERTS and every application in `server`'s dependency
+      tree, the Gleam ones included — `timeline` and its runtime
+      dependencies reach it as Mix path deps of `timeline_facade`, which is
+      why `timeline:package` runs first. No database needed: `mix release`
+      compiles and assembles, it never boots the app. Configuration is read
+      from the environment at boot by config/runtime.exs.
+
+      The release is written to /.artifacts/server-release, outside every
+      project's own directory, and declares no `outputs`. Both are
+      deliberate: a 101 MB tree under server/ is a tree Moon walks and
+      hashes for anything holding a `project://server` input, at the same
+      moment `--overwrite` is deleting and rewriting it, and nothing
+      consumes the artifact anyway — `server:image` compiles its own
+      release inside the Docker build stage.
+    deps:
+      - "timeline:package"
+    command: "bash"
+    args:
+      - "-lc"
+      - >-
+        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/pricing_native-native-pricingnative-prod" &&
+        export MIX_ENV=prod &&
+        mix deps.get --only prod &&
+        mix release --overwrite --path ../.artifacts/server-release
+    toolchain: "system"
+    inputs:
+      - "mix.exs"
+      - "mix.lock"
+      - "config/**/*"
+      - "lib/**/*"
+      - "project://core"
+      - "project://identity"
+      - "project://billing"
+      - "project://pricing_native"
+      - "project://timeline_facade"
+      # Same rule as the `test` task: a `project://` on a facade stops at
+      # the facade's own files, so the foreign sources behind the two
+      # facades each need their own entry.
+      - "project://pricing"
+      - "/timeline/gleam.toml"
+      - "/timeline/manifest.toml"
+      - "/timeline/src/**/*"
+      - "/timeline/scripts/**/*"
+
+  image:
+    description: >-
+      Builds the runnable release image Stage 9's e2e runs against
+      (`baalbek-server:latest` by default; override with SERVER_IMAGE).
+      Independent of the `release` task: Dockerfile compiles the release
+      inside the image so the artifact never carries host paths. Build
+      context is the workspace root, since the release assembles from
+      sibling projects.
+    deps:
+      - "root:sandbox-image"
+    command: "bash"
+    args:
+      - "-lc"
+      - >-
+        docker build -f server/Dockerfile -t "${SERVER_IMAGE:-baalbek-server:latest}" .
+    toolchain: "system"
+    options:
+      runFromWorkspaceRoot: true
+    inputs:
+      - "Dockerfile"
+      - "Dockerfile.dockerignore"
+      - "mix.exs"
+      - "mix.lock"
+      - "config/**/*"
+      - "lib/**/*"
+      - "/.prototools"
+      - "project://core"
+      - "project://identity"
+      - "project://billing"
+      - "project://pricing_native"
+      - "project://timeline_facade"
+      - "project://pricing"
+      - "/timeline/gleam.toml"
+      - "/timeline/manifest.toml"
+      - "/timeline/src/**/*"
+      - "/timeline/scripts/**/*"

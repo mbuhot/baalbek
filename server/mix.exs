@@ -24,7 +24,21 @@ defmodule Server.MixProject do
           ]
         ]
       ],
+      releases: releases(),
       deps: deps()
+    ]
+  end
+
+  # `mix release` bundles every application in `:server`'s dependency tree,
+  # the Gleam ones included: `timeline` and its runtime dependencies are real
+  # Mix path deps of `timeline_facade`, so they land in the release's lib/
+  # like any other. See spec/decisions/adr-0001-release-assembly-and-gleam-packaging.md.
+  defp releases do
+    [
+      server: [
+        include_executables_for: [:unix],
+        applications: [server: :permanent]
+      ]
     ]
   end
 

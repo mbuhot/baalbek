@@ -2,12 +2,12 @@ defmodule TimelineFacade do
   @moduledoc """
   Public API and sole caller of the `timeline` Gleam package.
 
-  Loads timeline's compiled output onto this project's code path (see
-  mix.exs) and exposes an idiomatic Elixir surface over it: atoms for
-  status, `nil` for "no site", plain `:ok`/`:error` tuples. The raw Gleam
-  calls live in `TimelineFacade.Gleam`, a sub-boundary nothing else may
-  reach. See spec/decisions/adr-0001-gleam-elixir-interop.md for the full interop
-  story.
+  Exposes an idiomatic Elixir surface over the compiled Gleam modules:
+  atoms for status, `nil` for "no site", plain `:ok`/`:error` tuples. The
+  raw Gleam calls live in `TimelineFacade.Gleam`, a sub-boundary nothing
+  else may reach. `timeline` reaches this app as a set of Mix path
+  dependencies on `../timeline/build/otp` (see mix.exs and
+  `server/spec/decisions/adr-0001-release-assembly-and-gleam-packaging.md`).
   """
 
   use Boundary, deps: [], exports: []

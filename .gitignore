@@ -38,6 +38,12 @@ timeline/build/
 # priv/native/*.so — the source of truth is the DSL, not this artefact.
 server/priv/static/
 
+# Assembled releases (Stage 6c, `server:release`). Kept out of every
+# project's own directory so no `project://` input walks a 101 MB tree
+# while `mix release --overwrite` is rewriting it; dot-prefixed so
+# .moon/workspace.yml's `globs: ["*"]` doesn't turn it into a project.
+.artifacts/
+
 # TypeScript (Stage 6): pnpm workspace (web, core-api-client). pnpm-lock.yaml
 # is NOT ignored, same hermeticity reason mix.lock/Cargo.lock aren't.
 node_modules/

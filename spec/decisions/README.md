@@ -23,5 +23,6 @@ decision confined to one component lives in that component's own
 |---|---|
 | `spec/decisions/` (here) | Workspace-wide decisions |
 | `core`, `identity`, `billing`, `server` `/spec/features/` | Gherkin acceptance criteria, executed by ExUnit |
-| `timeline_facade/spec/decisions/` | The Gleam ↔ Elixir interop decision |
+| `server/spec/decisions/` | Release assembly, and how Gleam code reaches the release |
+| `timeline_facade/spec/decisions/` | The Gleam ↔ Elixir interop decision (superseded) |
 | `web/spec/mocks/`, `web/spec/decisions/` | Dated UI mock snapshots, and the PWA's own decisions |

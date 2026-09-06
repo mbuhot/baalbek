@@ -34,3 +34,20 @@ tasks:
       - "test-paths.py"
       - "*/lib/**/*.ex"
       - "*/test/**/*_test.exs"
+
+  sandbox-image:
+    description: >-
+      Builds the sandbox/CI image (PLAN.md "Sandbox"). Also the build stage
+      of server/Dockerfile, so `server:image` depends on this rather than
+      redeclaring the toolchain. Docker's own layer cache makes a rebuild
+      with nothing changed cheap; Moon caches nothing here, since an image
+      in the local daemon is not a file output.
+    command: "bash"
+    args:
+      - "-lc"
+      - >-
+        docker build -t "${SANDBOX_IMAGE:-baalbek-sandbox:latest}" -f Dockerfile .
+    toolchain: "system"
+    inputs:
+      - "Dockerfile"
+      - ".prototools"

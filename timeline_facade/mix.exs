@@ -1,29 +1,11 @@
-# Loads timeline's compiled Gleam/Erlang output onto this project's code
-# path. Runs on every mix command. See spec/decisions/adr-0001-gleam-elixir-interop.md
-# for why (Mix path deps need a manifest file timeline doesn't have; not a
-# real dependency, so building timeline first is timeline:test's job, via
-# the dependsOn in this project's moon.yml).
-timeline_build_erlang =
-  Path.join([__DIR__, "..", "timeline", "build", "dev", "erlang"])
-
-if File.dir?(timeline_build_erlang) do
-  # timeline's build dir also vendors copies of mix/elixir/eex/logger
-  # (a transitive dev-dependency's doing). Skip any app already loaded, so
-  # we never shadow the live Mix/Elixir/EEx/Logger with a stale copy.
-  already_loaded =
-    Application.loaded_applications() |> Enum.map(fn {name, _, _} -> name end) |> MapSet.new()
-
-  timeline_build_erlang
-  |> File.ls!()
-  |> Enum.reject(&MapSet.member?(already_loaded, String.to_atom(&1)))
-  |> Enum.each(fn otp_app_dir ->
-    ebin = Path.join([timeline_build_erlang, otp_app_dir, "ebin"])
-    if File.dir?(ebin), do: Code.prepend_path(ebin)
-  end)
-end
-
 defmodule TimelineFacade.MixProject do
   use Mix.Project
+
+  # timeline's compiled OTP applications, produced by `moon run
+  # timeline:package`. Each one becomes a real Mix path dependency below, so
+  # a `mix release` bundles it. See
+  # ../server/spec/decisions/adr-0001-release-assembly-and-gleam-packaging.md.
+  @timeline_otp Path.expand("../timeline/build/otp", __DIR__)
 
   def project do
     [
@@ -33,10 +15,6 @@ defmodule TimelineFacade.MixProject do
       start_permanent: Mix.env() == :prod,
       # :boundary must precede Mix.compilers() (see core/mix.exs).
       compilers: [:boundary] ++ Mix.compilers(),
-      # Keeps timeline's prepended ebin dirs on the code path after
-      # compilation (Mix would otherwise prune them; timeline isn't a
-      # declared Mix dep).
-      prune_code_paths: false,
       deps: deps()
     ]
   end
@@ -48,8 +26,31 @@ defmodule TimelineFacade.MixProject do
   end
 
   defp deps do
-    [
-      {:boundary, "~> 0.10", runtime: false}
-    ]
+    [{:boundary, "~> 0.10", runtime: false} | timeline_deps()]
+  end
+
+  # `compile: "exit 0"` is a no-op valid in both `sh -c` and `cmd /c`: these
+  # directories are already compiled. It must be a command and not `false` —
+  # only the command branch of Mix.Tasks.Deps.Compile links a dep's ebin/
+  # into _build, and without that link Mix reports "could not find an app
+  # file". `override: true` means these vendored copies win over any Hex
+  # dependency of the same name; see the ADR for which names that covers.
+  defp timeline_deps do
+    case File.ls(@timeline_otp) do
+      {:ok, otp_apps} ->
+        Enum.map(otp_apps, fn otp_app ->
+          {String.to_atom(otp_app),
+           path: Path.join(@timeline_otp, otp_app), compile: "exit 0", override: true}
+        end)
+
+      {:error, :enoent} ->
+        Mix.raise("""
+        timeline_facade: #{@timeline_otp} does not exist.
+        Run `moon run timeline:package` (or bash timeline/scripts/package-otp.sh) first.
+        """)
+
+      {:error, reason} ->
+        Mix.raise("timeline_facade: cannot read #{@timeline_otp}: #{:file.format_error(reason)}")
+    end
   end
 end

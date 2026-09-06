@@ -1,6 +1,6 @@
 import Config
 
-# No release/deployment story yet (out of scope for this stage — PLAN.md
-# Stage 6 is HTTP surface + OpenAPI generation, not deployment). This file
-# exists so `import_config "#{config_env()}.exs"` in config.exs has
-# somewhere to land if MIX_ENV=prod is ever used.
+# Nothing here is compile-time. Everything a production boot needs — the
+# database connections, the HTTP port, `secret_key_base` — is read from the
+# environment in runtime.exs, so the release image carries no environment of
+# its own.

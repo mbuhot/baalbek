@@ -55,6 +55,42 @@
   are exercised through HTTP by `test/server_web/`. See
   `../spec/decisions/adr-0005-within-app-test-selection-by-path.md`.
 
+## Stage 6c
+
+- **A real `mix release`.** `mix.exs` declares `releases: [server: ...]`;
+  `moon run server:release` assembles `../.artifacts/server-release`, which embeds
+  ERTS and every application in `server`'s dependency tree.
+- **The Gleam code is genuinely in the release.** `timeline` and its runtime
+  dependencies are packaged as OTP applications by `moon run timeline:package`
+  and taken as Mix path dependencies by `timeline_facade`, so `mix release`
+  bundles them like any Hex dependency. See
+  `spec/decisions/adr-0001-release-assembly-and-gleam-packaging.md` — the ADR
+  covers why the previous `Code.prepend_path` mechanism could not survive into
+  a release, and why an `.app` file's `modules` list decides whether a release
+  can load a module at all.
+- **`config/runtime.exs`.** Everything a deployed boot needs is read from the
+  environment there, not baked in at compile time. `config/config.exs` keeps
+  only genuinely compile-time settings.
+- **`Dockerfile`** — two-stage build producing a runnable image. Build from
+  the repository root (`docker build -f server/Dockerfile -t baalbek-server .`)
+  or via `moon run server:image`; the release assembles from sibling projects,
+  so `server/` alone is not a sufficient build context.
+- **`/api/timeline/...`** (see Routes) is the standing check that the release
+  can still reach the Gleam code.
+
+### Environment variables
+
+| Variable | Default | Notes |
+|---|---|---|
+| `SECRET_KEY_BASE` | none | Required in `:prod`; boot raises without it. |
+| `PORT` | `4004` | |
+| `PHX_HOST` | `localhost` | Host used in generated URLs. |
+| `CORE_PG_*`, `IDENTITY_PG_*`, `BILLING_PG_*` | role name / `localhost` / `5432` / `baalbek` | `USER`, `PASSWORD`, `HOST`, `PORT`, `DATABASE`, `POOL_SIZE`. |
+| `TIMELINE_PG_HOST`, `_PORT`, `_DATABASE`, `_PASSWORD` | `localhost` / `5432` / `baalbek` / `timeline` | Read by the Gleam package itself, not by `runtime.exs`. |
+
+The image runs no migrations and creates no Postgres roles or schemas; each
+app's own bootstrap/migration task owns that.
+
 ### Why `server` has no Ecto Repo or Postgres role/schema of its own
 
 `server` is a pure HTTP/assembly layer (PLAN.md's component inventory:
@@ -104,3 +140,13 @@ Mounted under `/api/json/core`: `GET|POST /customers`, `GET|PATCH|DELETE
 /customers/:id`, and the equivalent for `/sites`, `/jobs`, `/work_orders`.
 The OpenAPI spec (once generated) is served at
 `/api/json/core/open_api` and mirrored to `priv/static/openapi.json`.
+
+Mounted under `/api/timeline` (plain JSON, not JSON:API — `timeline` is a
+Gleam package, not an Ash resource):
+
+- `POST /technicians/:technician_id/events` — body
+  `{"kind": "shift_started" | "shift_ended" | "travel_started" |
+  "arrived_on_site" | "departed_site", "occurred_at": <integer>, "site_id":
+  <string, required for the last three>}`.
+- `GET /technicians/:technician_id/availability` — replays the event log,
+  persists the projection, and returns `{"status": ..., "site_id": ...}`.

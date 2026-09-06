@@ -22,8 +22,8 @@ tasks:
       dependency task's own inputs into this task's hash unless it also has
       declared `outputs` (Stage 4 lesson, pricing_native/moon.yml); server's
       openapi task does declare `outputs: [priv/static/openapi.json]`, and
-      the `project://server` input below additionally folds that file's
-      content into this task's own hash directly, so both mechanisms agree.
+      the input below additionally folds that file's content into this
+      task's own hash directly, so both mechanisms agree.
     command: "bash"
     args:
       - "-lc"
@@ -38,6 +38,10 @@ tasks:
       - "package.json"
       - "tsconfig.json"
       - "src/index.ts"
-      - "project://server"
+      # The one file this task consumes, not `project://server`. A
+      # whole-project input makes Moon walk server/ while `server:release`
+      # is rewriting its output tree there, which fails the run outright
+      # ("Failed to read path ... No such file or directory").
+      - "/server/priv/static/openapi.json"
     outputs:
       - "src/generated/schema.d.ts"

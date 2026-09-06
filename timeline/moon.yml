@@ -5,11 +5,29 @@ language: gleam
 layer: library
 
 tasks:
+  bootstrap:
+    description: >-
+      Creates the timeline Postgres role, schema and tables (idempotent).
+      Never cached: a warm Moon cache and a fresh database is a real
+      combination (a new container, a dropped schema, CI's first run
+      against a new Postgres), and a cache hit here would skip the one
+      thing every timeline-touching task needs to have happened. This is
+      why `core`/`identity`/`billing` run their own `mix *.bootstrap`
+      unconditionally inside each task's command line.
+    command: "bash"
+    args:
+      - "scripts/bootstrap.sh"
+    toolchain: "system"
+    options:
+      cache: false
+
   test:
     description: >-
-      Bootstraps the timeline Postgres role/schema/tables (idempotent),
-      then runs the Gleam test suite. Requires a live Postgres (the
-      postgres service in .devcontainer/docker-compose.yml).
+      Runs the Gleam test suite against the real timeline schema. Requires
+      a live Postgres (the postgres service in
+      .devcontainer/docker-compose.yml).
+    deps:
+      - "~:bootstrap"
     command: "bash"
     args:
       - "scripts/moon-test.sh"
@@ -20,3 +38,26 @@ tasks:
       - "src/**/*"
       - "test/**/*"
       - "scripts/moon-test.sh"
+      - "scripts/toolchain-path.sh"
+
+  package:
+    description: >-
+      Builds build/otp/ — this project and its runtime dependencies as
+      ordinary OTP application directories, with real {modules, ...} lists.
+      `timeline_facade`'s mix.exs takes one Mix path dependency per
+      directory, which is what puts the Gleam code inside `server`'s
+      release. See ../server/spec/decisions/adr-0001-release-assembly-and-gleam-packaging.md.
+      No database needed: this compiles and copies only.
+    command: "bash"
+    args:
+      - "scripts/package-otp.sh"
+    toolchain: "system"
+    inputs:
+      - "gleam.toml"
+      - "manifest.toml"
+      - "src/**/*"
+      - "scripts/package-otp.sh"
+      - "scripts/otp-closure.escript"
+      - "scripts/toolchain-path.sh"
+    outputs:
+      - "build/otp"

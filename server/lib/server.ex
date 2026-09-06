@@ -10,5 +10,5 @@ defmodule Server do
 
   use Boundary,
     deps: [Core, Identity.Accounts, Billing.Invoicing, PricingNative, TimelineFacade],
-    exports: [Api]
+    exports: [Api, Timeline]
 end

@@ -49,15 +49,19 @@ defmodule ServerWeb.CustomerJsonApiTest do
 
   describe "GET /customers" do
     test "lists customers created via Core", %{conn: conn} do
-      create_customer!(%{name: "Acme Facilities"})
-      create_customer!(%{name: "Widgets Inc", email: "ops@widgets.test"})
+      acme = create_customer!(%{name: "Acme Facilities"})
+      widgets = create_customer!(%{name: "Widgets Inc", email: "ops@widgets.test"})
 
       conn = get(conn, "/api/json/core/customers")
 
       assert %{"data" => data} = json_response(conn, 200)
-      assert length(data) == 2
       assert Enum.all?(data, &(&1["type"] == "customer"))
-      names = Enum.map(data, & &1["attributes"]["name"]) |> Enum.sort()
+
+      # Matched by id, not by row count: the sandbox transaction still sees
+      # rows anything else committed to the `core` schema (a release run, a
+      # Stage 9 e2e pass), so an absolute count is not this test's to assert.
+      mine = Enum.filter(data, &(&1["id"] in [acme.id, widgets.id]))
+      names = Enum.map(mine, & &1["attributes"]["name"]) |> Enum.sort()
       assert names == ["Acme Facilities", "Widgets Inc"]
     end
   end

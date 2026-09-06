@@ -20,3 +20,19 @@ projects:
 vcs:
   defaultBranch: "main"
   provider: "github"
+
+# Build output directories, excluded from every task hash. A `project://`
+# input folds in the whole target project, build artefacts included, so
+# without this `server:release` hashed 23,094 files — 15,027 of them
+# gitignored `_build/**` — and a `billing:test` run changed its cache key.
+# Source-change invalidation across the language edges is unaffected: those
+# ride on the source globs each task declares, not on build output.
+hasher:
+  ignorePatterns:
+    - "**/_build/**"
+    - "**/deps/**"
+    - "**/build/**"
+    - "**/target/**"
+    - "**/node_modules/**"
+    - "**/dist/**"
+    - "**/priv/native/**"

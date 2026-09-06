@@ -1,6 +1,9 @@
 # ADR-0001: Gleam ↔ Elixir build integration on the BEAM
 
-**Status:** Accepted
+**Status:** Superseded by
+`server/spec/decisions/adr-0001-release-assembly-and-gleam-packaging.md`
+(Stage 6c), which replaces the loading mechanism below and lists which of
+these findings still hold
 **Date:** 2026-09-06
 **Stage:** 5
 

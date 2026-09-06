@@ -1,0 +1,29 @@
+# Build context for server/Dockerfile. Scoped to that Dockerfile so the root
+# sandbox image's context is unaffected.
+#
+# Everything is excluded, then only the directories the release assembles from
+# are allowed back in. Their build outputs stay excluded: the image compiles
+# from source, and a host _build/ or deps/ carries host paths and host-built
+# NIFs into the container.
+
+*
+
+!.prototools
+!billing
+!core
+!identity
+!pricing
+!pricing_native
+!server
+!timeline
+!timeline_facade
+
+**/_build
+**/deps
+**/build
+**/target
+**/node_modules
+**/.elixir_ls
+**/erl_crash.dump
+**/priv/native
+server/priv/static
