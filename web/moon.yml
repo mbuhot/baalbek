@@ -29,10 +29,9 @@ tasks:
     description: >-
       Runs the vitest suite (component tests against a stubbed
       `globalThis.fetch` — see web/README.md's testing-scope note). `deps`
-      on core-api-client:build both sequences generation before this task and
-      (since that task declares `outputs`) folds its generated schema into
-      this task's hash, same pattern proven for core-api-client:build
-      itself against server:openapi (see that project's moon.yml). `deps`
+      on core-api-client:build both sequences generation before this task
+      and, since that task declares `outputs`, folds its hash — and through
+      it `server:openapi`'s and the Elixir apps' — into this one. `deps`
       on `lint` makes this gate also enforce the module-boundary rule.
       `deps` on `build` makes this gate also enforce real type-checking:
       vitest's esbuild transform strips types and never type-checks, so
@@ -56,7 +55,6 @@ tasks:
       - "index.html"
       - "src/**/*"
       - "public/**/*"
-      - "project://core-api-client"
 
   image:
     description: >-
@@ -105,6 +103,5 @@ tasks:
       - "index.html"
       - "src/**/*"
       - "public/**/*"
-      - "project://core-api-client"
     outputs:
       - "dist"

@@ -21,18 +21,18 @@ vcs:
   defaultBranch: "main"
   provider: "github"
 
-# Build output directories, excluded from every task hash. A `project://`
-# input folds in the whole target project, build artefacts included, so
-# without this `server:release` hashed 23,094 files — 15,027 of them
-# gitignored `_build/**` — and a `billing:test` run changed its cache key.
-# Source-change invalidation across the language edges is unaffected: those
-# ride on the source globs each task declares, not on build output.
+# Two source globs in this workspace straddle a build tree they cannot
+# exclude themselves: `pricing_native`'s `native/**/*` covers the NIF crate
+# and its in-tree `target/` (39 files), and `mobile`'s `android/**/*` covers
+# the Gradle project and the `build/outputs/` directory that task writes its
+# own APK into. The five other patterns this list carried are gone with the
+# `project://` inputs that made them necessary — no declared input glob
+# reaches `_build/`, `deps/`, `node_modules/`, `dist/` or `priv/native/` any
+# more. This is input-side only: a declared `output` under one of these
+# paths is still archived and restored normally, which is what lets every
+# project's artefact live in `<project>/build/`.
+# See spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md.
 hasher:
   ignorePatterns:
-    - "**/_build/**"
-    - "**/deps/**"
     - "**/build/**"
     - "**/target/**"
-    - "**/node_modules/**"
-    - "**/dist/**"
-    - "**/priv/native/**"

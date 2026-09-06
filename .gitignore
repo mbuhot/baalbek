@@ -28,9 +28,13 @@ target/
 # the real nested pricing_native/priv/native/ path get committed.
 **/priv/native/
 
-# Gleam (timeline, Stage 5). gleam build's own output dir. manifest.toml
-# (the lockfile) is NOT ignored, same reason as mix.lock/Cargo.lock.
-timeline/build/
+# Every project's Moon-owned build tree — the artefact its `build`/`package`
+# task declares as `outputs` (spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md).
+# Anchored to one directory below the root so it never matches a nested
+# build directory a native toolchain owns, such as mobile/android/app/build.
+# The Elixir apps compile here rather than into `_build/` so a Moon cache
+# restore can never write over the tree Mix and ElixirLS share.
+/*/build/
 
 # `server`'s generated OpenAPI spec (Stage 6, `server:openapi` Moon task).
 # Reproducible from the Ash/AshJsonApi resource declarations it's

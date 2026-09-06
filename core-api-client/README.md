@@ -18,8 +18,11 @@ renders. Nothing here hand-declares the API shape — a breaking change to
 
 `moon.yml`'s `build` task regenerates the schema from `server`'s published
 spec and type-checks this package against it; `dependsOn: [server]` plus a
-`project://server` task input make a `server` API change invalidate this
-task's cache — see that file's comments for the proof.
+task `deps` on `server:openapi`, which declares the spec file as its
+`outputs`, make a `server` API change invalidate this task's cache — and,
+through `server:openapi`'s own deps, a change in any Elixir app, the Rust
+crate or the Gleam package behind it
+(`../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md`).
 
 ## Usage
 

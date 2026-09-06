@@ -13,11 +13,9 @@ layer: application
 #
 # `pricing` (Rust) and `timeline` (Gleam) are not Mix path deps and are
 # correctly ignored by check-deps-drift.py's Mix-only comparison. They are
-# declared here because Moon only accepts a `project://` input naming a
-# *direct* project dependency, and `test` needs both to invalidate on a
-# crate or Gleam source change — a `project://` on the facade covers the
-# facade's own files only. See
-# ../spec/decisions/adr-0002-cross-language-edges-need-project-inputs.md.
+# declared here because this project's tasks name `timeline:package` as a
+# task dependency, and because `moon ci` walks this list to decide what a
+# `pricing` or `timeline` change affects.
 dependsOn:
   - "core"
   - "identity"
@@ -45,7 +43,17 @@ tasks:
       test/server_web/timeline_router_test.exs writes to it, so
       `timeline:bootstrap` (uncached, like the three `mix *.bootstrap`
       calls below) is a dependency.
+    # Every `*:build` entry declares `outputs`, so each one folds its own
+    # hash — and, transitively, its own dependencies' — into this task's.
+    # That is what makes a `pricing` crate or `timeline` Gleam change
+    # invalidate this suite, through two levels of facade. See
+    # ../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md.
     deps:
+      - "core:build"
+      - "identity:build"
+      - "billing:build"
+      - "pricing_native:build"
+      - "timeline_facade:build"
       - "timeline:bootstrap"
       - "timeline:package"
     command: "bash"
@@ -69,29 +77,6 @@ tasks:
       - "lib/**/*"
       - "spec/**/*"
       - "test/**/*"
-      # Not Mix path deps Moon can see as file globs under this project's
-      # own directory (mirrors pricing_native/moon.yml's same comment) —
-      # these `project://` references fold their contents into this
-      # task's hash so a source change in any of them invalidates the
-      # cache too.
-      - "project://core"
-      - "project://identity"
-      - "project://billing"
-      - "project://pricing_native"
-      - "project://timeline_facade"
-      # `pricing_native` and `timeline_facade` are Mix path deps of this
-      # app, but the crate and the Gleam package behind them are not — a
-      # `project://` on the facade alone stops at the facade's own files.
-      # Both foreign sources need their own entry or a change in either
-      # leaves this task on a stale cache hit.
-      - "project://pricing"
-      # Timeline's *sources*, not `project://timeline`: a whole-project
-      # input makes Moon walk timeline/build while `timeline:package` is
-      # deleting and rewriting it, which fails the run outright.
-      - "/timeline/gleam.toml"
-      - "/timeline/manifest.toml"
-      - "/timeline/src/**/*"
-      - "/timeline/scripts/**/*"
 
   openapi:
     description: >-
@@ -104,6 +89,11 @@ tasks:
       hence the same Postgres bootstrap as the `test` task, even though
       spec generation itself never queries the database.
     deps:
+      - "core:build"
+      - "identity:build"
+      - "billing:build"
+      - "pricing_native:build"
+      - "timeline_facade:build"
       - "timeline:package"
     command: "bash"
     args:
@@ -119,12 +109,8 @@ tasks:
     inputs:
       - "mix.exs"
       - "mix.lock"
+      - "config/**/*"
       - "lib/**/*"
-      - "project://core"
-      - "project://identity"
-      - "project://billing"
-      - "project://pricing_native"
-      - "project://timeline_facade"
     outputs:
       - "priv/static/openapi.json"
 
@@ -138,14 +124,17 @@ tasks:
       compiles and assembles, it never boots the app. Configuration is read
       from the environment at boot by config/runtime.exs.
 
-      The release is written to /.artifacts/server-release, outside every
-      project's own directory, and declares no `outputs`. Both are
-      deliberate: a 101 MB tree under server/ is a tree Moon walks and
-      hashes for anything holding a `project://server` input, at the same
-      moment `--overwrite` is deleting and rewriting it, and nothing
-      consumes the artifact anyway — `server:image` compiles its own
-      release inside the Docker build stage.
+      The release is written to /.artifacts/server-release and declares no
+      `outputs`. Nothing consumes the artifact — `server:image` compiles
+      its own release inside the Docker build stage — so there is no edge
+      for outputs to carry, and a 101 MB tree is not worth archiving into
+      the Moon cache on every miss.
     deps:
+      - "core:build"
+      - "identity:build"
+      - "billing:build"
+      - "pricing_native:build"
+      - "timeline_facade:build"
       - "timeline:package"
     command: "bash"
     args:
@@ -161,19 +150,6 @@ tasks:
       - "mix.lock"
       - "config/**/*"
       - "lib/**/*"
-      - "project://core"
-      - "project://identity"
-      - "project://billing"
-      - "project://pricing_native"
-      - "project://timeline_facade"
-      # Same rule as the `test` task: a `project://` on a facade stops at
-      # the facade's own files, so the foreign sources behind the two
-      # facades each need their own entry.
-      - "project://pricing"
-      - "/timeline/gleam.toml"
-      - "/timeline/manifest.toml"
-      - "/timeline/src/**/*"
-      - "/timeline/scripts/**/*"
 
   image:
     description: >-
@@ -190,6 +166,11 @@ tasks:
       layer cache keeps the real rebuild to a couple of seconds.
     deps:
       - "root:sandbox-image"
+      - "core:build"
+      - "identity:build"
+      - "billing:build"
+      - "pricing_native:build"
+      - "timeline_facade:build"
     command: "bash"
     args:
       - "-lc"
@@ -207,13 +188,3 @@ tasks:
       - "config/**/*"
       - "lib/**/*"
       - "/.prototools"
-      - "project://core"
-      - "project://identity"
-      - "project://billing"
-      - "project://pricing_native"
-      - "project://timeline_facade"
-      - "project://pricing"
-      - "/timeline/gleam.toml"
-      - "/timeline/manifest.toml"
-      - "/timeline/src/**/*"
-      - "/timeline/scripts/**/*"

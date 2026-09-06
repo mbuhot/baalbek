@@ -1,6 +1,6 @@
 # ADR-0002: A cross-language edge needs a `project://` input, not just `dependsOn`
 
-**Status:** Accepted
+**Status:** Superseded by adr-0006
 **Date:** 2026-09-06
 **Stage:** 4 (discovered), applied in 5 and 6
 

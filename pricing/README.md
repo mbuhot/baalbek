@@ -24,10 +24,10 @@
   (see the Stage 4 report for the before/after hashes).
 
 Compiles outside Mix's dependency graph; the crate → `pricing_native` facade
-edge is declared explicitly on the `pricing_native` side, both as a project
-`dependsOn` and as a `project://pricing` task input (per PLAN.md's "Two
-facades, one pattern" — see `pricing_native/moon.yml`'s comments for why
-both are needed).
+edge is declared on the `pricing_native` side as a project `dependsOn` plus a
+task `deps` on `pricing:build`, whose declared output is the compiled rlib
+(per PLAN.md's "Two facades, one pattern" and
+`../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md`).
 
 ## Local setup
 

@@ -4,6 +4,36 @@ language: elixir
 layer: library
 
 tasks:
+  build:
+    description: >-
+      Compiles the app into `build/`, a Moon-owned build tree separate from
+      the `_build/` that Mix, ElixirLS and the `test` task share. Declared
+      as this project's artefact so `server`'s tasks express their edge onto
+      it as a `deps` entry that actually contributes to their hash — a task
+      with no `outputs` contributes nothing. The edge rides on this task's
+      declared *inputs*, not on the artefact's bytes; see
+      ../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md for the
+      measurement and for why the output path carries no MIX_ENV. No
+      database needed: `mix compile` never connects.
+    command: "bash"
+    args:
+      - "-lc"
+      - "mix deps.get && mix compile"
+    toolchain: "system"
+    # MIX_ENV is pinned because MIX_BUILD_PATH drops Mix's per-environment
+    # subdirectory: without it, two environments would share one tree.
+    env:
+      MIX_ENV: "dev"
+      MIX_BUILD_PATH: "build"
+    inputs:
+      - "mix.exs"
+      - "mix.lock"
+      - "config/**/*"
+      - "lib/**/*"
+      - "priv/**/*"
+    outputs:
+      - "build/lib/core/ebin"
+
   test:
     description: >-
       Fetch Mix deps, bootstrap the `core` Postgres role/schema (idempotent

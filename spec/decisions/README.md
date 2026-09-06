@@ -17,6 +17,17 @@ decision confined to one component lives in that component's own
   alternatives that were rejected and the consequences accepted, because
   those are the parts a reader cannot recover from the code.
 
+## Index
+
+| ADR | Decision | Status |
+|---|---|---|
+| [0001](adr-0001-ash-boundary-for-ash-domains.md) | `ash_boundary` derives the boundary from the Ash domain | Accepted |
+| [0002](adr-0002-cross-language-edges-need-project-inputs.md) | A cross-language edge needs a `project://` input | Superseded by 0006 |
+| [0003](adr-0003-pnpm-workspace-without-a-root-package-json.md) | The pnpm workspace has no root `package.json` | Accepted |
+| [0004](adr-0004-gherkin-acceptance-specs-run-on-cucumber.md) | Gherkin acceptance specs run on `cucumber` | Accepted |
+| [0005](adr-0005-within-app-test-selection-by-path.md) | Within-app test selection is by path convention | Accepted |
+| [0006](adr-0006-task-deps-on-output-declaring-tasks.md) | Cross-project edges are task deps on output-declaring tasks | Accepted |
+
 ## Where the other spec directories are
 
 | Directory | Holds |

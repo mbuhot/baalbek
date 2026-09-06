@@ -39,6 +39,22 @@ snapshots), `decisions/` (ADRs). Never create an empty one to complete the patte
 - Gherkin features are executable. A `.feature` file with no wired steps is a defect, not a
   placeholder.
 
+## Case-insensitive hosts
+
+On macOS and Windows the working tree usually sits on a case-insensitive filesystem, and in a
+Linux container it is reached over a bind mount. `Foo` and `foo` are then the same file, and
+writing one silently overwrites the other. Two entries can still appear in a listing, because the
+guest caches a dentry per spelling — sometimes with a stale size, which makes one file look like
+two that differ.
+
+- Use each path's canonical spelling exactly. `Dockerfile`, never `dockerfile`.
+- **Never delete an apparent case-duplicate.** Compare inodes with `ls -i` first: if they match it
+  is one file and deleting either destroys it. This has happened here. Recover a stale listing
+  with `git status` and `git checkout`, not with `rm`.
+- `git ls-files` and `find -iname` report the truth. `ls` and a cached `stat` may not.
+- The same mount can corrupt a `cp` inside the repo — right length, NUL or space content. Prefer
+  `git mv`, `git checkout`, and editor writes over shell copies, and check `git diff` after a move.
+
 ## Reviewing
 
 A review checks the work against the spec, not only against the brief that produced it. A brief is

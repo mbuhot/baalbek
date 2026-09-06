@@ -149,13 +149,15 @@ This is the classic passes-tests-fails-in-production shape, currently latent onl
 
 Stage 6c closes both gaps together: real `releases:` config for `server` (plus the release Dockerfile the Sandbox section implies), and packaging `timeline`'s output as something a release genuinely includes — most likely a real OTP application the release recognises, rather than a runtime path hack. The gate is behavioural, not structural: the built release must boot, serve the JSON:API, and successfully call through `timeline_facade` into Gleam code, proving the `.beam` files are actually in the release rather than smuggled in by `mix.exs` evaluation.
 
-### Task graph: content-addressed `outputs`, not `project://` inputs
+### Task graph: depend on output-declaring tasks, not `project://` inputs
 
 Decided mid-build, after `project://` inputs caused three separate defects. It replaces the convention ADR-0002 documents; a superseding ADR records the change.
 
 **The problem.** `project://<id>` folds another project's files into a task's hash. It is coarse (it walks whole directories, build trees included), it races (one task hashes a tree another is rewriting), and — the real defect — **it is not transitive**. `project://timeline_facade` hashes the facade's own files only; it does not reach the Gleam source behind it. Nothing tells you when a transitive edge is missing: you get a silent stale pass. That shape has bitten twice, on the Rust edge (Stage 4) and the Gleam edge (Stage 8).
 
-**The mechanism.** Moon ignores a `deps:` entry for hashing *when the upstream task declares no `outputs`*. The converse is the fix: when an upstream task **does** declare outputs, the dependency contributes to the dependent's hash, and it composes — a change to C alters B's outputs, which changes A's hash, transitively, the way Bazel and Nix work. It is also correctly *less* eager: a change that doesn't alter the compiled artifact doesn't re-run downstream.
+**The mechanism.** Moon ignores a `deps:` entry for hashing *when the upstream task declares no `outputs`*. The converse is the fix: when an upstream task **does** declare outputs, the dependency contributes to the dependent's hash, and it composes — a change to C changes B's hash, which changes A's hash, transitively.
+
+Note what is actually propagated. Moon folds the upstream task's **hash**, which is derived from that task's declared *inputs* — not a digest of its output bytes. So this is not Bazel-style artefact comparison: a comment-only edit upstream still re-runs everything downstream, because the upstream hash moved even though the compiled artefact is byte-identical. Precision comes from declaring narrow inputs, not from the artefact. The declared output's role is to make the dependency count for hashing at all.
 
 **The rule.** Every task another task depends on declares real `outputs`. Downstream tasks express the edge as a task `deps:` entry on an output-declaring task, not as a `project://` input. A task with nothing meaningful to emit (a test task, say) is not a valid dependency target — give the project a `build`/`compile`/`package` task that produces the artifact, and depend on that.
 

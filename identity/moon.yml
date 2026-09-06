@@ -6,6 +6,27 @@ language: elixir
 layer: library
 
 tasks:
+  build:
+    description: >-
+      Compiles the app into `build/lib/identity/ebin` — same shape and
+      rationale as core/moon.yml's `build` task.
+    command: "bash"
+    args:
+      - "-lc"
+      - "mix deps.get && mix compile"
+    toolchain: "system"
+    env:
+      MIX_ENV: "dev"
+      MIX_BUILD_PATH: "build"
+    inputs:
+      - "mix.exs"
+      - "mix.lock"
+      - "config/**/*"
+      - "lib/**/*"
+      - "priv/**/*"
+    outputs:
+      - "build/lib/identity/ebin"
+
   test:
     description: >-
       Fetch Mix deps, bootstrap the `identity` Postgres role/schema

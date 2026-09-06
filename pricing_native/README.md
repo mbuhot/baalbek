@@ -24,11 +24,11 @@
   precompiled binary, per PLAN.md's explicit instruction that a precompiled
   binary defeats the point of this stage), wrapping `pricing::quote` behind
   primitive-typed `#[rustler::nif]` functions.
-- **Declared cross-language edge**: `moon.yml` has both a project-level
-  `dependsOn: [pricing]` (ownership/graph-structure) and a
-  `project://pricing` task input (the thing that actually folds `pricing`'s
-  file contents into this task's Moon cache hash — see `moon.yml`'s
-  comments for why the `dependsOn`/`deps:` edges alone weren't enough).
+- **Declared cross-language edge**: `moon.yml` has a project-level
+  `dependsOn: [pricing]` (ownership/graph-structure) and a task `deps` on
+  `pricing:build`. That task declares the compiled rlib as its `outputs`,
+  which is what makes it contribute to this project's task hashes — see
+  `../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md`.
 
 ## Local setup
 

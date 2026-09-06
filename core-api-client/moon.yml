@@ -17,13 +17,11 @@ tasks:
   build:
     description: >-
       Regenerates src/generated/schema.d.ts from server's published OpenAPI
-      spec, then type-checks the hand-written client against it. `deps` on
-      server:openapi is a *sequencing* edge only — Moon does not hash a
-      dependency task's own inputs into this task's hash unless it also has
-      declared `outputs` (Stage 4 lesson, pricing_native/moon.yml); server's
-      openapi task does declare `outputs: [priv/static/openapi.json]`, and
-      the input below additionally folds that file's content into this
-      task's own hash directly, so both mechanisms agree.
+      spec, then type-checks the hand-written client against it. `server:openapi`
+      declares `outputs`, so the `deps` entry both orders the two and folds
+      that task's hash — and, transitively, every Elixir app it is built
+      from — into this one. See
+      ../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md.
     command: "bash"
     args:
       - "-lc"
@@ -38,10 +36,5 @@ tasks:
       - "package.json"
       - "tsconfig.json"
       - "src/index.ts"
-      # The one file this task consumes, not `project://server`. A
-      # whole-project input makes Moon walk server/ while `server:release`
-      # is rewriting its output tree there, which fails the run outright
-      # ("Failed to read path ... No such file or directory").
-      - "/server/priv/static/openapi.json"
     outputs:
       - "src/generated/schema.d.ts"

@@ -1,9 +1,9 @@
 # Stage 7 of PLAN.md: Capacitor wrapper over `web`'s built PWA. Android
 # (Gradle) and iOS (xcodebuild) run as tier-0 `system` tasks — no Moon-
 # native toolchain fits Capacitor/Gradle/xcodebuild (seed.md §3, "Optional
-# extension: mobile"). `web` is a real Moon `dependsOn`: `cap sync`
-# consumes `web/dist`, so a `web` build-output change invalidates both
-# native builds' cache, the same edge shape as core-api-client -> server.
+# extension: mobile"). `cap sync` consumes `web/dist`, so both native
+# builds take a task `deps` on `web:build`, which declares that directory
+# as its `outputs` — the edge shape adr-0006 describes.
 #
 # No `layer:` (stays `unknown`) — same reason as core-api-client/moon.yml:
 # moon's `enforceLayerRelationships` constraint forbids one `application`
@@ -43,7 +43,6 @@ tasks:
       - "capacitor.config.ts"
       - "scripts/**/*"
       - "android/**/*"
-      - "project://web"
     outputs:
       - "android/app/build/outputs/apk/debug/app-debug.apk"
 
@@ -71,7 +70,6 @@ tasks:
       - "package.json"
       - "capacitor.config.ts"
       - "ios/**/*"
-      - "project://web"
     # `optional: true` — off macOS scripts/build-ios.sh exits 0 with an
     # explicit skip and produces nothing; without this Moon fails the task
     # for a missing declared output. On a Mac the real build produces it.

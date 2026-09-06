@@ -31,7 +31,7 @@ tasks:
       unaffected: `moon ci` propagates it along `deps` regardless of outputs,
       and reaches source through `web:image` -> `web:build` ->
       `core-api-client:build` -> `server:openapi`, each of which does declare
-      outputs (PLAN.md "Task graph: content-addressed `outputs`").
+      outputs (PLAN.md "Task graph: depend on output-declaring tasks").
 
       `playwright install` downloads the browser binaries (~115 MB, cached in
       ~/.cache/ms-playwright). Their OS-level shared libraries are not part of

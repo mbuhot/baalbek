@@ -7,6 +7,31 @@ dependsOn:
   - "timeline"
 
 tasks:
+  build:
+    description: >-
+      Compiles this app against timeline's packaged OTP applications, into
+      the Moon-owned `build/` tree. Declared as this project's artefact so
+      `server`'s tasks can express the edge onto it, and onto the Gleam
+      source behind it, as a single `deps` entry. Same shape as
+      core/moon.yml's `build` task; see
+      ../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md.
+    deps:
+      - "timeline:package"
+    command: "bash"
+    args:
+      - "-lc"
+      - "mix deps.get && mix compile"
+    toolchain: "system"
+    env:
+      MIX_ENV: "dev"
+      MIX_BUILD_PATH: "build"
+    inputs:
+      - "mix.exs"
+      - "mix.lock"
+      - "lib/**/*"
+    outputs:
+      - "build/lib/timeline_facade/ebin"
+
   test:
     description: >-
       Runs the ExUnit suite against timeline's compiled Gleam output.
@@ -16,13 +41,12 @@ tasks:
     command: "bash"
     args:
       - "scripts/moon-test.sh"
-    # Project-level dependsOn alone does not force timeline:test to run
-    # before this task for a direct `moon run timeline_facade:test`; only
-    # a task-level dep does (verified in Stage 5). `timeline:package` is
-    # not optional: this project's mix.exs reads ../timeline/build/otp to
-    # build its dependency list, and raises if that directory is missing.
+    # `timeline:package` declares `outputs`, so it both orders the Gleam
+    # build before this suite and folds the Gleam sources into this task's
+    # hash. It is not optional either way: this project's mix.exs reads
+    # ../timeline/build/otp to build its dependency list, and raises if
+    # that directory is missing.
     deps:
-      - "timeline:test"
       - "timeline:package"
       # Uncached, so a warm Moon cache against a fresh database still
       # creates the schema this suite writes to.
@@ -35,19 +59,3 @@ tasks:
       - "lib/**/*"
       - "test/**/*"
       - "scripts/moon-test.sh"
-      # `timeline` is a Gleam project, not a Mix path dep, so Moon sees no
-      # file glob for it under this project's directory. `deps:
-      # [timeline:test]` above is a *sequencing* edge only — that task
-      # declares no `outputs`, so it contributes nothing to this task's
-      # hash (the same rule pricing_native/moon.yml documents). Without
-      # these inputs a Gleam source change left this task on a cache hit,
-      # replaying a stale pass. See
-      # ../spec/decisions/adr-0002-cross-language-edges-need-project-inputs.md.
-      #
-      # Timeline's *sources*, not `project://timeline`: a whole-project
-      # input makes Moon walk timeline/build while `timeline:package` is
-      # deleting and rewriting it.
-      - "/timeline/gleam.toml"
-      - "/timeline/manifest.toml"
-      - "/timeline/src/**/*"
-      - "/timeline/scripts/**/*"

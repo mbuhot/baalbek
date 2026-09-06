@@ -163,7 +163,7 @@ the release image — coupling the two artifacts that Stage 6c kept separate.
 
 ### The Moon edge: two deps, neither of them hashable
 
-Per PLAN.md's "Task graph: content-addressed `outputs`" section, `e2e:test`
+Per PLAN.md's "Task graph: depend on output-declaring tasks" section, `e2e:test`
 declares its edges as `deps` on other tasks, and no `project://` inputs. Its two
 deps are `server:image` and `web:image`, and neither can declare outputs: an
 image in the local docker daemon is not a file, and Moon hashes files.

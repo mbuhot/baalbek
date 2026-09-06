@@ -7,6 +7,43 @@ language: rust
 layer: library
 
 tasks:
+  build:
+    description: >-
+      Proves the crate compiles on its own, and declares the resulting rlib
+      so that tasks needing a `pricing` source change to invalidate them can
+      depend on this task rather than on `test`: a task with no declared
+      `outputs` contributes nothing to a dependent's hash.
+
+      `build/libpricing.rlib` is a marker, not a hand-off. Nothing reads it —
+      `pricing_native`'s NIF links its own release-profile
+      `libpricing-<hash>.rlib`, rebuilt from the Cargo path dependency in
+      that project's CARGO_TARGET_DIR. See
+      ../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md for
+      why the edge rides on this task's declared inputs, not on the file.
+
+      CARGO_TARGET_DIR is redirected under $HOME for the reason `test`
+      documents, so the rlib is copied in-tree to be a declarable output.
+      `cat` rather than `cp` — this repo is mounted over virtiofs, where
+      `cp`'s reflink path was observed to produce NUL-filled files. The
+      target directory is spelled out twice because Moon substitutes `$VAR`
+      in a task's args from its own environment, so `$CARGO_TARGET_DIR`
+      would expand to empty.
+    command: "bash"
+    args:
+      - "-lc"
+      - >-
+        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/pricing" &&
+        cargo build &&
+        mkdir -p build &&
+        cat "$HOME/.cache/baalbek-cargo-target/pricing/debug/libpricing.rlib" > build/libpricing.rlib
+    toolchain: "rust"
+    inputs:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "src/**/*"
+    outputs:
+      - "build/libpricing.rlib"
+
   test:
     description: >-
       Run this crate's `cargo test` suite on its own — no Elixir, no NIF,
