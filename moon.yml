@@ -1,0 +1,19 @@
+# Root pseudo-project (source ".") — repo-wide tooling, not a component
+# from PLAN.md's Component inventory table.
+#
+# Holds the dependsOn drift-check task (seed.md §2 fallback; superseded by
+# moon-elixir-plugin in Stage 11) and gives `moon check --all` at least one
+# task to run at Stage 1, when no other project has real tasks yet. See
+# .moon/workspace.yml's header comment for why that's necessary.
+language: bash
+layer: tool
+
+tasks:
+  check-deps-drift:
+    description: "Diff declared moon.yml dependsOn against mix.exs path deps for every Elixir app (seed.md §2 fallback)."
+    command: "python3 check-deps-drift.py"
+    toolchain: "system"
+    inputs:
+      - "check-deps-drift.py"
+      - "*/mix.exs"
+      - "*/moon.yml"

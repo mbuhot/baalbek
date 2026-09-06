@@ -1,0 +1,5 @@
+# Stage 1 stub — see PLAN.md Component inventory.
+# Elixir. Rustler NIF facade; sole referencer of the `pricing` NIF module.
+# Real tasks land in Stage 4.
+language: elixir
+layer: library

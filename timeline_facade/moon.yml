@@ -1,0 +1,7 @@
+# Stage 1 stub — see PLAN.md Component inventory.
+# Elixir. Sole caller of the Gleam `timeline` modules; boundary-enforced.
+# The dependsOn edge to `timeline` (a non-Mix, cross-language edge) is
+# declared explicitly starting Stage 5, not inferred by the drift-check
+# script (check-deps-drift.py only reconciles Mix-to-Mix path deps).
+language: elixir
+layer: library

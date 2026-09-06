@@ -1,0 +1,7 @@
+# Stage 1 stub — see PLAN.md Component inventory.
+# TypeScript. Static site from project-graph JSON + git stats +
+# capabilities.yml. Real tasks land in Stage 10. Layered as `tool` (an
+# internal build/reporting artefact, not a customer-facing app) —
+# documented Stage 1 default, see the Stage 1 report's assumptions list.
+language: typescript
+layer: tool

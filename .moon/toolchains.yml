@@ -1,0 +1,25 @@
+# Moon toolchain configuration.
+# https://moonrepo.dev/docs/config/toolchain
+#
+# Stage 1 of PLAN.md ("Toolchain: proto owns everything"): enable node,
+# pnpm, typescript, rust, and system. versionFromPrototools: true on every
+# toolchain that supports it, so Moon reads versions from the root
+# .prototools instead of duplicating them here.
+#
+# Deliberately NOT enabled yet: a custom Elixir toolchain (PLAN.md says that
+# arrives in Stage 11 as moon-elixir-plugin). Elixir, Gleam, and Capacitor
+# projects fall back to the `system` toolchain until then — fine, since none
+# of them have real tasks at Stage 1.
+node:
+  versionFromPrototools: true
+
+pnpm:
+  versionFromPrototools: true
+
+typescript:
+  versionFromPrototools: true
+
+rust:
+  versionFromPrototools: true
+
+system: {}

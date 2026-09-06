@@ -1,0 +1,10 @@
+# Stage 1 stub — see PLAN.md Component inventory.
+# Capacitor wrapper over the PWA; Android (Gradle) + iOS (xcodebuild) run
+# as tier-0 `system` tasks (PLAN.md decisions table). No Moon-native
+# toolchain fits Capacitor/Gradle/xcodebuild, so `language` is set to the
+# custom value "system" here (documented Stage 1 default — see the Stage 1
+# report's assumptions list) rather than "typescript"; either way this
+# falls back to the `system` toolchain since no elixir/gleam/capacitor
+# toolchain plugin exists. Real tasks land in Stage 7.
+language: system
+layer: application

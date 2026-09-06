@@ -1,0 +1,5 @@
+# Stage 1 stub — see PLAN.md Component inventory.
+# Rust -> WASM. Mix path-dep inference; replaces check-deps-drift.py in
+# Stage 11. Real tasks land in Stage 11.
+language: rust
+layer: tool

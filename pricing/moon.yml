@@ -1,0 +1,7 @@
+# Stage 1 stub — see PLAN.md Component inventory.
+# Rust crate. Quote computation: travel + labour + parts. `cargo test`.
+# Sits outside Mix's dependency graph; the pricing -> pricing_native edge
+# is declared explicitly as dependsOn starting Stage 4 (PLAN.md "Two
+# facades, one pattern"), not inferred by the drift-check script.
+language: rust
+layer: library

@@ -1,0 +1,22 @@
+# Moon workspace configuration.
+# https://moonrepo.dev/docs/config/workspace
+#
+# Stage 1 of PLAN.md: register the 14 components from the Stage 0 skeleton,
+# plus a "root" pseudo-project (source ".") that owns repo-wide tooling —
+# currently just the dependsOn drift-check task (seed.md §2 fallback).
+#
+# NOTE: `root` is a 15th project not listed in PLAN.md's Component inventory
+# table. It exists purely so Moon has somewhere to hang the drift-check task;
+# `moon check --all` errors out (app::tty::required_id, observed against moon
+# 2.5.4 in this sandbox) when the whole workspace has zero tasks, which would
+# otherwise be the case until Stage 2 adds core's first real task. See
+# check-deps-drift.py's header comment and the Stage 1 report for detail.
+projects:
+  sources:
+    root: "."
+  globs:
+    - "*"
+
+vcs:
+  defaultBranch: "main"
+  provider: "github"

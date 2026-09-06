@@ -1,0 +1,5 @@
+# Stage 1 stub — see PLAN.md Component inventory.
+# Playwright / TypeScript. Depends on `server` + `web` builds. Real tasks
+# land in Stage 9.
+language: typescript
+layer: automation

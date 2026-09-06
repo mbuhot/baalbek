@@ -1,0 +1,5 @@
+# Stage 1 stub — see PLAN.md Component inventory.
+# Elixir / Phoenix. Release assembly; HTTP surface; depends on all domain
+# apps. Real tasks land in Stage 6.
+language: elixir
+layer: application

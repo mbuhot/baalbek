@@ -1,0 +1,5 @@
+# Stage 1 stub — see PLAN.md Component inventory.
+# TypeScript. PWA: dispatch board + technician view. Real tasks land in
+# Stage 6.
+language: typescript
+layer: application

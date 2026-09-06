@@ -1,0 +1,5 @@
+# Stage 1 stub — see PLAN.md Component inventory.
+# Elixir / Ash. Schema `core`: jobs, customers, sites, work orders.
+# Publishes OpenAPI. Real tasks (ExUnit, etc.) land in Stage 2.
+language: elixir
+layer: library

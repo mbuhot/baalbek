@@ -1,0 +1,5 @@
+# Stage 1 stub — see PLAN.md Component inventory.
+# TypeScript (generated) from `core`'s OpenAPI spec. Build-time edge to
+# `core` lands in Stage 6, when generation is wired up.
+language: typescript
+layer: library
