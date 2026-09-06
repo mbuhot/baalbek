@@ -1,5 +1,97 @@
-# Stage 1 stub — see PLAN.md Component inventory.
-# Elixir / Phoenix. Release assembly; HTTP surface; depends on all domain
-# apps. Real tasks land in Stage 6.
+# Stage 6 of PLAN.md: `server` release, OpenAPI generated from Ash, first
+# real Mix path deps on sibling apps (`boundary`'s cross-app check turns
+# on — see mix.exs). Task shape mirrors core/moon.yml's Postgres-bootstrap
+# pattern; see server/README.md for why `server` bootstraps three schemas
+# but has no Ecto Repo of its own.
 language: elixir
 layer: application
+
+# Elixir-to-Elixir slice of mix.exs's path deps, checked against this list
+# by check-deps-drift.py. `pricing_native` and `timeline_facade` are
+# themselves Elixir path deps of `server` (unlike their own dependsOn on
+# the non-Mix `pricing`/`timeline` projects), so they belong here too.
+dependsOn:
+  - "core"
+  - "identity"
+  - "billing"
+  - "pricing_native"
+  - "timeline_facade"
+
+tasks:
+  test:
+    description: >-
+      Fetch Mix deps (pulling in all five domain apps as real path deps),
+      bootstrap `core`'s, `identity`'s, and `billing`'s Postgres
+      roles/schemas (idempotent — `server` boots all three as part of its
+      dependency tree, per each app's own `Application.start/2`), create +
+      migrate only `core`'s test database (the one `server`'s own tests
+      exercise), then run the ExUnit suite: real HTTP requests through
+      `ServerWeb.Endpoint` against `core`'s JSON:API routes. `CARGO_TARGET_DIR`
+      is redirected for the same virtiofs reason documented in
+      pricing_native/moon.yml — compiling `pricing_native` as a path dep of
+      `server` hits the same rustc/virtiofs directory-creation race
+      otherwise. Requires a live Postgres (the `postgres` service in
+      .devcontainer/docker-compose.yml).
+    command: "bash"
+    args:
+      - "-lc"
+      - >-
+        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/pricing_native-native-pricingnative" &&
+        mix deps.get &&
+        mix core.bootstrap &&
+        mix identity.bootstrap &&
+        mix billing.bootstrap &&
+        MIX_ENV=test mix ecto.create -r Core.Data.Repo --quiet &&
+        MIX_ENV=test mix ecto.migrate -r Core.Data.Repo --quiet &&
+        MIX_ENV=test mix test
+    toolchain: "system"
+    inputs:
+      - "mix.exs"
+      - "mix.lock"
+      - ".formatter.exs"
+      - "config/**/*"
+      - "lib/**/*"
+      - "test/**/*"
+      # Not Mix path deps Moon can see as file globs under this project's
+      # own directory (mirrors pricing_native/moon.yml's same comment) —
+      # these `project://` references fold their contents into this
+      # task's hash so a source change in any of them invalidates the
+      # cache too.
+      - "project://core"
+      - "project://identity"
+      - "project://billing"
+      - "project://pricing_native"
+      - "project://timeline_facade"
+
+  openapi:
+    description: >-
+      Generates `priv/static/openapi.json` from `Server.Api`'s
+      `AshJsonApi.Domain` definition (PLAN.md "OpenAPI generated from
+      Ash" / seed.md §6 "Runtime edges become build-time edges") — a
+      build output a later `core-api-client` Moon task can declare as an
+      input. Boots the full `:server` application first (so
+      `ServerWeb.JsonApiRouter.spec/0` can introspect the compiled routes),
+      hence the same Postgres bootstrap as the `test` task, even though
+      spec generation itself never queries the database.
+    command: "bash"
+    args:
+      - "-lc"
+      - >-
+        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/pricing_native-native-pricingnative" &&
+        mix deps.get &&
+        mix core.bootstrap &&
+        mix identity.bootstrap &&
+        mix billing.bootstrap &&
+        mix openapi.spec.json --spec ServerWeb.JsonApiRouter --pretty=true priv/static/openapi.json
+    toolchain: "system"
+    inputs:
+      - "mix.exs"
+      - "mix.lock"
+      - "lib/**/*"
+      - "project://core"
+      - "project://identity"
+      - "project://billing"
+      - "project://pricing_native"
+      - "project://timeline_facade"
+    outputs:
+      - "priv/static/openapi.json"
