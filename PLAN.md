@@ -80,6 +80,14 @@ Same image runs CI, so an under-declared task input fails immediately.
 
 `pricing` (Rust) and `timeline` (Gleam) both sit outside Mix's dependency graph. Each gets a thin Elixir facade app, and each cross-language edge is declared explicitly in `moon.yml` as `dependsOn`. This is what makes a Rust or Gleam change invalidate the Elixir suites. `boundary` enforces that no other app reaches past the facade.
 
+### Boundary enforcement, in-app and cross-app
+
+Added mid-build (before Stage 3), applying retroactively to `core` (Stage 2) as a fast-follow:
+
+- **Ash apps** (`core`, `identity`, `billing`, and any future Ash-domain app) use [`ash_boundary`](https://github.com/mbuhot/ash_boundary) instead of a hand-rolled `use Boundary` on a plain module. It's a Spark DSL extension on `Ash.Domain` that derives the `boundary` declaration from the domain DSL itself: `exports` automatically becomes the domain module plus every resource with at least one domain-level `define` (code interface) — so the public surface tracks the domain instead of being hand-maintained. The underlying `boundary` compiler (`compilers: [:boundary] ++ Mix.compilers()` — order still matters, per Stage 2's caught bug) still does the actual enforcement.
+- **Non-Ash facade apps** (`pricing_native`, `timeline_facade`) keep a hand-written `use Boundary` — `ash_boundary` doesn't apply where there's no Ash Domain.
+- **Cross-*app* enforcement is a real `boundary` feature**, not just in-app: a dependent poncho app can set `boundary: [default: [check: [apps: [:some_dep]]]]` in its own `mix.exs`, and `boundary` will then check that app's calls into `:some_dep`'s modules against whatever `deps`/`exports` `some_dep` itself declared (hand-written or `ash_boundary`-derived). This is the mechanism for enforcing that, e.g., `server` (Stage 6) can only reach each domain app's declared public interface once it takes a real Mix path dependency on it — not a theoretical concern, since `boundary`'s own docs document exactly this ("Restricting usage of external apps"). Not exercised yet in Stages 3–5, since none of those apps take a Mix path dependency on another sibling app yet; becomes real and testable starting Stage 6.
+
 ## Data layer
 
 - One Postgres database, one schema per owning component.
