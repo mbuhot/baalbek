@@ -1,5 +1,5 @@
 # Loads timeline's compiled Gleam/Erlang output onto this project's code
-# path. Runs on every mix command. See docs/adr-0001-gleam-elixir-interop.md
+# path. Runs on every mix command. See spec/decisions/adr-0001-gleam-elixir-interop.md
 # for why (Mix path deps need a manifest file timeline doesn't have; not a
 # real dependency, so building timeline first is timeline:test's job, via
 # the dependsOn in this project's moon.yml).

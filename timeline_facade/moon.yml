@@ -12,7 +12,7 @@ tasks:
       Runs the ExUnit suite against timeline's compiled Gleam output.
       Also runs a compensating check standing in for boundary, which
       cannot classify Gleam's bare-atom modules (see
-      docs/adr-0001-gleam-elixir-interop.md).
+      spec/decisions/adr-0001-gleam-elixir-interop.md).
     command: "bash"
     args:
       - "scripts/moon-test.sh"
@@ -29,3 +29,12 @@ tasks:
       - "lib/**/*"
       - "test/**/*"
       - "scripts/moon-test.sh"
+      # `timeline` is a Gleam project, not a Mix path dep, so Moon sees no
+      # file glob for it under this project's directory. `deps:
+      # [timeline:test]` above is a *sequencing* edge only — that task
+      # declares no `outputs`, so it contributes nothing to this task's
+      # hash (the same rule pricing_native/moon.yml documents). Without
+      # this `project://` input a Gleam source change left this task on a
+      # cache hit, replaying a stale pass. See
+      # ../spec/decisions/adr-0002-cross-language-edges-need-project-inputs.md.
+      - "project://timeline"

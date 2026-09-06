@@ -20,8 +20,25 @@ sentence. A comment longer than the code it describes is a defect.
   internal complexity next to the code it concerns, never in the header.
 - A config file's or task's comment is one line. A private-function comment is one sentence.
 - Rationale, tradeoffs, alternatives considered, and the history of a decision live in commit
-  messages and ADRs (`spec/decisions/`, once Stage 8 lands) — never in code comments. A comment
+  messages and ADRs (`spec/decisions/`) — never in code comments. A comment
   states only a constraint the code cannot show, in one line, naming the specific value or case.
 - Never describe what the code used to do, unless it carries a real compatibility affordance for it.
 - Don't commit intermediate or superseded planning/scratch artefacts — drop iteration debris
   before a stage is committed.
+
+## Specification directories
+
+A component's `spec/` directory holds its specification (seed.md §8), and only what it genuinely
+has: `features/` (Gherkin acceptance criteria, executed by ExUnit), `mocks/` (dated UI mock
+snapshots), `decisions/` (ADRs). Never create an empty one to complete the pattern.
+
+- ADR conventions — numbering, the immutability rule, where a cross-component decision goes —
+  live in `spec/decisions/README.md`. An ADR is the one place longer rationale prose is correct.
+- Gherkin features are executable. A `.feature` file with no wired steps is a defect, not a
+  placeholder.
+
+## Test tree layout (Elixir)
+
+`test/` mirrors `lib/`: `test/a/b_test.exs` covers `lib/a/b.ex`, `test/a/` covers `lib/a/`.
+`test-paths.py` owns that mapping — `--check` enforces it as the `root:test` Moon task, and
+`--select` backs each app's `mix test.changed`. Move tests when you move code.

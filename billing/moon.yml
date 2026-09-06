@@ -35,4 +35,5 @@ tasks:
       - "config/**/*"
       - "lib/**/*"
       - "priv/**/*"
+      - "spec/**/*"
       - "test/**/*"

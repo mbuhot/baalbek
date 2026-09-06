@@ -6,16 +6,26 @@
 language: elixir
 layer: application
 
-# Elixir-to-Elixir slice of mix.exs's path deps, checked against this list
-# by check-deps-drift.py. `pricing_native` and `timeline_facade` are
-# themselves Elixir path deps of `server` (unlike their own dependsOn on
-# the non-Mix `pricing`/`timeline` projects), so they belong here too.
+# The first five are the Elixir-to-Elixir slice of mix.exs's path deps,
+# checked against this list by check-deps-drift.py; `pricing_native` and
+# `timeline_facade` are themselves Elixir path deps of `server`, so they
+# belong there too.
+#
+# `pricing` (Rust) and `timeline` (Gleam) are not Mix path deps and are
+# correctly ignored by check-deps-drift.py's Mix-only comparison. They are
+# declared here because Moon only accepts a `project://` input naming a
+# *direct* project dependency, and `test` needs both to invalidate on a
+# crate or Gleam source change — a `project://` on the facade covers the
+# facade's own files only. See
+# ../spec/decisions/adr-0002-cross-language-edges-need-project-inputs.md.
 dependsOn:
   - "core"
   - "identity"
   - "billing"
   - "pricing_native"
   - "timeline_facade"
+  - "pricing"
+  - "timeline"
 
 tasks:
   test:
@@ -51,6 +61,7 @@ tasks:
       - ".formatter.exs"
       - "config/**/*"
       - "lib/**/*"
+      - "spec/**/*"
       - "test/**/*"
       # Not Mix path deps Moon can see as file globs under this project's
       # own directory (mirrors pricing_native/moon.yml's same comment) —
@@ -62,6 +73,13 @@ tasks:
       - "project://billing"
       - "project://pricing_native"
       - "project://timeline_facade"
+      # `pricing_native` and `timeline_facade` are Mix path deps of this
+      # app, but the crate and the Gleam package behind them are not — a
+      # `project://` on the facade alone stops at the facade's own files.
+      # Both foreign sources need their own entry or a change in either
+      # leaves this task on a stale cache hit.
+      - "project://pricing"
+      - "project://timeline"
 
   openapi:
     description: >-

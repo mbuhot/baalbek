@@ -13,8 +13,13 @@ defmodule Billing.MixProject do
       # :boundary registers its `after_compiler` callback, so the check
       # silently never runs. Verified fixed here the same way core did.
       compilers: [:boundary] ++ Mix.compilers(),
+      aliases: aliases(),
       deps: deps()
     ]
+  end
+
+  def cli do
+    [preferred_envs: ["test.changed": :test]]
   end
 
   def application do
@@ -22,6 +27,37 @@ defmodule Billing.MixProject do
       mod: {Billing.Application, []},
       extra_applications: [:logger]
     ]
+  end
+
+  defp aliases do
+    ["test.changed": &test_changed/1]
+  end
+
+  # Runs only the test paths mirroring the lib/ files changed since the base
+  # ref; ../test-paths.py owns the mapping (seed.md §7.3).
+  defp test_changed(args) do
+    {out, 0} =
+      System.cmd("python3", [
+        Path.join(__DIR__, "../test-paths.py"),
+        "--select",
+        "--app",
+        Path.basename(__DIR__) | args
+      ])
+
+    case String.split(out, "\n", trim: true) do
+      [] ->
+        Mix.shell().info("test.changed: nothing changed in this app — no tests selected")
+
+      paths ->
+        Mix.shell().info("""
+        test.changed: running #{Enum.join(paths, " ")}
+          Path selection is a pre-merge gate, not a proof of coverage: a test that \
+        covers this change from another path is not selected. Run `mix test` for the \
+        full suite before relying on this.
+        """)
+
+        Mix.Task.run("test", paths)
+    end
   end
 
   defp deps do
@@ -35,7 +71,8 @@ defmodule Billing.MixProject do
       # Hex version pin would be.
       {:ash_boundary,
        git: "https://github.com/mbuhot/ash_boundary.git",
-       ref: "8e358e3f292725151eb03e147150db4750c498ac"}
+       ref: "8e358e3f292725151eb03e147150db4750c498ac"},
+      {:cucumber, "~> 1.0", only: [:dev, :test]}
     ]
   end
 end

@@ -16,5 +16,5 @@ cd ../timeline_facade && mix deps.get && mix test
 
 Or via Moon: `moon run timeline:test timeline_facade:test`.
 
-See `docs/adr-0001-gleam-elixir-interop.md` for how this project loads
+See `spec/decisions/adr-0001-gleam-elixir-interop.md` for how this project loads
 timeline's compiled Gleam output with no Mix dependency between them.

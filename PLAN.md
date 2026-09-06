@@ -114,7 +114,7 @@ Each stage ends green on the gates named. A passing gate is not re-run.
 | 6c | `server` release assembly + Gleam-in-release packaging (see below) | release boots and serves, with `timeline_facade` working |
 | 7 | `mobile` — Capacitor wrapper, Android + iOS system tasks | `moon run mobile:build` |
 | 8 | `spec/` per component: `features/`, `mocks/`, `decisions/`; Gherkin wired to ExUnit; path-based within-app test selection | `moon run :test` |
-| 9 | `e2e` Playwright against the built server + PWA | `moon run e2e:test` |
+| 9 | `e2e` Playwright against the **dockerized** release stack, not a dev server (see below) | `moon run e2e:test` |
 | 10 | `explorer` static site | `moon run explorer:build` |
 | 11 | `moon-elixir-plugin` — Rust→WASM, parses `mix.exs` path deps, replaces the drift-check | `moon run moon-elixir-plugin:test`, then `moon check --all` |
 | 12 | CI in the sandbox image, `moon ci`, README | full `moon ci` |
@@ -130,6 +130,14 @@ Added mid-build, after Stage 6 shipped the HTTP surface but not the "release ass
 This is the classic passes-tests-fails-in-production shape, currently latent only because nothing builds a release yet. `prune_code_paths: false` in that same file is the tell: it exists to stop Mix pruning a path Mix was never told about.
 
 Stage 6c closes both gaps together: real `releases:` config for `server` (plus the release Dockerfile the Sandbox section implies), and packaging `timeline`'s output as something a release genuinely includes — most likely a real OTP application the release recognises, rather than a runtime path hack. The gate is behavioural, not structural: the built release must boot, serve the JSON:API, and successfully call through `timeline_facade` into Gleam code, proving the `.beam` files are actually in the release rather than smuggled in by `mix.exs` evaluation.
+
+### Stage 9: e2e runs against the dockerized release, not a dev server
+
+The e2e suite targets a **containerised stack running the `MIX_ENV=prod` release** from Stage 6c — server image plus Postgres, composed, configured by environment variables — never `mix phx.server` in dev mode against a developer's local database.
+
+Rationale: a dev-server e2e proves the app works in a configuration nobody deploys. Running against the real release artifact exercises what actually ships — prod config and its runtime env-var reading, the release's own boot sequence and supervision tree, compile-time-vs-runtime config separation, and asset/static-file serving as built rather than as dev-reloaded. It also converts Stage 6c's Gleam-in-release concern from a one-time check into a standing one: if a future change stops the release bundling `timeline`'s BEAM files, an e2e test touching a timeline-backed endpoint fails, rather than the problem surfacing on someone's first real deploy.
+
+Consequence for the Moon graph: `e2e:test` depends on the release image build (and `web`'s build), not on source. Playwright talks to the composed stack over HTTP at a configured base URL, so the same suite can point at a deployed environment unchanged.
 
 ## Test selection
 

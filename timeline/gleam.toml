@@ -6,7 +6,7 @@ version = "0.1.0"
 # connecting via `pog` as the `timeline` role (PLAN.md "Data layer").
 #
 # `timeline_facade` (Elixir) is this project's sole caller — see that
-# project's mix.exs and ../timeline_facade/docs/adr-0001-gleam-elixir-interop.md for exactly
+# project's mix.exs and ../timeline_facade/spec/decisions/adr-0001-gleam-elixir-interop.md for exactly
 # how a plain Mix project (no gleam.toml, no mix_gleam) loads this
 # project's compiled `.beam` output from its own code path.
 

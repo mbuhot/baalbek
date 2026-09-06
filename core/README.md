@@ -17,8 +17,17 @@ dispatch domain). Publishes OpenAPI in Stage 6 — out of scope here.
 - **Schema + role**: owns Postgres schema `core`, connects only as the
   dedicated `core` Postgres role (never the superuser). See
   `priv/repo/bootstrap.sql` and `lib/mix/tasks/core.bootstrap.ex`.
-- **ExUnit** (`test/core/domain_test.exs`): create/read/update/destroy and
-  relationship-loading, run against the real schema/role.
+- **ExUnit** (`test/core/`): `customer_test.exs` and `job_test.exs` mirror
+  their resources, `domain_test.exs` covers the relationships spanning them.
+  All run against the real schema/role.
+
+## Stage 8
+
+- **`spec/features/job_dispatch.feature`** — the acceptance criteria for
+  dispatching field work, executed by ExUnit through `cucumber`. Steps and
+  the sandbox hook sit beside it in `spec/features/`.
+- **`mix test.changed`** runs only the tests mirroring the `lib/` files
+  changed since `main`. `../test-paths.py` owns the mapping.
 
 ## Local setup
 

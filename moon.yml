@@ -1,10 +1,12 @@
 # Root pseudo-project (source ".") — repo-wide tooling, not a component
 # from PLAN.md's Component inventory table.
 #
-# Holds the dependsOn drift-check task (seed.md §2 fallback; superseded by
-# moon-elixir-plugin in Stage 11) and gives `moon check --all` at least one
-# task to run at Stage 1, when no other project has real tasks yet. See
-# .moon/workspace.yml's header comment for why that's necessary.
+# Holds the two repo-wide convention checks — the dependsOn drift-check
+# (seed.md §2 fallback; superseded by moon-elixir-plugin in Stage 11) and the
+# lib/<area> -> test/<area> mirroring check (seed.md §7.3) — and gives
+# `moon check --all` at least one task to run at Stage 1, when no other
+# project has real tasks yet. See .moon/workspace.yml's header comment for
+# why that's necessary.
 language: bash
 layer: tool
 
@@ -17,3 +19,18 @@ tasks:
       - "check-deps-drift.py"
       - "*/mix.exs"
       - "*/moon.yml"
+
+  # Named `test`, not `check-test-paths`, so `moon run :test` (PLAN.md's
+  # Stage 8 gate) sweeps up the repo-wide convention checks alongside every
+  # project's own suite. `boundary` cannot see the test tree, so this
+  # convention is all that holds the within-app mapping honest.
+  test:
+    description: "Check the lib/<area> -> test/<area> mirroring every Elixir app's `mix test.changed` selects from (seed.md §7.3)."
+    command: "python3 test-paths.py --check"
+    toolchain: "system"
+    deps:
+      - "~:check-deps-drift"
+    inputs:
+      - "test-paths.py"
+      - "*/lib/**/*.ex"
+      - "*/test/**/*_test.exs"

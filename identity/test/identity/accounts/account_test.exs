@@ -1,4 +1,4 @@
-defmodule Identity.AccountTest do
+defmodule Identity.Accounts.AccountTest do
   @moduledoc """
   Exercises `Identity.Accounts.Account`'s Ash actions — registration,
   authentication, password change, and validation — against the real

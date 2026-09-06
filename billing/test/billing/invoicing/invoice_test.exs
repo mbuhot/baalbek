@@ -1,4 +1,4 @@
-defmodule Billing.InvoiceTest do
+defmodule Billing.Invoicing.InvoiceTest do
   @moduledoc """
   Exercises `Billing.Invoicing.Invoice`'s lifecycle (draft -> issued ->
   paid, plus void) and `Billing.Invoicing.InvoiceLineItem` against the

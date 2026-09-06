@@ -19,5 +19,5 @@ gleam test
 Or via Moon: `moon run timeline:test`.
 
 `timeline_facade` (Elixir) is this project's sole caller. See
-`../timeline_facade/docs/adr-0001-gleam-elixir-interop.md` for how that
+`../timeline_facade/spec/decisions/adr-0001-gleam-elixir-interop.md` for how that
 works with no Mix dependency between them.

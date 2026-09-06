@@ -43,6 +43,18 @@
   JSON:API response status/body — list/get/create/update/destroy for
   `Customer`, lighter coverage for `Site`/`Job`/`WorkOrder`.
 
+## Stage 8
+
+- **`spec/features/core_json_api.feature`** — the acceptance criteria for the
+  HTTP contract `core-api-client` is generated from, executed by ExUnit
+  through `cucumber` as real requests via `Phoenix.ConnTest`. Steps and the
+  sandbox hook sit beside it in `spec/features/`.
+- **`mix test.changed`** runs only the tests mirroring the `lib/` files
+  changed since `main`. `lib/server/api/*` has no mirrored test path, so a
+  change there selects the whole suite — deliberately, since those resources
+  are exercised through HTTP by `test/server_web/`. See
+  `../spec/decisions/adr-0005-within-app-test-selection-by-path.md`.
+
 ### Why `server` has no Ecto Repo or Postgres role/schema of its own
 
 `server` is a pure HTTP/assembly layer (PLAN.md's component inventory:

@@ -59,6 +59,16 @@ only import the public `core-api-client` entry point. `lint` is its own
 Moon task (independently runnable), and `test` depends on it, so the Stage 6
 gate (`moon run web:test`) enforces it too.
 
+## Stage 8
+
+`spec/mocks/` holds dated snapshots of what the dispatch board and technician
+view were meant to be when they were built, and `spec/mocks/README.md`
+explains why they are never updated. `spec/decisions/` records why `web:test`
+depends on `web:build`.
+
+No `spec/features/` here: Gherkin in this repo is wired to ExUnit, and the
+UI's acceptance layer is the Playwright suite in `e2e` (Stage 9).
+
 ## Local setup
 
 ```bash

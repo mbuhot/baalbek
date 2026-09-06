@@ -10,7 +10,7 @@ mix deps.get
 
 # Compensating check: boundary cannot classify Gleam's bare-atom modules,
 # so it cannot enforce "sole caller of :timeline" here. See
-# docs/adr-0001-gleam-elixir-interop.md.
+# spec/decisions/adr-0001-gleam-elixir-interop.md.
 matches="$(grep -rn ':timeline\.' lib --include='*.ex' 2>/dev/null | grep -v '^lib/timeline_facade/gleam.ex:' || true)"
 if [ -n "$matches" ]; then
   echo "$matches"

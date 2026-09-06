@@ -1,14 +1,13 @@
 # ADR-0001: Gleam ↔ Elixir build integration on the BEAM
 
-**Status:** Accepted (Stage 5)
+**Status:** Accepted
+**Date:** 2026-09-06
+**Stage:** 5
+
 **Context:** PLAN.md's own "Open risks" table flags this as unsettled:
 "Gleam compiles to Erlang `.beam` output consumed by the facade app; the
 edge is a declared Moon `dependsOn`. Settle the exact mechanism in stage 5
 and record it as an ADR."
-
-A proper `spec/decisions/` ADR directory convention lands in Stage 8; this
-file is deliberately just a markdown file in the meantime, for Stage 8 (or
-anyone else) to relocate.
 
 ## Decision
 

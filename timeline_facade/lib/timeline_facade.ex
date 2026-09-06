@@ -6,7 +6,7 @@ defmodule TimelineFacade do
   mix.exs) and exposes an idiomatic Elixir surface over it: atoms for
   status, `nil` for "no site", plain `:ok`/`:error` tuples. The raw Gleam
   calls live in `TimelineFacade.Gleam`, a sub-boundary nothing else may
-  reach. See docs/adr-0001-gleam-elixir-interop.md for the full interop
+  reach. See spec/decisions/adr-0001-gleam-elixir-interop.md for the full interop
   story.
   """
 
