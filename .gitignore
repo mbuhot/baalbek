@@ -1,3 +1,12 @@
 # moon
 .moon/cache
 .moon/docker
+
+# Elixir (poncho-style: one set of patterns here covers every Mix project
+# added under the repo root, per-project mix.exs directories included —
+# no per-app .gitignore duplication needed, see Stage 2 report).
+_build/
+deps/
+*.ez
+erl_crash.dump
+.elixir_ls/
