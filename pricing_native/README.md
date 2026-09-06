@@ -4,8 +4,47 @@
 
 **Purpose:** Rustler NIF facade; sole referencer of the NIF module.
 
-`boundary` enforces that no other app references the NIF module directly.
-Not a precompiled-binary NIF — the `pricing` crate compiles as a real,
-declared source dependency (see PLAN.md §3 "Rust: NIF behind a facade app").
-Skeleton only (Stage 0) — no `mix.exs` or `moon.yml` yet; those land in
-Stage 1 and Stage 4.
+## Stage 4 (this stage)
+
+- **`PricingNative.quote/3`** (`lib/pricing_native.ex`) is the only
+  sanctioned entry point: takes plain maps for travel/labour params and a
+  list of parts maps, calls through to the compiled NIF, and returns a map
+  breakdown (`travel_cents`, `labour_cents`, `parts_cents`, `total_cents`).
+- **`PricingNative.Native`** (`lib/pricing_native/native.ex`) is the raw
+  Rustler NIF module — `use Boundary, exports: []`, a sub-boundary of
+  `PricingNative` that exports nothing beyond itself, so only `PricingNative`
+  (its parent boundary) may call it. Verified with a throwaway probe module
+  (`lib/probe.ex`, a top-level module *outside* the `PricingNative`
+  namespace declaring no dependency on it) that called
+  `PricingNative.Native.quote/6` directly: `mix compile --warnings-as-errors`
+  failed with `forbidden reference to PricingNative.Native`, as expected.
+  The probe was deleted afterward; compilation is clean again.
+- **`native/pricingnative/`** is the actual Rustler NIF crate: a Cargo
+  *path* dependency on `../../../pricing` (real source compilation, no
+  precompiled binary, per PLAN.md's explicit instruction that a precompiled
+  binary defeats the point of this stage), wrapping `pricing::quote` behind
+  primitive-typed `#[rustler::nif]` functions.
+- **Declared cross-language edge**: `moon.yml` has both a project-level
+  `dependsOn: [pricing]` (ownership/graph-structure) and a
+  `project://pricing` task input (the thing that actually folds `pricing`'s
+  file contents into this task's Moon cache hash — see `moon.yml`'s
+  comments for why the `dependsOn`/`deps:` edges alone weren't enough).
+
+## Local setup
+
+```bash
+cd pricing_native
+mix deps.get
+mix test
+```
+
+Or, via Moon: `moon run pricing_native:test` from the repo root.
+
+No database, no `Application` supervision tree — this app's only job is
+hosting the NIF, so there's nothing to boot.
+
+Note: this sandbox mounts the repo over virtiofs, which was observed
+(Stage 4 development) to occasionally fail the Rustler-invoked `cargo rustc`
+subprocess's concurrent target-dir directory creation with a spurious
+`EEXIST`. The Moon task, and the commands above, redirect `CARGO_TARGET_DIR`
+under `$HOME` to avoid it.

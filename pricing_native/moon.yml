@@ -1,5 +1,59 @@
-# Stage 1 stub — see PLAN.md Component inventory.
-# Elixir. Rustler NIF facade; sole referencer of the `pricing` NIF module.
-# Real tasks land in Stage 4.
+# Stage 4 of PLAN.md: Elixir Rustler NIF facade for the `pricing` crate.
+# `boundary` enforces that PricingNative.Native (the raw NIF module) is
+# reachable only from PricingNative itself; PricingNative.quote/3 is the
+# sole sanctioned entry point.
+#
+# `pricing` compiles outside Mix's dependency graph (native/pricingnative's
+# Cargo.toml has a Cargo *path* dependency on ../../../pricing, invisible to
+# Moon and to check-deps-drift.py's Mix-only comparison), so this dependsOn
+# is hand-declared per seed.md §3 ("Rust: NIF behind a facade app") and
+# PLAN.md's "Two facades, one pattern": it's what makes a `pricing` source
+# change invalidate this project's cached Moon test results.
 language: elixir
 layer: library
+
+dependsOn:
+  - "pricing"
+
+tasks:
+  test:
+    description: >-
+      Fetch Mix deps (pulling in :rustler), compile the pricingnative NIF
+      crate from source (no precompiled binary — PLAN.md is explicit that a
+      binary artefact has no source dependency edge, which would defeat the
+      point of this stage), then run the ExUnit suite, which calls
+      PricingNative.quote/3 through the real compiled NIF. Elixir isn't a
+      Moon-native toolchain yet (Stage 11 adds moon-elixir-plugin), so this
+      is declared as a `system` task that shells out to `mix`, resolved via
+      proto's PATH activation. CARGO_TARGET_DIR is redirected under $HOME
+      for the same virtiofs reason documented in pricing/moon.yml's test
+      task — the Rustler-invoked `cargo rustc` subprocess inherits it same
+      as a direct `cargo test` would.
+    deps:
+      - "pricing:test"
+    command: "bash"
+    args:
+      - "-lc"
+      - >-
+        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/pricing_native-native-pricingnative" &&
+        mix deps.get &&
+        mix test
+    toolchain: "system"
+    inputs:
+      - "mix.exs"
+      - "mix.lock"
+      - ".formatter.exs"
+      - "lib/**/*"
+      - "native/**/*"
+      - "test/**/*"
+      # The `pricing` crate is a Cargo path dependency of
+      # native/pricingnative, invisible to Moon as a file glob under this
+      # project's own directory. `deps: [pricing:test]` above only gives a
+      # *sequencing* edge (pricing:test has no declared `outputs`, so per
+      # Moon's docs its cacheStrategy defaults to "ignored" for hashing
+      # purposes — verified empirically during Stage 4 development: a
+      # `pricing`-only source change did NOT change this task's hash until
+      # this line was added). This `project://` external-input reference is
+      # what actually folds pricing's file contents into this task's hash,
+      # so a `pricing` source change invalidates this task's cache too.
+      - "project://pricing"

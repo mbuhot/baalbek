@@ -1,0 +1,15 @@
+[package]
+name = "pricing"
+version = "0.1.0"
+edition = "2021"
+description = "Field-service job quote computation: travel + labour + parts."
+publish = false
+
+# Deliberately no dependencies. Per PLAN.md's Component inventory and
+# seed.md §3 ("Rust: NIF behind a facade app"), this crate's public API is
+# consumed by pricing_native's Rustler NIF wrapper, so every public type is
+# a plain struct built from primitives Rustler natively understands
+# (f64, i64, u32) — no custom Encoder/Decoder impls needed here, and no
+# reason to pull in anything beyond the standard library for a handful of
+# arithmetic functions.
+[dependencies]

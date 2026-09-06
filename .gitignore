@@ -10,3 +10,20 @@ deps/
 *.ez
 erl_crash.dump
 .elixir_ls/
+
+# Rust (pricing crate + pricing_native's native/pricingnative Rustler NIF
+# crate, Stage 4). Build output for both actually lands under
+# $HOME/.cache/baalbek-cargo-target/* (see pricing/moon.yml and
+# pricing_native/moon.yml — a virtiofs workaround), but a plain `cargo
+# test`/`cargo build` run without that env var falls back to an in-tree
+# target/, so it's still ignored defensively. Cargo.lock is NOT ignored —
+# committed for the same hermeticity reason core's mix.lock is committed.
+target/
+
+# Rustler copies the compiled NIF shared library here at build time
+# (pricing_native/priv/native/pricingnative.so); it's a build artefact of
+# native/pricingnative's source, not source itself. Unanchored (**/) since
+# a mid-pattern slash otherwise anchors the match to the repo root, which
+# would only match a nonexistent top-level priv/native/ and silently let
+# the real nested pricing_native/priv/native/ path get committed.
+**/priv/native/

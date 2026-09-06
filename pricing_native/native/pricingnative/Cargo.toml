@@ -1,0 +1,20 @@
+[package]
+name = "pricingnative"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "pricingnative"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+rustler = "0.38"
+
+# Cargo path dependency on the `pricing` crate (seed.md §3, "Rust: NIF
+# behind a facade app"). This is what makes the NIF compile from `pricing`'s
+# actual source at build time rather than a precompiled binary — Moon can't
+# see this edge the way it sees a Mix path dep, which is exactly why
+# pricing_native/moon.yml hand-declares a `dependsOn: [pricing]`.
+pricing = { path = "../../../pricing" }
