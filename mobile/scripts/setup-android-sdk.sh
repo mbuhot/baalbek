@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# Idempotent Android SDK bootstrap for `mobile:build-android` (PLAN.md Stage 7).
+# Installs OS-level SDK components Gradle needs to build the Capacitor
+# Android project — not proto-managed (no first-party or asdf plugin
+# covers the Android SDK; see mobile/README.md), same category as the apt
+# packages the Stage 0 Dockerfile installs for OTP/Rustler builds. Safe
+# to re-run: every step checks for its own prior effect first.
+set -euo pipefail
+
+ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$HOME/.android-sdk}"
+CMDLINE_TOOLS_BUILD="9862592" # pinned: Android cmdline-tools, checked 2026-09-06
+PLATFORM="android-36"
+BUILD_TOOLS="36.0.0"
+
+echo "==> Android SDK root: $ANDROID_SDK_ROOT"
+
+if [ ! -x "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
+  echo "==> Downloading Android cmdline-tools (build $CMDLINE_TOOLS_BUILD)"
+  tmp_zip="$(mktemp -d)/cmdline-tools.zip"
+  curl -sL -o "$tmp_zip" \
+    "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_BUILD}_latest.zip"
+  tmp_extract="$(mktemp -d)"
+  unzip -q "$tmp_zip" -d "$tmp_extract"
+  mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+  mv "$tmp_extract/cmdline-tools/"* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
+  rm -rf "$tmp_zip" "$tmp_extract"
+fi
+
+SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+
+if [ ! -d "$ANDROID_SDK_ROOT/licenses" ]; then
+  echo "==> Accepting Android SDK licenses"
+  yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null
+fi
+
+echo "==> Installing platforms;$PLATFORM, build-tools;$BUILD_TOOLS"
+"$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" \
+  "platforms;$PLATFORM" "build-tools;$BUILD_TOOLS" >/dev/null
+
+# aapt2 (bundled in build-tools) has no linux-aarch64 native build — Google
+# publishes "linux" (x86_64), "osx", and "windows" classifiers only, verified
+# against the aapt2 Maven artifact for every AGP release up to 9.4.0 as of
+# this writing. On an aarch64 host, run it under qemu user-mode emulation:
+# real x86_64 aapt2, genuinely executed, just CPU-emulated — not a fake or a
+# skip. x86_64 Linux and macOS hosts need none of this block.
+if [ "$(uname -m)" = "aarch64" ]; then
+  if [ ! -e /proc/sys/fs/binfmt_misc/qemu-x86_64 ]; then
+    echo "==> Registering qemu-user x86_64 binfmt handler (aarch64 host)"
+    command -v qemu-x86_64 >/dev/null || {
+      echo "error: qemu-x86_64 not installed. Run: sudo apt-get install -y qemu-user-binfmt" >&2
+      exit 1
+    }
+    [ -e /proc/sys/fs/binfmt_misc/register ] || sudo mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc
+    sudo bash -c 'echo ":qemu-x86_64:M::\x7f\x45\x4c\x46\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x3e\x00:\xff\xff\xff\xff\xff\xfe\xfe\xfc\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/qemu-x86_64:OCF" > /proc/sys/fs/binfmt_misc/register'
+  fi
+
+  if ! dpkg-query -W -f='${Status}' libc6:amd64 2>/dev/null | grep -q "install ok installed"; then
+    echo "==> Installing amd64 multiarch libraries (aapt2's runtime deps under emulation)"
+    sudo dpkg --add-architecture amd64
+    if [ ! -f /etc/apt/sources.list.d/ubuntu-amd64.sources ]; then
+      # ports.ubuntu.com (this host's default) carries arm64 only; amd64
+      # packages live on the regular archive mirror. Scoped to amd64 so it
+      # never shadows the arm64 base system's own package set.
+      sudo tee /etc/apt/sources.list.d/ubuntu-amd64.sources >/dev/null <<'EOF'
+Types: deb
+URIs: http://archive.ubuntu.com/ubuntu/
+Suites: resolute resolute-updates resolute-security
+Components: main universe restricted multiverse
+Architectures: amd64
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+EOF
+    fi
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq libc6:amd64 libstdc++6:amd64 zlib1g:amd64
+  fi
+fi
+
+# proto's JDK ships Adoptium's own cacerts, which does not know about this
+# sandbox's TLS-intercepting proxy CA. Without it Gradle's wrapper cannot
+# fetch its own distribution (PKIX validation failure). The OS trust store
+# already has the CA — that's how curl/git succeed — so mirror it in once.
+# No-op on any host without that CA file.
+#
+# Resolve the JDK via ~/.proto/bin/java, a real symlink into the install
+# dir. `command -v java` must not be used: under a moon task's PATH it
+# finds proto's *shim*, a standalone binary whose readlink resolves to
+# ~/.proto and silently yields no cacerts.
+PROXY_CA="/usr/local/share/ca-certificates/proxy-ca.crt"
+if [ -f "$PROXY_CA" ]; then
+  PROTO_JAVA="${PROTO_HOME:-$HOME/.proto}/bin/java"
+  [ -e "$PROTO_JAVA" ] || { echo "error: no proto-managed java at $PROTO_JAVA. Run: proto install java" >&2; exit 1; }
+  JAVA_HOME_RESOLVED="$(dirname "$(dirname "$(readlink -f "$PROTO_JAVA")")")"
+  CACERTS="$JAVA_HOME_RESOLVED/lib/security/cacerts"
+  [ -f "$CACERTS" ] || { echo "error: no cacerts at $CACERTS (resolved JDK home: $JAVA_HOME_RESOLVED)" >&2; exit 1; }
+  if ! keytool -list -keystore "$CACERTS" -storepass changeit \
+       -alias docker-sandboxes-proxy-ca >/dev/null 2>&1; then
+    echo "==> Importing sandbox proxy CA into $CACERTS"
+    sudo "$JAVA_HOME_RESOLVED/bin/keytool" -importcert -noprompt -trustcacerts \
+      -alias docker-sandboxes-proxy-ca -file "$PROXY_CA" \
+      -keystore "$CACERTS" -storepass changeit >/dev/null
+  fi
+fi
+
+echo "==> Android SDK ready at $ANDROID_SDK_ROOT"

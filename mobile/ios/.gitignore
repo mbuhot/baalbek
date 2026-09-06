@@ -1,0 +1,18 @@
+App/build
+App/Pods
+App/output
+App/App/public
+DerivedData
+xcuserdata
+
+# build-ios.sh's -derivedDataPath. Capacitor's own `App/build` above does
+# not cover it, and an unignored derived-data tree would land inside
+# build-ios's own `ios/**/*` input set, so the task could never cache-hit.
+/build/
+
+# Cordova plugins for Capacitor
+capacitor-cordova-ios-plugins
+
+# Generated Config files
+App/App/capacitor.config.json
+App/App/config.xml

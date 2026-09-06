@@ -1,0 +1,16 @@
+// Redirects every Gradle subproject's build/ directory to
+// $BAALBEK_GRADLE_BUILD_DIR (set by mobile/moon.yml, outside the repo).
+// The repo is mounted over virtiofs, which was observed (same failure
+// class documented in pricing/moon.yml for CARGO_TARGET_DIR) to
+// spuriously fail concurrent file creation under heavy intermediate I/O
+// — :app:compressDebugAssets writes many small files at once. Building on
+// local (non-virtiofs) storage side-steps it; this is a no-op relocation
+// on any normal filesystem, so it is safe for a Mac developer's checkout
+// too. Passed via `gradlew --init-script`, not committed into android/,
+// so the Capacitor-generated project scaffold stays untouched.
+def external = System.getenv("BAALBEK_GRADLE_BUILD_DIR")
+if (external != null) {
+    allprojects {
+        layout.buildDirectory.set(new File(external, project.path.replace(':', '_').replaceFirst('^_', '') ?: 'root'))
+    }
+}

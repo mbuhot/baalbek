@@ -110,7 +110,8 @@ Each stage ends green on the gates named. A passing gate is not re-run.
 | 3 | `identity`, `billing` — resources, schemas, roles, per-component Repos | `moon run identity:test billing:test` |
 | 4 | `pricing` crate + `pricing_native` NIF facade + declared cross-language edge | `moon run pricing:test pricing_native:test` |
 | 5 | `timeline` (Gleam, event-sourced) + `timeline_facade` | `moon run timeline:test timeline_facade:test` |
-| 6 | `server` release, OpenAPI generated from Ash, `core-api-client` generated, `web` PWA consumes it | `moon run server:test web:test` |
+| 6 | `server` HTTP surface, OpenAPI generated from Ash, `core-api-client` generated, `web` PWA consumes it | `moon run server:test web:test` |
+| 6c | `server` release assembly + Gleam-in-release packaging (see below) | release boots and serves, with `timeline_facade` working |
 | 7 | `mobile` — Capacitor wrapper, Android + iOS system tasks | `moon run mobile:build` |
 | 8 | `spec/` per component: `features/`, `mocks/`, `decisions/`; Gherkin wired to ExUnit; path-based within-app test selection | `moon run :test` |
 | 9 | `e2e` Playwright against the built server + PWA | `moon run e2e:test` |
@@ -119,6 +120,16 @@ Each stage ends green on the gates named. A passing gate is not re-run.
 | 12 | CI in the sandbox image, `moon ci`, README | full `moon ci` |
 
 Stages 2–5 touch disjoint directories and can run in parallel once stage 1 lands. Stages 6–7 are sequential on 2–5. Stages 10 and 11 are independent of 6–9.
+
+### Stage 6c: release assembly, and why the Gleam edge needs it
+
+Added mid-build, after Stage 6 shipped the HTTP surface but not the "release assembly" half of `server`'s inventory row.
+
+`timeline_facade/mix.exs` loads `timeline`'s compiled Gleam output by calling `Code.prepend_path/1` at the **top level of `mix.exs`**, outside any module — it runs when Mix evaluates the project file. A `mix release` has no `mix.exs`, no Mix, and never evaluates that file; the boot script only knows what was baked in at assembly time. Worse, `timeline`'s BEAM output lives in `timeline/build/dev/erlang/*/ebin`, which `mix release` has no reason to traverse because `:timeline` is not a declared Mix dependency nor in `extra_applications`. So a release would not merely fail to prepend the path — it would not bundle the Gleam code at all.
+
+This is the classic passes-tests-fails-in-production shape, currently latent only because nothing builds a release yet. `prune_code_paths: false` in that same file is the tell: it exists to stop Mix pruning a path Mix was never told about.
+
+Stage 6c closes both gaps together: real `releases:` config for `server` (plus the release Dockerfile the Sandbox section implies), and packaging `timeline`'s output as something a release genuinely includes — most likely a real OTP application the release recognises, rather than a runtime path hack. The gate is behavioural, not structural: the built release must boot, serve the JSON:API, and successfully call through `timeline_facade` into Gleam code, proving the `.beam` files are actually in the release rather than smuggled in by `mix.exs` evaluation.
 
 ## Test selection
 

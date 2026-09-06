@@ -20,3 +20,15 @@ rust           = "stable"
 "asdf:erlang"  = "28.4.3"
 "asdf:elixir"  = "1.20.2"
 "asdf:gleam"   = "1.13"
+
+# Stage 7 (PLAN.md): JDK for Gradle, running `mobile:build-android`.
+# Eclipse Temurin 21 — Capacitor 8's Android library
+# (mobile/node_modules/@capacitor/android/capacitor/build.gradle) compiles
+# with sourceCompatibility/targetCompatibility JavaVersion.VERSION_21,
+# which needs a JDK >= 21 to run javac's `--release 21`; AGP 8.13 (the
+# Gradle plugin this project's `android/build.gradle` pins) also supports
+# JDK 21 for running Gradle itself. The Android SDK/build-tools stay
+# OS-level (not proto-managed, no first-party or asdf plugin covers them —
+# see mobile/README.md), same pattern as the apt packages the Stage 0
+# Dockerfile installs for OTP/Rustler builds.
+java           = "temurin-21.0.12+8"

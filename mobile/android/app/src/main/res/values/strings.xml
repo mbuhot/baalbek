@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Baalbek Dispatch</string>
+    <string name="title_activity_main">Baalbek Dispatch</string>
+    <string name="package_name">com.alembic.baalbek.dispatch</string>
+    <string name="custom_url_scheme">com.alembic.baalbek.dispatch</string>
+</resources>
