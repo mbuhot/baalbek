@@ -1,13 +1,11 @@
 defmodule Billing.Invoicing.InvoiceLineItem.Validations.InvoiceIsDraft do
   @moduledoc """
-  Ash validation used by `Billing.Invoicing.InvoiceLineItem`'s `:create`
-  action: a line item can only be added to an invoice that is still
-  `:draft` — once issued, an invoice's line items (and the total computed
-  from them) are frozen.
+  Ash validation rejecting `Billing.Invoicing.InvoiceLineItem`'s `:create` action unless the parent invoice is still `:draft`.
   """
 
   use Ash.Resource.Validation
 
+  @doc "Fails unless the line item's invoice is currently :draft."
   @impl true
   def validate(changeset, _opts, _context) do
     invoice_id = Ash.Changeset.get_attribute(changeset, :invoice_id)

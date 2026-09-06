@@ -1,13 +1,11 @@
 defmodule Identity.Accounts.Account.Changes.HashPassword do
   @moduledoc """
-  Ash change that hashes the `:password` argument (present on `:register`
-  and `:change_password`) into the `:hashed_password` attribute via
-  `Identity.Accounts.PasswordHasher` — the plaintext password is never
-  persisted or stored on the changeset's data.
+  Ash change that hashes the `:password` argument into `:hashed_password` via `Identity.Accounts.PasswordHasher`.
   """
 
   use Ash.Resource.Change
 
+  @doc "Hashes the given :password argument and force-sets :hashed_password, leaving the changeset untouched when no password was given."
   @impl true
   def change(changeset, _opts, _context) do
     case Ash.Changeset.get_argument(changeset, :password) do

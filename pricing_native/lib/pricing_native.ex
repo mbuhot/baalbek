@@ -1,25 +1,11 @@
 defmodule PricingNative do
   @moduledoc """
-  Public API boundary (seed.md §3, "Within-app boundaries: boundary") and
-  Rustler NIF facade (seed.md §3, "Rust: NIF behind a facade app") for the
-  `pricing` Rust crate.
+  Elixir facade for the `pricing` Rust crate's job-quote computation.
 
-  `pricing_native`'s entire purpose is hosting the Rustler NIF that wraps
-  `pricing`'s quote computation and exposing exactly one clean entry point:
-  `quote/3`. The raw NIF module, `PricingNative.Native`, is a sub-boundary
-  that exports nothing, so no other app — and no other module in this app —
-  may reference it directly; only this module may. `mix compile
-  --warnings-as-errors` fails if that's violated (see this app's Stage 4
-  boundary-violation probe, and `core`'s Stage 2 report for the same
-  technique).
-
-  `pricing` compiles outside Mix's dependency graph (it's a Cargo project,
-  not a Mix path dependency), so the `pricing_native -> pricing` edge is
-  declared explicitly as `dependsOn` in this app's `moon.yml`, per PLAN.md's
-  "Two facades, one pattern" — that's what makes a `pricing` crate change
-  invalidate this app's cached Moon test results, and it's also why
-  `check-deps-drift.py` correctly leaves this edge alone (it's a
-  cross-language edge, not a Mix path dep).
+  This module is the only sanctioned caller of `PricingNative.Native`, the
+  raw NIF module; every other caller, in this app or any other, goes
+  through `quote/3` instead. That keeps the compiled-NIF boundary in one
+  place, so a future change to the NIF's argument shape touches only here.
   """
 
   use Boundary, deps: [], exports: []
@@ -39,8 +25,7 @@ defmodule PricingNative do
         }
 
   @doc """
-  Computes a field-service job quote from its three components, via the
-  `pricing` crate's `quote/3` function.
+  Computes a field-service job quote from its travel, labour, and parts components.
 
       iex> PricingNative.quote(
       ...>   %{distance_km: 10.0, rate_per_km_cents: 150},

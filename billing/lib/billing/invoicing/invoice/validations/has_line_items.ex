@@ -1,15 +1,13 @@
 defmodule Billing.Invoicing.Invoice.Validations.HasLineItems do
   @moduledoc """
-  Ash validation used by `Billing.Invoicing.Invoice`'s `:issue` action:
-  rejects issuing an invoice that has no
-  `Billing.Invoicing.InvoiceLineItem`s yet — an invoice with a $0 total
-  and no line items would be a real bug, not a legitimate empty invoice.
+  Ash validation rejecting `Billing.Invoicing.Invoice`'s `:issue` action when the invoice has no line items.
   """
 
   use Ash.Resource.Validation
 
   require Ash.Query
 
+  @doc "Fails unless the invoice has at least one line item."
   @impl true
   def validate(changeset, _opts, _context) do
     count =

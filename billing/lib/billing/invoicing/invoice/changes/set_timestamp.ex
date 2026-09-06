@@ -1,13 +1,11 @@
 defmodule Billing.Invoicing.Invoice.Changes.SetTimestamp do
   @moduledoc """
-  Ash change that force-sets a given attribute to `DateTime.utc_now/0` —
-  used by `Billing.Invoicing.Invoice`'s `:issue` (`:issued_at`) and
-  `:mark_paid` (`:paid_at`) actions, each a genuine lifecycle event
-  timestamp rather than the record's generic `updated_at`.
+  Ash change that force-sets a given `:attribute` to the current UTC time.
   """
 
   use Ash.Resource.Change
 
+  @doc "Validates that an :attribute option was given."
   @impl true
   def init(opts) do
     if Keyword.has_key?(opts, :attribute) do
@@ -17,6 +15,7 @@ defmodule Billing.Invoicing.Invoice.Changes.SetTimestamp do
     end
   end
 
+  @doc "Force-sets the configured attribute to DateTime.utc_now/0."
   @impl true
   def change(changeset, opts, _context) do
     attribute = Keyword.fetch!(opts, :attribute)

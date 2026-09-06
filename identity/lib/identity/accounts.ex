@@ -1,20 +1,6 @@
 defmodule Identity.Accounts do
   @moduledoc """
-  The identity domain: technicians, dispatchers, and authentication
-  (PLAN.md's Component inventory: "Technicians, dispatchers, auth.").
-
-  Uses `ash_boundary` (PLAN.md's "Boundary enforcement, in-app and
-  cross-app" section) instead of a hand-rolled `use Boundary` on a plain
-  module: `exports` is derived from this domain's DSL — the domain module
-  itself, plus every resource with at least one domain-level `define`,
-  automatically become the public surface, with everything else in this
-  namespace (the password hasher, the change/action implementation
-  modules backing `Identity.Accounts.Account`) staying internal.
-
-  `Identity.Accounts.Account` gets three `define`s (`:register`,
-  `:authenticate`, `:change_password`), so it is exported — a future
-  `server` app (Stage 6) reaches accounts only through these, never by
-  building an `Ash.Changeset`/`Ash.Query` against the resource directly.
+  The `identity` domain: technician and dispatcher accounts, with registration, authentication, and password-change actions.
   """
 
   use Ash.Domain,

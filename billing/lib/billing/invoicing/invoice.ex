@@ -1,22 +1,12 @@
 defmodule Billing.Invoicing.Invoice do
   @moduledoc """
-  An invoice raised from a completed job (PLAN.md's billing component:
-  "Invoices raised from completed jobs."). `job_id` deliberately has no
-  relationship, foreign key, or compile-time reference to `core.Job` — see
-  `Billing.Invoicing`'s moduledoc.
+  An invoice raised from a completed job, referenced by `job_id` alone.
 
-  Lifecycle: `:draft` -> `:issued` -> `:paid`, with `:void` reachable from
-  either `:draft` or `:issued`. Each transition is its own action, gated
-  by `Billing.Invoicing.Invoice.Validations.CurrentStatus` so an
-  out-of-order transition (e.g. marking a still-draft invoice paid) is a
-  validation error, not silently accepted. `:issue` additionally requires
-  at least one line item
-  (`Billing.Invoicing.Invoice.Validations.HasLineItems`) and computes
-  `total_amount` from the line items at issue time
-  (`Billing.Invoicing.Invoice.Changes.CalculateTotal`) — the total is a
-  snapshot taken when the invoice is issued, not a live sum, matching a
-  real invoice (line items shouldn't retroactively change an already-sent
-  bill).
+  Its status moves only `:draft` -> `:issued` -> `:paid`, with `:void`
+  reachable from either `:draft` or `:issued`. Each transition is a
+  separate action that rejects an out-of-order call. Issuing also
+  requires at least one line item and freezes `total_amount` as a
+  snapshot at that moment.
   """
 
   use Ash.Resource,
@@ -33,16 +23,15 @@ defmodule Billing.Invoicing.Invoice do
     defaults [:read, :destroy]
 
     create :create do
+      description "Drafts a new invoice for a completed job."
       accept [:job_id, :currency]
     end
 
     update :issue do
+      description "Issues a draft invoice, freezing its total and requiring at least one line item."
       accept []
-      # CurrentStatus/HasLineItems read outside the changeset (a related
-      # count, changeset.data.status) and CalculateTotal reads the
-      # database mid-change — none of that is expressible as a single SQL
-      # expression, so this can't compile into one atomic UPDATE. Same
-      # tradeoff as Identity.Accounts.Account's :change_password.
+
+      # require_atomic?: false — CalculateTotal reads the database mid-change, not one SQL UPDATE.
       require_atomic? false
 
       validate {Billing.Invoicing.Invoice.Validations.CurrentStatus, one_of: [:draft]}
@@ -54,6 +43,7 @@ defmodule Billing.Invoicing.Invoice do
     end
 
     update :mark_paid do
+      description "Marks an issued invoice as paid."
       accept []
       require_atomic? false
 
@@ -64,6 +54,7 @@ defmodule Billing.Invoicing.Invoice do
     end
 
     update :void do
+      description "Cancels a draft or issued invoice."
       accept []
       require_atomic? false
 
@@ -76,12 +67,14 @@ defmodule Billing.Invoicing.Invoice do
   attributes do
     uuid_primary_key :id
 
-    # Reference to a `core.Job` by identifier only — see this module's
-    # moduledoc and Billing.Invoicing's moduledoc. No relationship, no
-    # foreign key, no `core` dependency.
-    attribute :job_id, :uuid, allow_nil?: false, public?: true
+    # References a `core.Job` by id only — no relationship, foreign key, or `core` dependency.
+    attribute :job_id, :uuid,
+      allow_nil?: false,
+      public?: true,
+      description: "Id of the completed job this invoice bills for."
 
     attribute :status, :atom do
+      description "Where this invoice sits in its draft -> issued -> paid lifecycle (or void)."
       constraints one_of: [:draft, :issued, :paid, :void]
       default :draft
       allow_nil? false
@@ -89,6 +82,7 @@ defmodule Billing.Invoicing.Invoice do
     end
 
     attribute :currency, :string do
+      description "ISO 4217 currency code for total_amount and every line item's unit_amount."
       default "USD"
       allow_nil? false
       public? true
@@ -96,19 +90,26 @@ defmodule Billing.Invoicing.Invoice do
     end
 
     attribute :total_amount, :decimal do
+      description "The invoice total, computed once from its line items when issued."
       default Decimal.new(0)
       allow_nil? false
       public? true
     end
 
-    attribute :issued_at, :utc_datetime, public?: true
-    attribute :paid_at, :utc_datetime, public?: true
+    attribute :issued_at, :utc_datetime,
+      public?: true,
+      description: "When the invoice moved to :issued."
+
+    attribute :paid_at, :utc_datetime,
+      public?: true,
+      description: "When the invoice moved to :paid."
 
     timestamps()
   end
 
   relationships do
     has_many :line_items, Billing.Invoicing.InvoiceLineItem do
+      description "The charge lines that make up this invoice's total."
       destination_attribute :invoice_id
     end
   end

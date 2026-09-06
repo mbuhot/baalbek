@@ -2,40 +2,7 @@ defmodule Mix.Tasks.Identity.Bootstrap do
   @shortdoc "Create the `identity` Postgres role + schema (idempotent)"
 
   @moduledoc """
-  Runs `priv/repo/bootstrap.sql` (verbatim, no separate copy) against
-  Postgres as a superuser, creating the dedicated `identity` role and its
-  `identity` schema/grants (PLAN.md "Data layer"; see that file's own
-  header comment for the full rationale). Verbatim copy of
-  `core.bootstrap`'s pattern (core/lib/mix/tasks/core.bootstrap.ex),
-  renamed core -> identity throughout.
-
-  This is a structural, once-per-database step distinct from
-  `mix ecto.migrate` — it must run before migrations, and needs superuser
-  credentials (the `identity` role it creates cannot create roles/schemas
-  itself). Ordinary `Identity.Repo` connections (used by migrations, the
-  app, and tests) always connect as the unprivileged `identity` role — see
-  config/config.exs.
-
-  ## Usage
-
-      mix identity.bootstrap
-
-  ## Configuration
-
-  Superuser connection details come from environment variables (all
-  optional, defaulting to match `.devcontainer/docker-compose.yml`'s
-  `postgres` service):
-
-    * `BOOTSTRAP_PG_HOST` (default `localhost`)
-    * `BOOTSTRAP_PG_PORT` (default `5432`)
-    * `BOOTSTRAP_PG_USER` (default `postgres`)
-    * `BOOTSTRAP_PG_PASSWORD` (default `postgres`)
-    * `BOOTSTRAP_PG_DATABASE` (default `baalbek`)
-
-  These are deliberately named apart from `IDENTITY_PG_*`
-  (config/config.exs) so the two can never be confused: `IDENTITY_PG_*` is
-  the low-privilege runtime role, `BOOTSTRAP_PG_*` is the one-time
-  superuser connection.
+  Creates the `identity` Postgres role and schema, idempotently, using superuser credentials from `BOOTSTRAP_PG_*` environment variables.
   """
 
   use Mix.Task
@@ -43,10 +10,12 @@ defmodule Mix.Tasks.Identity.Bootstrap do
 
   @bootstrap_sql_path Path.join([__DIR__, "..", "..", "..", "priv", "repo", "bootstrap.sql"])
 
+  @doc "Runs priv/repo/bootstrap.sql against Postgres to create the `identity` role and schema."
   @impl Mix.Task
   def run(_args) do
     {:ok, _} = Application.ensure_all_started(:postgrex)
 
+    # Defaults match .devcontainer/docker-compose.yml's postgres service.
     opts = [
       hostname: System.get_env("BOOTSTRAP_PG_HOST", "localhost"),
       port: String.to_integer(System.get_env("BOOTSTRAP_PG_PORT", "5432")),
@@ -70,11 +39,7 @@ defmodule Mix.Tasks.Identity.Bootstrap do
     )
   end
 
-  # Splits bootstrap.sql on lines that contain only ";" (see that file's
-  # header comment). A naive split on every ";" would also split inside
-  # the DO block's dollar-quoted body (it contains its own `;`-terminated
-  # statements), which is exactly what this convention avoids: Postgres
-  # only ever sees one full statement per Postgrex.query!/3 call.
+  # Splits only on lines containing just ";", so a dollar-quoted DO block's internal ";"s survive intact.
   defp split_statements(sql) do
     sql
     |> String.split(~r/^;[ \t]*$/m)

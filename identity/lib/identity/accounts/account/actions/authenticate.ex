@@ -1,21 +1,13 @@
 defmodule Identity.Accounts.Account.Actions.Authenticate do
   @moduledoc """
-  Ash generic-action implementation backing `Identity.Accounts.Account`'s
-  `:authenticate` action — the actual auth logic requested by PLAN.md's
-  identity component ("Technicians, dispatchers, auth."), exercised by
-  tests rather than left as a bare unused password field.
-
-  Looks the account up by email, then verifies the given plaintext
-  password against the stored `hashed_password` via
-  `Identity.Accounts.PasswordHasher.verify/2`. Both "no such email" and
-  "wrong password" return the same generic invalid-credentials error, so a
-  failed lookup can't be used to enumerate registered emails.
+  Looks an account up by email and verifies its password, returning the same error for either failure so a caller can't enumerate registered emails.
   """
 
   use Ash.Resource.Actions.Implementation
 
   require Ash.Query
 
+  @doc "Verifies email/password credentials and returns the matching account or a generic invalid-credentials error."
   @impl true
   def run(input, _opts, _context) do
     email = input.arguments.email

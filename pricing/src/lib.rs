@@ -1,18 +1,7 @@
 //! Field-service job quote computation: travel + labour + parts.
 //!
-//! Per PLAN.md's Component inventory ("`pricing` — Rust crate — Quote
-//! computation: travel + labour + parts. `cargo test`.") and seed.md §3
-//! ("Rust: NIF behind a facade app"), this crate is the performance-critical
-//! computation living behind the `pricing_native` Elixir facade. Every
-//! public type here is a plain struct of primitives (`f64`, `i64`, `u32`)
-//! Rustler can pass across the NIF boundary without a custom `Encoder` /
-//! `Decoder` impl — the facade's native crate destructures/builds these
-//! directly from NIF argument primitives.
-//!
-//! All monetary amounts are integer cents (`i64`), never floating point —
-//! floats are only used for physically continuous inputs (distance,
-//! duration), and every place a float feeds into money is rounded exactly
-//! once, at the point of conversion.
+//! All monetary amounts are integer cents, never floating point. Every
+//! float-to-money conversion rounds exactly once, at that conversion.
 
 /// Inputs to the travel-cost component of a quote: distance driven times a
 /// flat per-kilometre rate.
@@ -23,8 +12,7 @@ pub struct TravelParams {
 }
 
 /// Inputs to the labour-cost component of a quote: estimated hours times an
-/// hourly rate, floored at a minimum callout charge (a technician dispatched
-/// for a 15-minute fix still costs a truck roll).
+/// hourly rate, floored at a minimum callout charge.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LabourParams {
     pub hours: f64,
@@ -39,7 +27,7 @@ pub struct PartLineItem {
     pub unit_price_cents: i64,
 }
 
-/// The computed breakdown of a job quote. All amounts are integer cents.
+/// The computed breakdown of a job quote, in integer cents.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Quote {
     pub travel_cents: i64,
@@ -48,23 +36,20 @@ pub struct Quote {
     pub total_cents: i64,
 }
 
-/// Travel cost: `distance_km * rate_per_km_cents`, rounded to the nearest
-/// cent. Rounding happens exactly once, here, at the float-to-money
-/// boundary.
+/// Travel cost: `distance_km * rate_per_km_cents`, rounded to the nearest cent.
 pub fn travel_cost_cents(params: TravelParams) -> i64 {
     (params.distance_km * params.rate_per_km_cents as f64).round() as i64
 }
 
 /// Labour cost: `hours * hourly_rate_cents`, rounded to the nearest cent,
-/// then floored at `minimum_charge_cents` — a callout that computes below
-/// the minimum still bills the minimum.
+/// then floored at `minimum_charge_cents`.
 pub fn labour_cost_cents(params: LabourParams) -> i64 {
     let computed = (params.hours * params.hourly_rate_cents as f64).round() as i64;
     computed.max(params.minimum_charge_cents)
 }
 
 /// Parts cost: the sum of `quantity * unit_price_cents` over every line
-/// item. An empty parts list costs nothing.
+/// item, or zero for an empty list.
 pub fn parts_cost_cents(items: &[PartLineItem]) -> i64 {
     items
         .iter()
@@ -72,9 +57,8 @@ pub fn parts_cost_cents(items: &[PartLineItem]) -> i64 {
         .sum()
 }
 
-/// Applies a whole-percentage discount to an already-computed total,
-/// rounded to the nearest cent. Used, e.g., for loyalty-customer quotes.
-/// A `percent_off` of 0 returns the amount unchanged; 100 returns 0.
+/// Applies a whole-percentage discount, clamped to 0-100, to an
+/// already-computed total, rounded to the nearest cent.
 pub fn apply_percent_discount_cents(total_cents: i64, percent_off: u8) -> i64 {
     let percent_off = percent_off.min(100);
     let retained = 100 - i64::from(percent_off);
@@ -87,8 +71,7 @@ pub fn is_discount_applicable(percent_off: u8) -> bool {
     percent_off > 0
 }
 
-/// Rounds a cents amount up to the nearest whole dollar (e.g. for
-/// display on a receipt that doesn't show cents). 12345 -> 12400.
+/// Rounds a cents amount up to the nearest whole dollar, e.g. 12345 -> 12400.
 pub fn round_up_to_dollar_cents(cents: i64) -> i64 {
     let remainder = cents.rem_euclid(100);
     if remainder == 0 {

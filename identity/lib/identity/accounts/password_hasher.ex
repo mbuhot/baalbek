@@ -1,24 +1,10 @@
 defmodule Identity.Accounts.PasswordHasher do
   @moduledoc """
-  Password hashing for `Identity.Accounts.Account` (PLAN.md's identity
-  component: "Technicians, dispatchers, auth."). Internal to the
-  `Identity.Accounts` boundary — not a resource, has no domain-level
-  `define`, so `ash_boundary` leaves it unexported; only
-  `Identity.Accounts.Account.Changes.HashPassword` and
-  `Identity.Accounts.Account.Actions.Authenticate` call it directly.
+  Hashes and verifies account passwords using PBKDF2-HMAC-SHA256.
 
-  Uses PBKDF2-HMAC-SHA256 via Erlang/OTP's built-in `:crypto` module —
-  deliberately no external hashing dependency (e.g. `bcrypt_elixir`,
-  `argon2_elixir`) at this stage: `:crypto.pbkdf2_hmac/5` and
-  `:crypto.hash_equals/2` (constant-time comparison, avoiding a timing
-  side-channel) are both available in the OTP versions this repo already
-  pins (`.prototools`), so no new dependency is needed to exercise real
-  hash/verify logic.
-
-  Encoded format: `"<iterations>:<base64 salt>:<base64 derived key>"` — the
-  iteration count travels with the hash so a future stage could raise it
-  without invalidating already-stored hashes (verify/2 reads whatever
-  iteration count is embedded, not a hardcoded current default).
+  Callers only need `hash/1` and `verify/2`. The encoded string carries its
+  own iteration count, so a future stage can raise it without invalidating
+  hashes already stored under a lower count.
   """
 
   @iterations 100_000
@@ -34,9 +20,7 @@ defmodule Identity.Accounts.PasswordHasher do
   end
 
   @doc """
-  Verifies a plaintext password against a previously-hashed, encoded value.
-  Returns `false` (never raises) for a malformed encoded value, so a
-  corrupted/legacy hash fails closed rather than crashing the auth action.
+  Verifies a plaintext password against a previously-hashed, encoded value, returning `false` rather than raising if the encoding is malformed.
   """
   @spec verify(String.t(), String.t()) :: boolean()
   def verify(password, encoded) when is_binary(password) and is_binary(encoded) do

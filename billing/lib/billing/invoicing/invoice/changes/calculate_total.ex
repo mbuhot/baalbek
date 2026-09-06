@@ -1,19 +1,13 @@
 defmodule Billing.Invoicing.Invoice.Changes.CalculateTotal do
   @moduledoc """
-  Ash change used by `Billing.Invoicing.Invoice`'s `:issue` action:
-  computes `total_amount` as the sum of `quantity * unit_amount` across
-  the invoice's `Billing.Invoicing.InvoiceLineItem`s, taken as a snapshot
-  at issue time (not a live sum recomputed later — see
-  `Billing.Invoicing.Invoice`'s moduledoc).
-
-  Runs in `before_action` so it can read the line items already persisted
-  against `changeset.data.id` before this same update commits.
+  Ash change that sets `total_amount` to the sum of `quantity * unit_amount` across the invoice's line items.
   """
 
   use Ash.Resource.Change
 
   require Ash.Query
 
+  @doc "Sums the invoice's line items and force-sets total_amount to the result."
   @impl true
   def change(changeset, _opts, _context) do
     Ash.Changeset.before_action(changeset, fn changeset ->

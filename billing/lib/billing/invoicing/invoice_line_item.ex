@@ -1,14 +1,6 @@
 defmodule Billing.Invoicing.InvoiceLineItem do
   @moduledoc """
-  A single charge line on a `Billing.Invoicing.Invoice` — a description,
-  quantity, and per-unit amount. `amount = quantity * unit_amount`, summed
-  across an invoice's line items into `total_amount` when the invoice is
-  issued (`Billing.Invoicing.Invoice.Changes.CalculateTotal`).
-
-  Line items can only be added while the parent invoice is still `:draft`
-  (`Billing.Invoicing.InvoiceLineItem.Validations.InvoiceIsDraft`) — once
-  issued, an invoice's line items are frozen along with its computed
-  total.
+  A single charge line on a `Billing.Invoicing.Invoice`, addable only while that invoice is still `:draft`.
   """
 
   use Ash.Resource,
@@ -25,6 +17,7 @@ defmodule Billing.Invoicing.InvoiceLineItem do
     defaults [:read, :destroy]
 
     create :create do
+      description "Adds a charge line to a draft invoice."
       accept [:invoice_id, :description, :quantity, :unit_amount]
 
       validate Billing.Invoicing.InvoiceLineItem.Validations.InvoiceIsDraft
@@ -33,22 +26,32 @@ defmodule Billing.Invoicing.InvoiceLineItem do
 
   attributes do
     uuid_primary_key :id
-    attribute :description, :string, allow_nil?: false, public?: true
+
+    attribute :description, :string,
+      allow_nil?: false,
+      public?: true,
+      description: "What the charge is for, as it appears on the invoice."
 
     attribute :quantity, :integer do
+      description "How many units of this charge are being billed."
       default 1
       allow_nil? false
       public? true
       constraints min: 1
     end
 
-    attribute :unit_amount, :decimal, allow_nil?: false, public?: true
+    attribute :unit_amount, :decimal,
+      allow_nil?: false,
+      public?: true,
+      description:
+        "Price per unit; the line's contribution to the invoice total is quantity * unit_amount."
 
     timestamps()
   end
 
   relationships do
     belongs_to :invoice, Billing.Invoicing.Invoice do
+      description "The invoice this line item belongs to."
       allow_nil? false
       attribute_writable? true
     end

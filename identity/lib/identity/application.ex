@@ -1,8 +1,9 @@
 defmodule Identity.Application do
-  @moduledoc false
+  @moduledoc "OTP application callback that starts `Identity.Repo` under a one-for-one supervisor."
 
   use Application
 
+  @doc "Starts the identity supervision tree."
   @impl true
   def start(_type, _args) do
     children = [

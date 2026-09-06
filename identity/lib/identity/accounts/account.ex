@@ -1,20 +1,6 @@
 defmodule Identity.Accounts.Account do
   @moduledoc """
-  A person who uses the system: a technician or a dispatcher (PLAN.md's
-  identity component: "Technicians, dispatchers, auth."). One resource
-  with a `role` attribute rather than separate `Technician`/`Dispatcher`
-  resources — both kinds of user authenticate the same way and share every
-  other attribute; `role` is the only thing that varies, so a shared
-  resource avoids duplicating the auth machinery below across two nearly
-  identical resources. (Documented default: PLAN.md left this shape
-  explicitly open — "whichever you think is cleaner given Ash's resource
-  model" — this is the call made for Stage 3.)
-
-  Authentication is real, not a bare unused field: `:register` and
-  `:change_password` hash the given plaintext `:password` argument via
-  `Identity.Accounts.PasswordHasher` (never storing it), and `:authenticate`
-  is a generic action that looks an account up by email and verifies a
-  password against the stored hash.
+  A technician or dispatcher account, distinguished by its `role` attribute, with registration, authentication, and password-change actions.
   """
 
   use Ash.Resource,
@@ -31,13 +17,16 @@ defmodule Identity.Accounts.Account do
     defaults [:read, :destroy]
 
     update :update do
+      description "Updates a technician's or dispatcher's name or email."
       accept [:name, :email]
     end
 
     create :register do
+      description "Registers a new technician or dispatcher account, hashing the given password."
       accept [:name, :email, :role]
 
       argument :password, :string do
+        description "Plaintext password to hash into :hashed_password; never stored as given."
         allow_nil? false
         sensitive? true
         constraints min_length: 8
@@ -47,15 +36,14 @@ defmodule Identity.Accounts.Account do
     end
 
     update :change_password do
+      description "Replaces the account's password with a newly hashed one."
       accept []
-      # Identity.Accounts.Account.Changes.HashPassword calls out to
-      # Identity.Accounts.PasswordHasher.hash/1 (not expressible as a SQL
-      # expression), so Ash can't compile this update into a single atomic
-      # UPDATE statement — same tradeoff as `core`'s non-atomic changes
-      # would face; there are none there yet, but this is the first.
+
+      # require_atomic?: false — HashPassword hashes via PasswordHasher, not expressible as one SQL UPDATE.
       require_atomic? false
 
       argument :password, :string do
+        description "New plaintext password to hash into :hashed_password."
         allow_nil? false
         sensitive? true
         constraints min_length: 8
@@ -65,6 +53,7 @@ defmodule Identity.Accounts.Account do
     end
 
     action :authenticate, :struct do
+      description "Verifies an email and password against a stored account."
       constraints instance_of: __MODULE__
 
       argument :email, :string, allow_nil?: false
@@ -80,25 +69,35 @@ defmodule Identity.Accounts.Account do
 
   attributes do
     uuid_primary_key :id
-    attribute :name, :string, allow_nil?: false, public?: true
-    attribute :email, :string, allow_nil?: false, public?: true
+
+    attribute :name, :string,
+      allow_nil?: false,
+      public?: true,
+      description: "The account holder's display name."
+
+    attribute :email, :string,
+      allow_nil?: false,
+      public?: true,
+      description: "The account holder's unique sign-in email address."
 
     attribute :role, :atom do
+      description "Whether this account belongs to a technician or a dispatcher."
       constraints one_of: [:technician, :dispatcher]
       allow_nil? false
       public? true
     end
 
-    # Never accepted directly by any action (no `accept :hashed_password`
-    # anywhere) and never public — the only way this attribute changes is
-    # via Identity.Accounts.Account.Changes.HashPassword, driven by the
-    # `:password` argument on :register / :change_password.
-    attribute :hashed_password, :string, allow_nil?: false, sensitive?: true, public?: false
+    # Never accepted directly; only Changes.HashPassword sets it.
+    attribute :hashed_password, :string,
+      allow_nil?: false,
+      sensitive?: true,
+      public?: false,
+      description: "PBKDF2-encoded password hash, never accepted as input."
 
     timestamps()
   end
 
   identities do
-    identity :unique_email, [:email]
+    identity :unique_email, [:email], description: "No two accounts may share the same email."
   end
 end

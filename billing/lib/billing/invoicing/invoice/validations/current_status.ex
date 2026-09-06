@@ -1,17 +1,11 @@
 defmodule Billing.Invoicing.Invoice.Validations.CurrentStatus do
   @moduledoc """
-  Ash validation enforcing an invoice's lifecycle: the action-in-progress
-  is only allowed when `changeset.data.status` (the status *before* this
-  update, not whatever the changeset would set it to) is one of the
-  statuses given in `:one_of`. Used by `Billing.Invoicing.Invoice`'s
-  `:issue` (must be `:draft`), `:mark_paid` (must be `:issued`), and
-  `:void` (must be `:draft` or `:issued`) actions, so an out-of-order
-  transition (double-issue, paying a draft, voiding an already-paid
-  invoice) is a real validation error, not silently accepted.
+  Ash validation rejecting an update unless the invoice's current status is one of the given `:one_of` statuses.
   """
 
   use Ash.Resource.Validation
 
+  @doc "Validates that a :one_of option was given."
   @impl true
   def init(opts) do
     if Keyword.has_key?(opts, :one_of) do
@@ -21,6 +15,7 @@ defmodule Billing.Invoicing.Invoice.Validations.CurrentStatus do
     end
   end
 
+  @doc "Checks the invoice's pre-update status against the allowed :one_of list."
   @impl true
   def validate(changeset, opts, _context) do
     allowed = Keyword.fetch!(opts, :one_of)
