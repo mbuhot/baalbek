@@ -51,6 +51,11 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Playwright's HTML report, written by the CI reporter (Stage 9). Traces and
+# the browser binaries both live under ~/.cache, outside the repo — see
+# e2e/playwright.config.ts's outputDir.
+e2e/playwright-report/
+
 # core-api-client's one generated artifact (moon.yml's `build` task,
 # openapi-typescript from server's OpenAPI spec) — same rationale as
 # server/priv/static/ above, the source of truth is server's Ash/AshJsonApi

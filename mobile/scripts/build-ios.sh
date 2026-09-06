@@ -21,6 +21,12 @@ fi
 pnpm install --frozen-lockfile
 npx cap sync ios
 
+# The iOS simulator shares the host's loopback, so the default reaches a
+# `server` running on the developer's own port 4004.
+bash scripts/stamp-api-config.sh \
+  ios/App/App/public \
+  "${MOBILE_API_BASE_URL:-http://localhost:4004/api/json/core}"
+
 xcodebuild -project ios/App/App.xcodeproj -scheme App \
   -configuration Debug -sdk iphonesimulator \
   -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO build

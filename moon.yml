@@ -39,15 +39,21 @@ tasks:
     description: >-
       Builds the sandbox/CI image (PLAN.md "Sandbox"). Also the build stage
       of server/Dockerfile, so `server:image` depends on this rather than
-      redeclaring the toolchain. Docker's own layer cache makes a rebuild
-      with nothing changed cheap; Moon caches nothing here, since an image
-      in the local daemon is not a file output.
+      redeclaring the toolchain.
+
+      Uncached deliberately. Moon would happily cache this task on its
+      inputs, and a cache hit replays a log claiming the image was built
+      while `docker image prune` has since removed it — a task reporting
+      success and producing nothing. Docker's own layer cache makes the
+      real rebuild cheap, which is what makes the flag nearly free.
     command: "bash"
     args:
       - "-lc"
       - >-
         docker build -t "${SANDBOX_IMAGE:-baalbek-sandbox:latest}" -f Dockerfile .
     toolchain: "system"
+    options:
+      cache: false
     inputs:
       - "Dockerfile"
       - ".prototools"

@@ -1,0 +1,91 @@
+# The containerised stack the Playwright suite runs against: the `MIX_ENV=prod`
+# release image from `server:image`, its own Postgres, and the PWA image from
+# `web:image` (PLAN.md Stage 9). Both tiers are the images that ship; the only
+# thing this file adds is a database and a mounted bootstrap script.
+#
+# Brought up and torn down by global-setup.ts / global-teardown.ts, never by
+# hand in CI. To drive it manually:
+#
+#   docker compose -p baalbek-e2e -f e2e/docker-compose.yml up -d --wait postgres
+#   docker compose -p baalbek-e2e -f e2e/docker-compose.yml run --rm bootstrap
+#   docker compose -p baalbek-e2e -f e2e/docker-compose.yml up -d --wait server web
+#
+# Isolation from the dev database is by construction: a separate Postgres
+# container, a separate database name, tmpfs storage, and no published
+# Postgres port. See spec/decisions/adr-0001-dockerized-e2e-stack.md.
+
+name: baalbek-e2e
+
+# Every setting the release reads at boot (server/config/runtime.exs and
+# timeline/src/timeline/db.gleam). The bootstrap job needs the same values,
+# plus superuser credentials.
+x-release-env: &release-env
+  SECRET_KEY_BASE: "e2e-only-not-a-secret-Kx4mQ2vJ8pR6tY0wZ3cB5nF7hL9sD1gA4jM6oP8uV2xE0yT3rW5qH7kN9bC1zS4d"
+  PHX_HOST: "localhost"
+  PORT: "4004"
+  CORE_PG_HOST: "postgres"
+  CORE_PG_DATABASE: "baalbek_e2e"
+  IDENTITY_PG_HOST: "postgres"
+  IDENTITY_PG_DATABASE: "baalbek_e2e"
+  BILLING_PG_HOST: "postgres"
+  BILLING_PG_DATABASE: "baalbek_e2e"
+  TIMELINE_PG_HOST: "postgres"
+  TIMELINE_PG_DATABASE: "baalbek_e2e"
+
+services:
+  # No volume and no published port: the data lives in tmpfs and dies with the
+  # stack, and nothing outside this compose network can reach it.
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: baalbek_e2e
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d baalbek_e2e"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # One-shot: creates every role, schema and table the release needs, using
+  # only what the release itself ships. `profiles` keeps it out of `up`.
+  bootstrap:
+    image: ${SERVER_IMAGE:-baalbek-server:latest}
+    profiles: ["setup"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *release-env
+      BOOTSTRAP_PG_HOST: "postgres"
+      BOOTSTRAP_PG_DATABASE: "baalbek_e2e"
+      BOOTSTRAP_PG_USER: "postgres"
+      BOOTSTRAP_PG_PASSWORD: "postgres"
+    volumes:
+      - ./bootstrap.exs:/e2e/bootstrap.exs:ro
+    command: ["eval", "Code.require_file(\"/e2e/bootstrap.exs\")"]
+    restart: "no"
+
+  server:
+    image: ${SERVER_IMAGE:-baalbek-server:latest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment: *release-env
+    restart: "no"
+
+  # The PWA's own image from `web:image` — nginx serving the built bundle and
+  # proxying /api to the release, so both tiers run their real artifact and the
+  # browser needs no CORS grant. Its nginx config and healthcheck live in that
+  # image, not here.
+  web:
+    image: ${WEB_IMAGE:-baalbek-web:latest}
+    depends_on:
+      server:
+        condition: service_healthy
+    environment:
+      SERVER_ORIGIN: "http://server:4004"
+    ports:
+      - "${E2E_HOST_PORT:-4014}:80"

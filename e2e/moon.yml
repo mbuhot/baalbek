@@ -1,5 +1,62 @@
-# Stage 1 stub — see PLAN.md Component inventory.
-# Playwright / TypeScript. Depends on `server` + `web` builds. Real tasks
-# land in Stage 9.
+# Stage 9 of PLAN.md: Playwright against the containerised `MIX_ENV=prod`
+# release, never a dev server. See spec/decisions/adr-0001-dockerized-e2e-stack.md.
 language: typescript
 layer: automation
+
+dependsOn:
+  - "server"
+  - "web"
+
+# `web` is a dependency of the *stack*, not of this project's TypeScript: this
+# suite imports nothing from it, and `web`'s tsconfig is `noEmit` and not
+# `composite`, so a synced project reference is one `tsc` refuses to compile.
+toolchains:
+  typescript:
+    syncProjectReferences: false
+
+tasks:
+  test:
+    description: >-
+      Runs the Playwright suite against the stack in docker-compose.yml: the
+      `baalbek-server:latest` release image, the `baalbek-web:latest` PWA
+      image, and their own Postgres. global-setup.ts owns the stack's
+      lifecycle and fails the run if either container is not the image its
+      project built.
+
+      Both `deps` are image builds, and Moon can hash neither: an image in the
+      local docker daemon is not a file output, so neither task declares one.
+      Caching is therefore off — with the whole stack outside this task's hash,
+      a cache hit would replay a pass against images that have since changed,
+      which is the one result this gate must never give. Affected-detection is
+      unaffected: `moon ci` propagates it along `deps` regardless of outputs,
+      and reaches source through `web:image` -> `web:build` ->
+      `core-api-client:build` -> `server:openapi`, each of which does declare
+      outputs (PLAN.md "Task graph: content-addressed `outputs`").
+
+      `playwright install` downloads the browser binaries (~115 MB, cached in
+      ~/.cache/ms-playwright). Their OS-level shared libraries are not part of
+      the sandbox image yet — see README.md.
+    deps:
+      - "server:image"
+      - "web:image"
+    command: "bash"
+    args:
+      - "-lc"
+      - >-
+        pnpm install --frozen-lockfile &&
+        pnpm exec tsc --noEmit &&
+        pnpm exec playwright install chromium &&
+        pnpm exec playwright test
+    toolchain: "node"
+    options:
+      cache: false
+    inputs:
+      - "package.json"
+      - "tsconfig.json"
+      - "playwright.config.ts"
+      - "global-setup.ts"
+      - "global-teardown.ts"
+      - "stack.ts"
+      - "docker-compose.yml"
+      - "bootstrap.exs"
+      - "tests/**/*"

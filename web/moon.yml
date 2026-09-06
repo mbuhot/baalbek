@@ -58,6 +58,37 @@ tasks:
       - "public/**/*"
       - "project://core-api-client"
 
+  image:
+    description: >-
+      Builds the servable PWA image Stage 9's e2e stack runs (`baalbek-web:latest`
+      by default; override with WEB_IMAGE). nginx serving `build`'s `dist` with
+      `server`'s API proxied onto the same origin — the deployment topology
+      src/api.ts's same-origin default assumes, owned here rather than in the
+      test harness. The `deps` entry on `build` both orders the two and, since
+      `build` declares `outputs`, folds the bundle into this task's hash.
+
+      Uncached deliberately, like `server:image` and `root:sandbox-image`: an
+      image in the local docker daemon is not a file output, so a Moon cache hit
+      replays a log claiming the image was built while a `docker image prune`
+      has since removed it. Docker's own layer cache keeps the real rebuild
+      short. `e2e`'s global setup checks for the image anyway, and says to run
+      this with `--force`, rather than testing a stale or absent image.
+    deps:
+      - "build"
+    command: "bash"
+    args:
+      - "-lc"
+      - >-
+        docker build -f web/Dockerfile -t "${WEB_IMAGE:-baalbek-web:latest}" web
+    toolchain: "system"
+    options:
+      runFromWorkspaceRoot: true
+      cache: false
+    inputs:
+      - "Dockerfile"
+      - "Dockerfile.dockerignore"
+      - "nginx.conf.template"
+
   build:
     description: Type-checks (via project references) and produces the production Vite build.
     command: "bash"

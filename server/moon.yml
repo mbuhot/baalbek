@@ -183,6 +183,11 @@ tasks:
       inside the image so the artifact never carries host paths. Build
       context is the workspace root, since the release assembles from
       sibling projects.
+
+      Uncached deliberately: an image in the local daemon is not a file
+      output, so a Moon cache hit replays a log claiming the image was
+      built while a `docker image prune` has since removed it. Docker's own
+      layer cache keeps the real rebuild to a couple of seconds.
     deps:
       - "root:sandbox-image"
     command: "bash"
@@ -193,6 +198,7 @@ tasks:
     toolchain: "system"
     options:
       runFromWorkspaceRoot: true
+      cache: false
     inputs:
       - "Dockerfile"
       - "Dockerfile.dockerignore"

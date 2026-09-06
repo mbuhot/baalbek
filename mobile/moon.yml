@@ -26,7 +26,14 @@ tasks:
       redirected off the virtiofs-mounted repo via
       scripts/external-build-dir.init.gradle — same flake pricing/moon.yml
       documents for CARGO_TARGET_DIR — and the APK copied back to the
-      in-repo path below. See mobile/README.md.
+      in-repo path below.
+
+      `scripts/stamp-api-config.sh` then points the synced bundle at a real
+      API host (`MOBILE_API_BASE_URL`, default the emulator's host alias):
+      the packaged app cannot use `web`'s same-origin default, because its
+      WebView origin is the device. That variable is not part of this task's
+      hash, same as SERVER_IMAGE/WEB_IMAGE elsewhere, so changing it needs
+      `moon run mobile:build-android --force`. See mobile/README.md.
     command: "bash scripts/build-android.sh"
     toolchain: "system"
     deps:

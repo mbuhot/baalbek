@@ -57,6 +57,14 @@ A `Dockerfile` + `.devcontainer/devcontainer.json` producing an image with:
 
 Same image runs CI, so an under-declared task input fails immediately.
 
+### Adding OS packages after the fact
+
+`proto install` compiles Erlang/OTP from source, and it sits below the image's apt layer — so extending that existing package list invalidates the OTP build and forces a full recompile. Worse, the dependency chain `e2e:test` → `server:image` → `root:sandbox-image` would drag that recompile into the e2e gate.
+
+So new OS packages go in **their own layer, appended after `proto install`**, leaving the OTP layer's cache intact. That trades a tidy single package list for a build that stays cheap. Consolidating the layers is a deliberate cleanup step for later, done once the package set has settled — not something to do incrementally, since each consolidation pays the OTP rebuild.
+
+First case: Playwright's browser libraries (`libglib-2.0.so.0` and friends), needed because Stage 9's suite drives a browser *from the sandbox* against the composed release stack. Until they are in the image, `e2e:test` passes only where someone has run `npx playwright install-deps` by hand — the "green locally, red on a fresh machine" shape this repo keeps catching.
+
 ## Component inventory
 
 | Project | Language | Owns | Notes |
@@ -116,10 +124,20 @@ Each stage ends green on the gates named. A passing gate is not re-run.
 | 8 | `spec/` per component: `features/`, `mocks/`, `decisions/`; Gherkin wired to ExUnit; path-based within-app test selection | `moon run :test` |
 | 9 | `e2e` Playwright against the **dockerized** release stack, not a dev server (see below) | `moon run e2e:test` |
 | 10 | `explorer` static site | `moon run explorer:build` |
-| 11 | `moon-elixir-plugin` — Rust→WASM, parses `mix.exs` path deps, replaces the drift-check | `moon run moon-elixir-plugin:test`, then `moon check --all` |
+| 11 | `moon-elixir-plugin` — Rust→WASM, parses `mix.exs` path deps, replaces the drift-check | `moon run moon-elixir-plugin:test`, then `moon ci`, then one `moon check --all` |
 | 12 | CI in the sandbox image, `moon ci`, README | full `moon ci` |
 
 Stages 2–5 touch disjoint directories and can run in parallel once stage 1 lands. Stages 6–7 are sequential on 2–5. Stages 10 and 11 are independent of 6–9.
+
+### Which gate to run, and when
+
+`moon check --all` is a blunt instrument and was over-used early on. It runs every build and test task in the workspace unconditionally, ignores `runInCI`, and has no affected detection — so as the workspace grew it came to demand a Docker daemon, a free port, browser binaries, and OS libraries the sandbox image doesn't carry, all to answer "does this still hang together". It was also being run alongside `moon run :test`, which is a strict subset of it.
+
+The routine gates are:
+
+- **The stage's own gate** (`moon run <project>:test`) — proves the stage did what it claims.
+- **`moon ci`** — proves nothing else regressed. Affected-only against a base ref, respects `runInCI` (so the macOS-only iOS task drops out without special-casing), continues past the first failure, and is *what CI actually runs*, which makes it the honest predictor. This is seed.md §1's described mechanism.
+- **`moon check --all`** — only for a deliberate full sweep, not as a reflex. Stage 11 keeps one, because a change to how the project graph is inferred is exactly where forcing every task once is worth it.
 
 ### Stage 6c: release assembly, and why the Gleam edge needs it
 
@@ -131,13 +149,27 @@ This is the classic passes-tests-fails-in-production shape, currently latent onl
 
 Stage 6c closes both gaps together: real `releases:` config for `server` (plus the release Dockerfile the Sandbox section implies), and packaging `timeline`'s output as something a release genuinely includes — most likely a real OTP application the release recognises, rather than a runtime path hack. The gate is behavioural, not structural: the built release must boot, serve the JSON:API, and successfully call through `timeline_facade` into Gleam code, proving the `.beam` files are actually in the release rather than smuggled in by `mix.exs` evaluation.
 
+### Task graph: content-addressed `outputs`, not `project://` inputs
+
+Decided mid-build, after `project://` inputs caused three separate defects. It replaces the convention ADR-0002 documents; a superseding ADR records the change.
+
+**The problem.** `project://<id>` folds another project's files into a task's hash. It is coarse (it walks whole directories, build trees included), it races (one task hashes a tree another is rewriting), and — the real defect — **it is not transitive**. `project://timeline_facade` hashes the facade's own files only; it does not reach the Gleam source behind it. Nothing tells you when a transitive edge is missing: you get a silent stale pass. That shape has bitten twice, on the Rust edge (Stage 4) and the Gleam edge (Stage 8).
+
+**The mechanism.** Moon ignores a `deps:` entry for hashing *when the upstream task declares no `outputs`*. The converse is the fix: when an upstream task **does** declare outputs, the dependency contributes to the dependent's hash, and it composes — a change to C alters B's outputs, which changes A's hash, transitively, the way Bazel and Nix work. It is also correctly *less* eager: a change that doesn't alter the compiled artifact doesn't re-run downstream.
+
+**The rule.** Every task another task depends on declares real `outputs`. Downstream tasks express the edge as a task `deps:` entry on an output-declaring task, not as a `project://` input. A task with nothing meaningful to emit (a test task, say) is not a valid dependency target — give the project a `build`/`compile`/`package` task that produces the artifact, and depend on that.
+
+Deliberately **not** solved with a checker. A tool asserting that every transitive edge is declared would keep the fragile convention in place and paper over it; the point is that the graph should make the missing edge impossible, not detectable.
+
+Note this also bounds what Stage 11's plugin is for. Inferring `dependsOn` from `mix.exs` path deps automates ordering, which was never the correctness problem — and it cannot see the Cargo path dep behind `pricing_native` or the build-output path deps behind `timeline_facade` at all.
+
 ### Stage 9: e2e runs against the dockerized release, not a dev server
 
 The e2e suite targets a **containerised stack running the `MIX_ENV=prod` release** from Stage 6c — server image plus Postgres, composed, configured by environment variables — never `mix phx.server` in dev mode against a developer's local database.
 
 Rationale: a dev-server e2e proves the app works in a configuration nobody deploys. Running against the real release artifact exercises what actually ships — prod config and its runtime env-var reading, the release's own boot sequence and supervision tree, compile-time-vs-runtime config separation, and asset/static-file serving as built rather than as dev-reloaded. It also converts Stage 6c's Gleam-in-release concern from a one-time check into a standing one: if a future change stops the release bundling `timeline`'s BEAM files, an e2e test touching a timeline-backed endpoint fails, rather than the problem surfacing on someone's first real deploy.
 
-Consequence for the Moon graph: `e2e:test` depends on the release image build (and `web`'s build), not on source. Playwright talks to the composed stack over HTTP at a configured base URL, so the same suite can point at a deployed environment unchanged.
+Consequence for the Moon graph: `e2e:test` depends on the release image build (and `web`'s build), not on source. Playwright talks to the composed stack over HTTP at a configured base URL, so pointing the same suite at a deployed environment is a matter of configuration rather than a rewrite — provided the harness genuinely skips composing a local stack when given an external URL, which is a property to verify rather than assume.
 
 ## Test selection
 

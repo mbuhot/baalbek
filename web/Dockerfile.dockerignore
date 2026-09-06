@@ -1,0 +1,14 @@
+# Build context for web/Dockerfile. Scoped to that Dockerfile, so no other
+# image's context is affected.
+#
+# Everything is excluded, then only the two things the image serves are allowed
+# back in. Deny-all is what makes this safe by construction rather than by
+# maintenance: `node_modules`, `.tsbuildinfo`, `spec/`, and — for anyone who
+# points a build at the repository root instead — `.moon/cache`, which is a
+# symlink to a machine-local directory and must never enter a build context,
+# are all excluded because they were never allowed in.
+
+*
+
+!dist
+!nginx.conf.template

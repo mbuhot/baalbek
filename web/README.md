@@ -76,7 +76,7 @@ UI's acceptance layer is the Playwright suite in `e2e` (Stage 9).
 moon run core-api-client:build   # generates the client from server's OpenAPI spec
 cd web
 pnpm install
-pnpm run dev       # http://localhost:5173, expects `server` on :4004
+pnpm run dev       # http://localhost:5173, proxies /api to `server` on :4004
 pnpm run lint
 pnpm run test
 pnpm run build
@@ -85,6 +85,48 @@ pnpm run build
 Or via Moon: `moon run web:test` / `moon run web:build` from the repo root
 (both depend on `core-api-client:build`, which depends on `server:openapi`;
 `test` also depends on `lint`).
+
+### Which API this app talks to
+
+`src/api.ts`'s `resolveApiBaseUrl` decides, in this order:
+
+1. **`globalThis.__API_BASE_URL__`** — deploy-time configuration, set by
+   `public/api-config.js`, a plain script the built `index.html` loads before
+   the bundle. It ships empty, and is rewritten per environment.
+2. **`VITE_API_BASE_URL`** — a build-time override, for local experiments.
+3. **The origin serving the app**, `<origin>/api/json/core`.
+
+One `dist` therefore serves every consumer, and there is **no CORS
+configuration anywhere in this repository** — not in `server`, not in nginx.
+That is a property of the three deployments, not an oversight:
+
+| Consumer | Origin of the app | How it reaches the API |
+|---|---|---|
+| Browser | wherever `baalbek-web` is served | same origin, `/api` proxied to `server` by nginx |
+| `e2e` | that same image on `localhost:4014` | same proxy |
+| `mobile` | the device (`capacitor://localhost`, `http://localhost`) | `CapacitorHttp` makes **native** requests, which the WebView never applies CORS to |
+
+The one case that would need CORS is a browser PWA deployed on a *different*
+origin from the API — a CDN in front of the bundle, say. `nginx.conf.template`
+in this project is where it would go, since that is the tier that would then be
+serving a cross-origin app; `server` should stay free of it.
+
+`Dockerfile` is what makes the same-origin default true: `moon run web:image`
+builds `baalbek-web:latest`, nginx serving `dist` with `/api` reverse-proxied to
+`SERVER_ORIGIN` (default `http://server:4004`, substituted into the config by
+nginx's own entrypoint at container start). It copies the `dist` that `build`
+produces rather than re-building it, so the bundle it serves is the same one
+`mobile` embeds. The Stage 9 e2e stack composes that image and defines no
+serving configuration of its own; the dev server proxies `/api` to `:4004` for
+the same reason. See
+`../e2e/spec/decisions/adr-0001-dockerized-e2e-stack.md`.
+
+A packaged app has no usable origin of its own, so rule 3 cannot apply to it:
+`mobile/scripts/stamp-api-config.sh` rewrites `api-config.js` inside the synced
+native bundle (`MOBILE_API_BASE_URL`, defaulting to the host machine as seen
+from an emulator). `resolveApiBaseUrl` raises inside a Capacitor WebView with
+nothing configured, rather than letting the app request its own bundle and
+render an empty board — `src/api.test.ts` covers that and every other rule.
 
 ### Linking to `core-api-client`
 

@@ -34,8 +34,21 @@ snapshots), `decisions/` (ADRs). Never create an empty one to complete the patte
 
 - ADR conventions — numbering, the immutability rule, where a cross-component decision goes —
   live in `spec/decisions/README.md`. An ADR is the one place longer rationale prose is correct.
+- ADRs record architectural decisions, not process ones. How the work is specified and reviewed
+  belongs in this file.
 - Gherkin features are executable. A `.feature` file with no wired steps is a defect, not a
   placeholder.
+
+## Reviewing
+
+A review checks the work against the spec, not only against the brief that produced it. A brief is
+its own artefact and can be wrong: it can under-apply a principle, or apply one to a component and
+silently drop it for the neighbouring one. Read `seed.md` and `PLAN.md` and say when the brief
+itself is the defect.
+
+This is not hypothetical. Stage 9 required the server tier to run its real release artifact, then
+let the web tier be served by a config that existed only in the test directory — because the brief
+listed that as acceptable, so the implementation conformed and the review passed it.
 
 ## Test tree layout (Elixir)
 

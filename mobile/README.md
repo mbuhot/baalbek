@@ -11,6 +11,20 @@ there is no second copy of the web assets in this project.
 
 - **App ID:** `com.alembic.baalbek.dispatch`. **App name:** "Baalbek
   Dispatch", matching `web`'s PWA manifest.
+- **Which API the packaged app calls.** A WebView's origin is the device, so
+  `web`'s same-origin default cannot apply here — the app would fetch its own
+  bundle. `scripts/stamp-api-config.sh` rewrites `api-config.js` in the synced
+  native project after each `cap sync`, from `MOBILE_API_BASE_URL` (default:
+  the host machine as an emulator sees it, `http://10.0.2.2:4004` on Android
+  and `http://localhost:4004` on iOS). That value is not in the task hash, so
+  changing it needs `moon run mobile:build-android --force`. `web` raises
+  rather than guessing if the file is ever missed — see `web/README.md`,
+  "Which API this app talks to".
+- **`CapacitorHttp` is enabled** (`capacitor.config.ts`), which patches
+  `fetch`/`XMLHttpRequest` to make native requests. Those never pass through
+  the WebView's CORS enforcement, which is why no tier of this system carries
+  CORS configuration. It is bundled in `@capacitor/core` 8.5.1 and off by
+  default.
 - `android/` and `ios/` are the Capacitor-generated native scaffolds
   (`npx cap add android` / `add ios`), committed per Capacitor
   convention so native-side customisation survives. Their build output

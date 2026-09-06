@@ -28,6 +28,10 @@ export default defineConfig({
       },
     }),
   ],
+  // The app calls its API on its own origin, so the dev server forwards /api to `server`.
+  server: {
+    proxy: { "/api": "http://localhost:4004" },
+  },
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],

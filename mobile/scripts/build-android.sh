@@ -12,6 +12,12 @@ bash scripts/setup-android-sdk.sh
 pnpm install --frozen-lockfile
 npx cap sync android
 
+# 10.0.2.2 is the Android emulator's alias for the host machine, so the default
+# reaches a `server` running on the developer's own port 4004.
+bash scripts/stamp-api-config.sh \
+  android/app/src/main/assets/public \
+  "${MOBILE_API_BASE_URL:-http://10.0.2.2:4004/api/json/core}"
+
 export ANDROID_SDK_ROOT="$HOME/.android-sdk"
 export ANDROID_HOME="$HOME/.android-sdk"
 export GRADLE_USER_HOME="$HOME/.cache/baalbek-gradle"
