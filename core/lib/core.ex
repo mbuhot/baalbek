@@ -1,22 +1,52 @@
 defmodule Core do
   @moduledoc """
-  Public API boundary (seed.md §3, "Within-app boundaries: boundary").
+  The core domain: customers, sites, jobs, and work orders (PLAN.md's
+  Component inventory: "Jobs, customers, sites, work orders.").
 
-  `core` owns the field-service domain: customers, sites, jobs and work
-  orders (PLAN.md's Component inventory: "Jobs, customers, sites, work
-  orders."). This boundary's exports are the Ash domain and its resources —
-  the only things a caller (in-process today; a future `server` app once
-  Stage 6 lands) is meant to touch.
-
-  `Core.Data` (see `lib/core/data.ex`) is a *sub*-boundary nested under this
-  one, not a declared `deps` entry: `boundary` forbids a boundary from
-  depending on its own descendants, but automatically lets a parent
-  boundary's modules (this one, and everything classified under it —
-  `Core.Domain`, `Core.Customer`, `Core.Application`, etc.) use whatever a
-  direct child sub-boundary exports. `Core.Data` exports only its `Repo`,
-  so that's the sole thing reachable — nothing else internal to a future
-  sub-boundary would be.
+  Uses `ash_boundary` (PLAN.md's "Boundary enforcement, in-app and
+  cross-app" section) instead of a hand-rolled `use Boundary`, so `exports`
+  derives from the domain DSL: `Core.Customer`, `Core.Site`, `Core.Job`,
+  and `Core.WorkOrder` are each public because they get a domain-level
+  `define` below. `Core.Data` (a nested Ecto-Repo sub-boundary) stays
+  reachable as a direct child sub-boundary, with no explicit `deps` entry
+  needed.
   """
 
-  use Boundary, deps: [], exports: [Domain, Customer, Site, Job, WorkOrder]
+  use Ash.Domain,
+    otp_app: :core,
+    extensions: [AshBoundary]
+
+  resources do
+    resource Core.Customer do
+      define :create_customer, action: :create
+      define :get_customer, action: :read, get_by: [:id]
+      define :list_customers, action: :read
+      define :update_customer, action: :update
+      define :destroy_customer, action: :destroy
+    end
+
+    resource Core.Site do
+      define :create_site, action: :create
+      define :get_site, action: :read, get_by: [:id]
+      define :list_sites, action: :read
+      define :update_site, action: :update
+      define :destroy_site, action: :destroy
+    end
+
+    resource Core.Job do
+      define :create_job, action: :create
+      define :get_job, action: :read, get_by: [:id]
+      define :list_jobs, action: :read
+      define :update_job, action: :update
+      define :destroy_job, action: :destroy
+    end
+
+    resource Core.WorkOrder do
+      define :create_work_order, action: :create
+      define :get_work_order, action: :read, get_by: [:id]
+      define :list_work_orders, action: :read
+      define :update_work_order, action: :update
+      define :destroy_work_order, action: :destroy
+    end
+  end
 end

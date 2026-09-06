@@ -16,16 +16,15 @@ defmodule Core.Data.Repo do
     # of the features the warning lists.
     warn_on_missing_ash_functions?: false
 
+  @doc "No optional Postgres extensions are required."
   @impl AshPostgres.Repo
   def installed_extensions do
-    # None needed: `uuid_primary_key` generates ids application-side
-    # (Ash.UUID.generate/0), not via a Postgres extension function.
     []
   end
 
+  @doc "Requires Postgres 17."
   @impl AshPostgres.Repo
   def min_pg_version do
-    # .devcontainer/docker-compose.yml pins postgres:17.
     %Version{major: 17, minor: 0, patch: 0}
   end
 end

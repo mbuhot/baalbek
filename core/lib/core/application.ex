@@ -3,6 +3,7 @@ defmodule Core.Application do
 
   use Application
 
+  @doc "Starts the core supervision tree."
   @impl true
   def start(_type, _args) do
     children = [

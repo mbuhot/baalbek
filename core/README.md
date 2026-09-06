@@ -5,15 +5,15 @@
 **Purpose:** Jobs, customers, sites, work orders (field service / job
 dispatch domain). Publishes OpenAPI in Stage 6 — out of scope here.
 
-## Stage 2 (this stage)
+## Stage 2 (this stage), retrofitted to `ash_boundary` as a fast-follow
 
 - **Ash resources** (`lib/core/{customer,site,job,work_order}.ex`), grouped
-  under `Core.Domain`: `Customer` has many `Site`s, a `Site` has many
-  `Job`s, a `Job` has many `WorkOrder`s.
-- **`boundary`**: `Core` (top-level, `lib/core.ex`) is the public API —
-  exports the domain and its resources. `Core.Data` (`lib/core/data.ex`) is
-  a nested internal boundary exporting only `Core.Data.Repo`; nothing else
-  may talk to Postgres directly.
+  under the `Core` domain (`lib/core.ex`): `Customer` has many `Site`s, a
+  `Site` has many `Job`s, a `Job` has many `WorkOrder`s.
+- **`boundary`**: `Core` uses `ash_boundary` — its `exports` derive from the
+  domain DSL, since each resource gets a domain-level `define`. `Core.Data`
+  (`lib/core/data.ex`) is a nested internal boundary exporting only
+  `Core.Data.Repo`; nothing else may talk to Postgres directly.
 - **Schema + role**: owns Postgres schema `core`, connects only as the
   dedicated `core` Postgres role (never the superuser). See
   `priv/repo/bootstrap.sql` and `lib/mix/tasks/core.bootstrap.ex`.

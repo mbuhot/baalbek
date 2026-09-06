@@ -19,7 +19,7 @@ config :core, Core.Data.Repo,
   pool_size: String.to_integer(System.get_env("CORE_PG_POOL_SIZE", "5"))
 
 config :core, ecto_repos: [Core.Data.Repo]
-config :core, ash_domains: [Core.Domain]
+config :core, ash_domains: [Core]
 
 config :ash, allow_forbidden_field_for_relationships_by_default?: true
 

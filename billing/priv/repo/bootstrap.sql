@@ -50,10 +50,9 @@
 -- against each other. The lock id (726352001) is an arbitrary constant,
 -- but it MUST be the exact same constant in every component's
 -- bootstrap.sql that touches this database — a different id per
--- component would let them race again, defeating the point. (`core`'s
--- own bootstrap.sql predates this fix and isn't touched here — see this
--- stage's report for why, and note it still carries the same latent
--- race when run concurrently with identity/billing.)
+-- component would let them race again, defeating the point. `core`'s
+-- own bootstrap.sql now uses the same lock id, so all three components'
+-- bootstraps serialize against each other, not just pairwise.
 SELECT pg_advisory_lock(726352001)
 ;
 
