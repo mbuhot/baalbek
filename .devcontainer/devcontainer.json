@@ -1,0 +1,34 @@
+{
+  "name": "baalbek",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "workspace",
+  "workspaceFolder": "/workspaces/baalbek",
+  "shutdownAction": "stopCompose",
+
+  // Same image (Dockerfile at repo root) is used here and in CI, so an
+  // under-declared task input fails immediately in both places, per
+  // PLAN.md's "Sandbox" section.
+  "remoteUser": "vscode",
+
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "jakebecker.elixir-ls",
+        "gleam.gleam",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+
+  // proto is already on PATH from the Dockerfile (PROTO_HOME baked in) and
+  // `proto install` already ran at image-build time to warm the toolchain
+  // layer; re-running it here is a fast no-op unless .prototools changed
+  // since the image was built.
+  "postCreateCommand": "proto install && moon --version"
+}

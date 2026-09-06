@@ -1,0 +1,22 @@
+# NOTE (Stage 0 deviation from PLAN.md, flagged for review): PLAN.md pins
+# "asdf:erlang" = "28.5". OTP 28.5 exists upstream (git tag OTP-28.5 on
+# erlang/otp) but was released as a bare two-component tag with only
+# four-component hotfix follow-ups (28.5.0.1 .. 28.5.0.6) and no plain
+# "28.5.0" three-component release. proto v0.62.0's asdf-erlang version
+# resolution requires a strict x.y.z semver match, so every "28.5"-family
+# version gets filtered out of the resolvable list and `proto install` fails
+# with "Failed to resolve ~28.5 to a valid supported version for
+# asdf:erlang." (verified: ~/.proto/backends/asdf/erlang/kerl-home/otp_releases
+# actually contains "28.5" and the 28.5.0.1-6 hotfixes, but proto's own
+# resolve_version/load_versions plugin call omits all of them). This is an
+# upstream proto/asdf-erlang limitation, not a network block and not
+# something we substituted for convenience: erlang is still resolved,
+# downloaded/built, and managed end-to-end by proto's asdf backend, just
+# pinned to the newest version proto can actually resolve today.
+moon           = "2"
+node           = "26.7.0"
+pnpm           = "11.9.0"
+rust           = "stable"
+"asdf:erlang"  = "28.4.3"
+"asdf:elixir"  = "1.20.2"
+"asdf:gleam"   = "1.13"

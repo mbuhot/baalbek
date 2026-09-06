@@ -1,0 +1,36 @@
+services:
+  workspace:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    volumes:
+      - ../..:/workspaces:cached
+    working_dir: /workspaces/baalbek
+    command: sleep infinity
+    depends_on:
+      - postgres
+
+  # Postgres server is a compose service only — it is deliberately NOT baked
+  # into the sandbox/CI image (see PLAN.md "Sandbox" and "Data layer"). One
+  # database, one schema per owning component, one role per component
+  # (per-component roles/schemas are created by Stage 2+ migrations, not
+  # here).
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: baalbek
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
