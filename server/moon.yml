@@ -8,10 +8,6 @@
 language: elixir
 layer: application
 
-# The shared cargo target directory pricing_native/moon.yml documents.
-env:
-  CARGO_TARGET_DIR: "$HOME/.cache/baalbek-cargo-target"
-
 # Capabilities this component serves, in explorer/capabilities.yml's vocabulary.
 tags:
   - "capability/job-intake"

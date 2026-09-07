@@ -15,10 +15,6 @@ tags:
 dependsOn:
   - "pricing"
 
-# Off the repo mount, for the input-glob reason ../pricing/moon.yml gives.
-env:
-  CARGO_TARGET_DIR: "$HOME/.cache/baalbek-cargo-target"
-
 tasks:
   build:
     # priv/native/pricingnative.so is neither an input nor an output: three

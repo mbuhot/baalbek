@@ -14,3 +14,9 @@ implicitInputs:
   - "/.devcontainer/.env"
   # Moon's own default reaches `/.moon/*.yml`, one level above this file.
   - "/.moon/tasks/*.yml"
+
+# Every task loads the workspace env file, so a value the tasks share is
+# written once (`root:sandbox-image` and each Cargo task read
+# CARGO_TARGET_DIR from it).
+taskOptions:
+  envFile: "/.env"

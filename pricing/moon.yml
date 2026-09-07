@@ -9,11 +9,6 @@ layer: library
 tags:
   - "capability/quote-pricing"
 
-# Off the repo mount: an in-tree `target/` falls inside pricing_native's
-# `native/**/*` input glob. pricing_native shares this directory.
-env:
-  CARGO_TARGET_DIR: "$HOME/.cache/baalbek-cargo-target"
-
 tasks:
   build:
     description: "Compiles the crate and declares the resulting rlib as an output."
