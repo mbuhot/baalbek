@@ -50,4 +50,3 @@ export const API_BASE_URL = resolveApiBaseUrl({
 
 /** The app's single typed client instance, bound to `API_BASE_URL`. */
 export const coreApi = createCoreApiClient(API_BASE_URL);
-// Exercise: a web TypeScript change, to measure what CI rebuilds.

@@ -42,4 +42,3 @@ fn quote(
 }
 
 rustler::init!("Elixir.PricingNative.Native");
-// Exercise: a Rust NIF change, to measure what CI rebuilds.
