@@ -46,6 +46,14 @@ Consequences:
 
 `.moon/toolchains.yml` enables `node`, `pnpm`, `typescript`, `rust`, `system`, plus the custom Elixir toolchain (§ Stage 11) once built. Every toolchain sets `versionFromPrototools: true`.
 
+### `~/.proto/shims` is the allowlist, and only the image can check it
+
+proto's shim directory holds exactly the binaries proto manages. It has `node` and `pnpm` but **no `npm` and no `npx`**, and `java` but no `keytool`. So a task naming one of those reaches a system install, outside every version pin — the substitution this section forbids.
+
+The development sandbox cannot detect that. It carries a system Node, a system JDK and `sudo`, none of which the image has, so a leaked binary resolves here and fails only in CI. `mobile/scripts/build-android.sh` shipped `npx cap sync android` for this reason. Run `.github/scripts/run-in-sandbox.sh` for anything touching a tool invocation: a richer local environment hides the leak, and the image is the only honest test.
+
+Call a package's own CLI through `pnpm exec` (the workspace convention already), and a proto toolchain's non-shimmed binary through the resolved install directory, never `PATH`.
+
 ## Sandbox
 
 A `Dockerfile` + `.devcontainer/devcontainer.json` producing an image with:

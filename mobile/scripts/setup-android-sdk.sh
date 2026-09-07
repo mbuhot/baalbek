@@ -115,8 +115,10 @@ if [ -f "$PROXY_CA" ]; then
   JAVA_HOME_RESOLVED="$(dirname "$(dirname "$(readlink -f "$PROTO_JAVA")")")"
   CACERTS="$JAVA_HOME_RESOLVED/lib/security/cacerts"
   [ -f "$CACERTS" ] || { echo "error: no cacerts at $CACERTS (resolved JDK home: $JAVA_HOME_RESOLVED)" >&2; exit 1; }
-  if ! keytool -list -keystore "$CACERTS" -storepass changeit \
-       -alias docker-sandboxes-proxy-ca >/dev/null 2>&1; then
+  # The resolved JDK's keytool, never PATH's: proto ships no keytool shim, so
+  # a bare `keytool` is a system JDK where one happens to exist.
+  if ! "$JAVA_HOME_RESOLVED/bin/keytool" -list -keystore "$CACERTS" \
+       -storepass changeit -alias docker-sandboxes-proxy-ca >/dev/null 2>&1; then
     echo "==> Importing sandbox proxy CA into $CACERTS"
     run_logged sudo "$JAVA_HOME_RESOLVED/bin/keytool" -importcert -noprompt \
       -trustcacerts -alias docker-sandboxes-proxy-ca -file "$PROXY_CA" \

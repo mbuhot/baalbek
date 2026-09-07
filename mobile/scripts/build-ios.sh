@@ -19,7 +19,8 @@ if [ "$(uname -s)" != "Darwin" ] || ! command -v xcodebuild >/dev/null 2>&1; the
 fi
 
 pnpm install --frozen-lockfile
-npx cap sync ios
+# `pnpm exec`, not `npx`: proto ships no npx shim, so npx is a system Node.
+pnpm exec cap sync ios
 
 # The iOS simulator shares the host's loopback, so the default reaches a
 # `server` running on the developer's own port 4004.

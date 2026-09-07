@@ -10,7 +10,8 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 bash scripts/setup-android-sdk.sh
 pnpm install --frozen-lockfile
-npx cap sync android
+# `pnpm exec`, not `npx`: proto ships no npx shim, so npx is a system Node.
+pnpm exec cap sync android
 
 # 10.0.2.2 is the Android emulator's alias for the host machine, so the default
 # reaches a `server` running on the developer's own port 4004.

@@ -6,7 +6,7 @@
 
 A [Capacitor](https://capacitorjs.com) 8 project wrapping `web`'s built
 PWA as native Android and iOS apps. `capacitor.config.ts` sets `webDir`
-to `../web/dist`, so `npx cap sync` copies whatever `web` last built —
+to `../web/dist`, so `cap sync` copies whatever `web` last built —
 there is no second copy of the web assets in this project.
 
 - **App ID:** `com.alembic.baalbek.dispatch`. **App name:** "Baalbek
@@ -26,7 +26,7 @@ there is no second copy of the web assets in this project.
   CORS configuration. It is bundled in `@capacitor/core` 8.5.1 and off by
   default.
 - `android/` and `ios/` are the Capacitor-generated native scaffolds
-  (`npx cap add android` / `add ios`), committed per Capacitor
+  (`pnpm exec cap add android` / `add ios`), committed per Capacitor
   convention so native-side customisation survives. Their build output
   (`android/app/build`, `ios/build`, …) is gitignored.
 
@@ -39,7 +39,7 @@ PWA content. `moon run mobile:build` (PLAN.md's Stage 7 gate) reaches it
 through an unconditional `deps` edge — Android has no accepted exception
 and runs in every environment.
 
-Versions below came from `npx cap add android` — they are Capacitor
+Versions below came from `pnpm exec cap add android` — they are Capacitor
 8.5.1's own current defaults, not independently chosen here.
 
 | Component | Version |
@@ -94,7 +94,7 @@ caches it as a declared output. A no-op relocation on other filesystems.
 
 ## iOS
 
-`mobile:build-ios` runs `npx cap sync ios` and a real
+`mobile:build-ios` runs `pnpm exec cap sync ios` and a real
 `xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration
 Debug -sdk iphonesimulator … build` — the command a Mac developer would
 run, not a stub. It carries `tags: ["requires-macos"]` and
@@ -104,8 +104,8 @@ exists only on macOS, so the task cannot run in this Linux sandbox or in
 container CI.
 
 Capacitor 8 uses Swift Package Manager (`ios/App/CapApp-SPM/`), not
-CocoaPods, so `npx cap add ios` needed no Mac-only step and its scaffold
-is committed here. Only `xcodebuild` itself is Mac-only.
+CocoaPods, so `pnpm exec cap add ios` needed no Mac-only step and its
+scaffold is committed here. Only `xcodebuild` itself is Mac-only.
 
 Three independent mechanisms keep it out of this environment, none of
 which weakens the real Mac build:
@@ -137,7 +137,7 @@ A Mac developer runs `moon run mobile:build-ios` and gets a genuine build.
 moon run web:build            # produces web/dist, which cap sync consumes
 cd mobile
 pnpm install
-npx cap sync android           # or: npx cap sync ios
+pnpm exec cap sync android     # or: pnpm exec cap sync ios
 ```
 
 Or via Moon from the repo root: `moon run mobile:build-android`,
