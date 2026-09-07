@@ -38,15 +38,12 @@ tasks:
       service in .devcontainer/docker-compose.yml).
     deps:
       - "~:deps"
-    extends: "deps-list"
     command: "bash"
     args:
       - "-lc"
-      # One `loadpaths --no-deps-check` covers every task after it.
+      # One BEAM start serves the whole chain.
       - >-
-        { test -z "$MIX_PATH_DEPS" || mix deps.compile $MIX_PATH_DEPS; } &&
-        mix do loadpaths --no-deps-check +
-        core.bootstrap +
+        mix do core.bootstrap +
         identity.bootstrap +
         billing.bootstrap +
         ecto.create -r Core.Data.Repo --quiet +
@@ -81,8 +78,7 @@ tasks:
     args:
       - "-lc"
       - >-
-        mix do loadpaths --no-deps-check +
-        openapi.spec.json --spec ServerWeb.JsonApiRouter --pretty=true priv/static/openapi.json
+        mix openapi.spec.json --spec ServerWeb.JsonApiRouter --pretty=true priv/static/openapi.json
     toolchain: "system"
     env:
       MIX_ENV: "dev"

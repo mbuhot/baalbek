@@ -27,6 +27,11 @@ for `mix <app>.bootstrap`, then again at `test` for the suite.
 None of that has to happen when only first-party code changes. `mix.exs` and
 `mix.lock` decide the third-party tree; nothing under `lib/` does.
 
+This ADR was first written while `ash_boundary` was unpublished and taken from
+git, which moon's archiver cannot carry. It was published as 0.1.0 the day
+after, and the sections below record the state after that: the workaround the
+git dependency forced is deleted, and what survives it is named.
+
 ## Decision
 
 ### One `deps` task per Elixir project, keyed on the manifest alone
@@ -110,9 +115,10 @@ restores `.moon/cache` on a pull request but the checkout is always fresh, so
 `deps/` is never already there. So `deps/**/*` is a declared output, and
 moon preserves mtimes on restore (measured on a file stamped 2020-01-01).
 
-One dependency cannot be carried that way. moon's output globs match dotfiles
-— `.hex`, `.formatter.exs`, `.github` are all archived — but skip a nested
-`.git`, so `ash_boundary`, a git dependency, comes back unfetched:
+One dependency could not be carried that way while it came from git. moon's
+output globs match dotfiles — `.hex`, `.formatter.exs`, `.github` are all
+archived — but skip a nested `.git`, and `ash_boundary` was pinned to a commit
+sha because it was unpublished, so it came back unfetched:
 
 ```
 core:build | Unchecked dependencies for environment dev:
@@ -126,109 +132,91 @@ fetch in 24 tasks per full `moon ci` run where 6 needed one. What Mix is
 re-checking there is an invariant moon already owns: `deps` is keyed on
 `mix.exs` and `mix.lock` and restores `deps/` as a declared output.
 
-So every other task passes `--no-deps-check`, and **that alone is wrong**,
-because the same check also performs the step that compiles a `path:`
-dependency into the build path. Measured in the state the archive actually
-restores — `timeline_facade/build/test/lib` holding `boundary` and the app's
-own directory, nothing else:
+The second was `--no-deps-check` in every compiling task, plus a
+`$MIX_PATH_DEPS` list to replace the step that flag also skips. Both are gone.
+`ash_boundary` 0.1.0 is published, every project declares
+`{:ash_boundary, "~> 0.1"}`, and Mix verifies a Hex dependency through
+`deps/<name>/.hex` — a dotfile the archiver does carry. Measured on
+`server:deps`' own archive: 8,461 entries, 43 `.hex` files including
+`server/deps/ash_boundary/.hex`, and no `.git` directory at all.
+
+So every task runs the plain command. Measured in the state the archive
+restores, and stricter: `server/deps` and both build trees extracted from that
+archive, no `.git` under `deps/`, and every path-dep directory plus `server`'s
+own deleted from `build/dev/lib` and `build/test/lib`:
 
 ```
-$ mix test --no-deps-check
-** (Mix) Could not start application timeline: could not find application file: timeline.app
+$ mix compile
+==> pricing_native … ==> core … ==> identity … ==> billing …
+==> timeline_facade … ==> server
+Generated server app
 $ mix test
-Result: 4 passed
+Result: 27 passed
 ```
 
-`server` cannot take either branch: with its five path deps absent from the
-tree and `deps/ash_boundary/.git` hidden, `--no-deps-check` gives
-`could not find application file: core.app` and the plain command gives
-`the dependency is not available, run "mix deps.get"`.
-
-The path dependencies are therefore compiled **by name**, from a second list
-the plugin reads out of the same manifest
-(`../../moon-elixir-plugin/spec/decisions/adr-0003-the-plugin-hands-over-the-third-party-dependency-list.md`):
+The check is running, not passing vacuously. With `deps/ash_boundary/.hex`
+moved aside, the same `mix compile` fails:
 
 ```
-{ test -z "$MIX_PATH_DEPS" || mix deps.compile $MIX_PATH_DEPS; } && mix test --no-deps-check
+Unchecked dependencies for environment dev:
+* ash_boundary (Hex package)
+  lock mismatch: the dependency is out of date. To fetch locked version run "mix deps.get"
 ```
 
-The guard matters: a bare `mix deps.compile` with an empty variable compiles
-every dependency, which is the coupling this ADR exists to remove.
-`--no-deps-check` is written into every compiling task and no project replaces
-it. The section below on `$MIX_PATH_DEPS` records why the one escape that
-existed is gone.
+A bootstrap task never took the flag well — `mix <app>.bootstrap` takes no
+flags — and it no longer needs one. Those run `mix do loadpaths + …`, where
+one `loadpaths` covers every task after it and one BEAM start serves all four.
 
-A bootstrap task cannot use the flag — `mix ecto.create --no-deps-check` and
-`mix ecto.migrate --no-deps-check` still fail on the unverifiable git dep, and
-`mix <app>.bootstrap` takes no flags — so those run
-`mix do loadpaths --no-deps-check + …`, where one `loadpaths` covers every
-task after it and one BEAM start serves all four.
+### Mix links the path deps; only the manifest's one answer is ours
 
-### `$MIX_PATH_DEPS` is the closure, and its manifest answers once
-
-`mix deps.compile` links exactly the applications it is named, and it does not
-descend. The first version of this list carried each project's **direct** path
-deps, so `server` was handed
-`billing core identity pricing_native timeline_facade` and the eleven Gleam
-applications behind that facade were never named. `server` then compiled
-against modules it had not loaded, and exited 0 doing it:
+`--no-deps-check` skipped the step that compiles a `path:` dependency into the
+build path, so each compiling task had to name those dependencies itself, from
+a `$MIX_PATH_DEPS` list the plugin read out of the same manifest. That list had
+to be the **closure**: `mix deps.compile` links exactly the applications it is
+named and does not descend, so a direct-only list handed `server`
+`billing core identity pricing_native timeline_facade`, left the eleven
+applications behind `timeline_facade` unnamed, and `server` compiled against
+modules it had not loaded while exiting 0:
 
 ```
 server:build | warning: cannot infer signatures from :gleam_stdlib because it is not loaded
 server:build | Generated server app
-▮▮▮▮ server:build (5s 169ms, f92a23e8)
 ```
 
-moon cached that ebin. `server:openapi` boots the application, and that is
-where a warning became a failure — run 34138959290 on `main`:
+moon cached that ebin, and `server:openapi` — which boots the application —
+turned the warning into a failure on `main`, run 34138959290:
 
 ```
 server:openapi | ** (Mix) Could not start application gleam_stdlib: could not find application file: gleam_stdlib.app
 ```
 
-So the plugin walks each manifest's path deps recursively and hands over the
-closure. `server` is now given sixteen names. `mix deps.compile` keeps its own
-topological order and ignores the order of its arguments, so `timeline` is
-linked before `timeline_facade` compiles.
+All of that machinery is deleted. Mix's own dependency check resolves the
+closure at the moment it matters, which is better information than any
+graph-time list, and it descends. Measured from the restored state above, with
+`timeline`, the four Gleam applications and the six Erlang ones absent from
+`server`'s trees and no list given to anything: plain `mix compile` and
+`mix test` link all eleven — `backoff exception gleam_erlang gleam_otp
+gleam_stdlib gleam_time opentelemetry_api pg_types pgo pog timeline` — into
+`build/dev/lib` and `build/test/lib`, and emit no `is not loaded` warning.
 
-Measured in the state moon's archive actually restores, with
-`server/deps/ash_boundary/.git` moved aside and the eleven Gleam directories
-deleted from `server/build/dev/lib`: `mix deps.compile` over the sixteen names
-exits 0, links all eleven, and `mix compile --no-deps-check` then emits no
-`is not loaded` warning. The same command over the six names a cold graph gave
-before the manifest was fixed also exits 0, links only `timeline`, and leaves
-ten `is not loaded` warnings behind.
+**One half of the decision survives, and it is independent of the git
+dependency.** The plugin evaluates a manifest *while moon builds the project
+graph*, before any task has run. `timeline_facade/mix.exs` computed its path
+deps with a `File.ls` over `../timeline/build/otp`, which `timeline:build`
+writes, so on a cold graph it answered with a one-application fallback and on a
+warm graph with all eleven. That is what silenced the inference — CI logged
+`cannot infer dependsOn for timeline_facade` on every cold run — and what made
+`timeline_facade:build`'s hash differ between a cold graph and a warm one.
 
-That alone is not enough, and the reason is the second half of this decision.
-The plugin evaluates a manifest **while moon builds the project graph**, before
-any task has run. `timeline_facade/mix.exs` computed its path deps with a
-`File.ls` over `../timeline/build/otp`, which `timeline:build` writes, so on a
-cold graph it answered with a one-application fallback and on a warm graph with
-all eleven. A closure over a list that is itself wrong is still wrong: with the
-walk in place and the manifest unchanged, `server`'s cold list was
-`billing core identity pricing_native timeline timeline_facade` and ten
-applications were still missing.
-
-`timeline_facade/mix.exs` therefore writes the eleven names out and checks them
-against the directory whenever the directory exists. One answer, cold or warm.
-That is the general rule for this workspace: **a manifest the plugin reads must
-not depend on state a task produces.** `moon-elixir-plugin`'s README records the
-same constraint from the plugin's side.
+So `@timeline_otp_apps` stays written out in `timeline_facade/mix.exs`, and
+`check_shipment!/0` stays: one answer, cold or warm. It is not there to feed a
+`mix deps.compile` argument list — it is there because **a manifest the plugin
+reads must not depend on state a task produces.** `moon-elixir-plugin`'s README
+records the same constraint from the plugin's side.
 
 The drift check is what makes the written-out list safe to trust. Measured with
 one extra directory under `timeline/build/otp`: `mix deps.get` in
-`timeline_facade` fails with the two lists side by side, and moon logs the same
-message twice — once for `timeline_facade` and once for `server`, reached
-through the closure. A project whose closure cannot be evaluated gets no list,
-which is the loud failure rather than the short one.
-
-Measured on a cold project graph, with every Elixir `build/` tree,
-`timeline/build` and `.moon/cache` removed:
-
-| `$MIX_PATH_DEPS` | before | after |
-|---|---|---|
-| `server` | `billing core identity pricing_native timeline_facade` | `backoff billing core exception gleam_erlang gleam_otp gleam_stdlib gleam_time identity opentelemetry_api pg_types pgo pog pricing_native timeline timeline_facade` |
-| `timeline_facade` | `timeline` | the eleven |
+`timeline_facade` fails with the two lists side by side.
 
 ### The gate is cold-graph, because a warm one cannot see this
 
@@ -246,10 +234,10 @@ A gate for this class of defect has to remove, in one sequence:
 - moon's project-graph cache (the `states` directory under `.moon/cache`),
 
 and only then run the tasks. Exit 0 is not enough on its own: `server:build`
-exited 0 throughout the failure above. The gate also asserts that
-`timeline_facade:build` and `server:test` emit no
-`cannot infer signatures` or `is not loaded` warning, and that `:timeline` and
-`gleam_stdlib` are present in both projects' build trees.
+exited 0 throughout the failure above. The gate also asserts that no task emits
+a `cannot infer signatures`, `is not loaded` or `could not find application
+file` line, and that `timeline` and `gleam_stdlib` are present in both
+projects' build trees.
 
 Measured, from that state, with `.moon/cache` removed entirely so nothing was
 restored: `server:test server:openapi server:release timeline_facade:test
@@ -381,7 +369,7 @@ stood in for it: three `timeline:package` entries in `server/moon.yml`
 57), which is seed.md §2's duplication restated at the task level.
 
 The manifest now names the eleven applications whether or not the directory
-exists — see the section on `$MIX_PATH_DEPS` below for why it must. Measured
+exists — see the section above for why it must. Measured
 with the directory deleted and moon's caches off, `moon project
 timeline_facade` reports `timeline (production)` — the inferred edge — and
 `timeline_facade:build` resolves to `['timeline:build',
@@ -449,9 +437,10 @@ describe their third party the same way.
   moon merges a plugin-provided task into an *inherited* one, but a task the
   project's own `moon.yml` declares replaces the plugin's version outright —
   and a single `deps:` edge is enough to do it. That is why the list arrives on
-  `deps-list` and is read with `extends`. `server` and `timeline_facade` both
-  declare `deps`, and both still get their list; without the indirection they
-  would have run `mix deps.compile` with an empty variable.
+  `deps-list` and is read with `extends`. `server` and `timeline_facade` each
+  declared `deps` while they carried a `timeline:package` edge, and both still
+  got their list; without the indirection they would have run
+  `mix deps.compile` with an empty variable.
 - **Editing `.moon/tasks/elixir.yml` re-runs every Elixir task, and adding the
   file re-ran every task in the workspace.** `.moon/tasks/all.yml` declares
   `/.moon/tasks/*.yml` as an implicit input, so the glob's file set is part of
@@ -488,25 +477,20 @@ describe their third party the same way.
 
 ## Consequences accepted, continued
 
-- **`$MIX_PATH_DEPS` is Mix's list, not the project graph's.** It carries every
-  `path:` dependency's app name, including one that resolves to no moon
-  project, because `mix deps.compile` has to be given the name either way. A
-  path dep behind `only: [:dev]` would then be named at `MIX_ENV=test` and
-  `mix deps.compile` would reject it; none exists in this workspace.
-- **A computed manifest anywhere in a project's closure now fails that
-  project.** The plugin reports no list at all rather than a short one, so a
-  `mix.exs` that raises takes its consumers' lists down with it. That is the
-  intended direction: a short list exits 0 and a missing one does not.
+- **Every compiling task depends on `ash_boundary` staying on Hex.** A first
+  party dependency taken from git again brings the whole `--no-deps-check` and
+  `$MIX_PATH_DEPS` apparatus back, because moon's archiver will still refuse a
+  nested `.git/`. Vendor such a dependency, or publish it.
 - **`timeline_facade` carries its Gleam application list by hand.** Eleven
   names in `mix.exs` instead of a `File.ls` over the shipment directory.
   `check_shipment!/0` fails the manifest when the two disagree, so drift is
   loud in every task that evaluates it, but the names are still written twice
-  — once by Gleam's resolver into `timeline/manifest.toml`, once here.
-- **Six tasks read the list through `extends: "deps-list"`.** `build` and
-  `test` in the template, and the four `bootstrap` tasks. A seventh task that
-  compiles and forgets the `extends` gets an unset variable, the guard skips
-  the compile, and it fails on a cold tree with a missing app file — loudly,
-  but only there.
+  — once by Gleam's resolver into `timeline/manifest.toml`, once here. This
+  survives the git dependency's removal: it exists so the manifest answers
+  identically on a cold and a warm project graph.
+- **One task reads the list through `extends: "deps-list"`.** `deps`, in the
+  template. `build`, `test` and the four `bootstrap` tasks no longer need any
+  plugin-delivered variable, so they no longer declare the `extends`.
 
 ## Alternatives considered
 
@@ -525,27 +509,23 @@ in every case; rejected once measured, because 18 of the 24 invocations
 existed to re-verify what moon's own key already guarantees, and each one in a
 project with a git dependency re-cloned it.
 
-**`--no-deps-check` everywhere.** Wrong until `$MIX_PATH_DEPS` became the
-closure, and wrong in the direction that passes locally: a warm tree already
-has the links, so the failure only appears on a cold checkout. Measured above.
-It is now what every compiling task passes, and no project overrides it.
+**`--no-deps-check` everywhere.** Shipped, twice, and wrong both times. Wrong
+in the direction that passes locally: a warm tree already has the links, so the
+failure only appears on a cold checkout, which is why a direct-only
+`$MIX_PATH_DEPS` reached `main`. Removed once `ash_boundary` was published: the
+flag existed only to skip a check that could not pass, and skipping it cost the
+link step as well.
 
-**Letting Mix run its own dependency check in the project that needs the
-links.** Shipped first, as an empty `$MIX_DEPS_CHECK` in `timeline_facade`, and
-it is what broke `main`. It fixes only the project that carries it: `server`
-compiles the same eleven applications into its own tree and cannot take the
-same branch, because it locks `ash_boundary` from git and Mix's check then
-reports that dependency unavailable. Every such escape also restores a network
-fetch the split exists to remove. The template no longer offers the variable.
+**Keeping `$MIX_PATH_DEPS` for the speed of naming only what is needed.**
+Rejected: it is not faster. Mix's check links the same applications and then
+compiles nothing else, and the list it derives is right by construction where
+the graph-time one had to be re-derived by hand on every manifest change.
 
-**`mix deps.compile $MIX_PATH_DEPS --include-children`.** Mix resolves the
-closure at the moment it matters, which is better information than any
-graph-time list. Rejected on measurement: `--include-children` expands from
-the path deps into their third-party children, so `ash_boundary` lands in the
-command, and in the state moon's archive restores it fails with
-`** (Mix) Cannot compile dependency :ash_boundary because it isn't available`.
-Measured directly, with `server/deps/ash_boundary/.git` moved aside. Naming
-only path deps is what keeps a git dependency out of the command.
+**Vendoring `ash_boundary` into the workspace instead of taking it from Hex.**
+It would also have removed the git dependency, and it was the fallback while
+0.1.0 was unpublished. Rejected now: a vendored copy of a Spark DSL extension
+is a fork nobody updates, and `mix.lock` is the mechanism that already pins a
+version reproducibly.
 
 **Reading the Gleam application list from `timeline/manifest.toml` instead of
 writing it into `timeline_facade/mix.exs`.** That file is committed, so it

@@ -20,16 +20,12 @@ tasks:
       .devcontainer/docker-compose.yml).
     deps:
       - "~:deps"
-    extends: "deps-list"
     command: "bash"
     args:
       - "-lc"
-      # One `loadpaths --no-deps-check` covers the three tasks after it, and
-      # one BEAM start serves all four.
+      # One BEAM start serves the whole chain.
       - >-
-        { test -z "$MIX_PATH_DEPS" || mix deps.compile $MIX_PATH_DEPS; } &&
-        mix do loadpaths --no-deps-check +
-        billing.bootstrap +
+        mix do billing.bootstrap +
         ecto.create --quiet +
         ecto.migrate --quiet
     toolchain: "system"

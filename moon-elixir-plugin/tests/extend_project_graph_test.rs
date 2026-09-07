@@ -8,7 +8,7 @@
 //! rather than parsing `mix.exs`.
 
 use moon_config::DependencyScope;
-use moon_elixir_plugin::deps_task::{DEPS_TASK, PATH_DEPS_ENV, THIRD_PARTY_ENV};
+use moon_elixir_plugin::deps_task::{DEPS_TASK, THIRD_PARTY_ENV};
 use moon_pdk_api::*;
 use moon_pdk_test_utils::create_moon_sandbox;
 use serde_json::json;
@@ -22,7 +22,6 @@ fn all_project_sources() -> ExtendProjectGraphInput {
         "lib",
         "facade",
         "noisy",
-        "consumer",
         "unevaluable",
         "unlockable",
         "escaping",
@@ -34,9 +33,9 @@ fn all_project_sources() -> ExtendProjectGraphInput {
     input
 }
 
-/// One dependency list the plugin attached to a project, as the `deps` task
-/// reads it.
-fn dep_list(output: &ExtendProjectGraphOutput, id: &str, var: &str) -> Option<String> {
+/// The third-party dependency list the plugin attached to a project, as the
+/// `deps` task reads it.
+fn third_party(output: &ExtendProjectGraphOutput, id: &str) -> Option<String> {
     output
         .extended_projects
         .get(&Id::raw(id))?
@@ -44,16 +43,8 @@ fn dep_list(output: &ExtendProjectGraphOutput, id: &str, var: &str) -> Option<St
         .get(&Id::raw(DEPS_TASK))?
         .env
         .as_ref()?
-        .get(var)?
+        .get(THIRD_PARTY_ENV)?
         .clone()
-}
-
-fn third_party(output: &ExtendProjectGraphOutput, id: &str) -> Option<String> {
-    dep_list(output, id, THIRD_PARTY_ENV)
-}
-
-fn path_deps(output: &ExtendProjectGraphOutput, id: &str) -> Option<String> {
-    dep_list(output, id, PATH_DEPS_ENV)
 }
 
 fn dependency_ids(output: &ExtendProjectGraphOutput, id: &str) -> Vec<String> {
@@ -103,56 +94,6 @@ async fn reads_the_third_party_dependency_list_out_of_the_lock() {
         third_party(&output, "lib").as_deref(),
         Some("jason nimble_parsec")
     );
-}
-
-/// Every `path:` dependency Mix resolved, as Mix names it. `fixtures` resolves
-/// to no moon project and is still a dependency `mix deps.compile` must be
-/// given, so the two lists are not the same thing.
-#[tokio::test(flavor = "multi_thread")]
-async fn reports_the_path_dependency_names_mix_resolved() {
-    let sandbox = create_moon_sandbox("projects");
-    let plugin = sandbox.create_toolchain("elixir").await;
-
-    let output = plugin.extend_project_graph(all_project_sources()).await;
-
-    assert_eq!(dependency_ids(&output, "app"), ["lib", "facade"]);
-
-    // No path deps at all, and the variable is still set.
-    assert_eq!(path_deps(&output, "lib").as_deref(), Some(""));
-}
-
-/// The list is the closure, not the direct entries: `mix deps.compile` links
-/// exactly the applications it is named, so `app` has to name `facade`'s two
-/// path deps as well as its own three. A direct-only list is what compiles
-/// against an application it never linked.
-#[tokio::test(flavor = "multi_thread")]
-async fn reports_the_path_dependencies_of_a_path_dependency() {
-    let sandbox = create_moon_sandbox("projects");
-    let plugin = sandbox.create_toolchain("elixir").await;
-
-    let output = plugin.extend_project_graph(all_project_sources()).await;
-
-    assert_eq!(
-        path_deps(&output, "facade").as_deref(),
-        Some("gleam_a gleam_b")
-    );
-    assert_eq!(
-        path_deps(&output, "app").as_deref(),
-        Some("facade fixtures gleam_a gleam_b lib")
-    );
-}
-
-/// A manifest that raises anywhere in the closure delivers no list: a short
-/// list is the silent failure, and no list is the loud one.
-#[tokio::test(flavor = "multi_thread")]
-async fn delivers_no_list_when_a_path_dependency_cannot_be_evaluated() {
-    let sandbox = create_moon_sandbox("projects");
-    let plugin = sandbox.create_toolchain("elixir").await;
-
-    let output = plugin.extend_project_graph(all_project_sources()).await;
-
-    assert_eq!(path_deps(&output, "consumer"), None);
-    assert!(!output.extended_projects.contains_key(&Id::raw("consumer")));
 }
 
 /// A lockfile Mix cannot read is an empty map, not an error, so the project
@@ -279,7 +220,6 @@ async fn reports_every_mix_exs_it_read_as_an_input_file() {
         files,
         [
             "/workspace/app/mix.exs",
-            "/workspace/consumer/mix.exs",
             "/workspace/escaping/mix.exs",
             "/workspace/facade/mix.exs",
             "/workspace/lib/mix.exs",

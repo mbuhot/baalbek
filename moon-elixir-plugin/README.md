@@ -31,13 +31,12 @@ edge a development dependency.
 Self-edges, duplicates, absolute paths, and paths that climb out of the
 workspace are dropped: none is an edge moon can express.
 
-The same process attaches two dependency lists to a `deps-list` task, each
-space-separated, sorted and deduplicated:
+The same process attaches the third-party dependency list to a `deps-list`
+task, space-separated and sorted:
 
 | variable | contents |
 |---|---|
 | `$MIX_THIRD_PARTY_DEPS` | every name in `mix.lock`, read through `Mix.Dep.Lock.read/1` |
-| `$MIX_PATH_DEPS` | every `path:` dependency's app name, as Mix resolved it, transitive ones included |
 
 ```yaml
 tasks:
@@ -50,26 +49,16 @@ tasks:
 
 The lock names the whole third-party tree, transitive entries included, and
 never a `path:` dependency — which is what lets a task compile the
-third-party half of a build without touching the first-party half. The path
-list is the other half, for a task that has to name them instead: `mix
-compile --no-deps-check` skips the step that compiles a path dependency into
-the build path, so a consumer that skips the check has to run
-`mix deps.compile $MIX_PATH_DEPS` itself. It is Mix's list, not the project
-graph's — a path dependency resolving to no moon project is still named.
+third-party half of a build without touching the first-party half. Mix's own
+dependency check compiles the first-party half, so no task has to name it.
 
-The path list is the closure and not the direct entries. `mix deps.compile`
-links exactly the applications it is named, and it does not descend, so a
-path dependency of a path dependency has to be named as well. The plugin
-walks each manifest's path deps recursively and evaluates every manifest once.
-
-`extends` is how a consuming task reads either: a task a project's own
+`extends` is how a consuming task reads the list: a task a project's own
 `moon.yml` declares replaces the plugin's version of that task, and it takes
-only a `deps:` edge to do it, so the lists arrive on a task nothing else has
+only a `deps:` edge to do it, so the list arrives on a task nothing else has
 a reason to declare.
 
 A lockfile Mix cannot read — missing, conflicted, not a map — is an empty list
-rather than an error. A manifest that raises anywhere in the closure delivers
-no list at all.
+rather than an error. A manifest that raises delivers no list at all.
 
 ## What it does not do
 
@@ -95,12 +84,8 @@ no list at all.
 - **It reads one Mix environment.** The `elixir` process runs at the default
   `MIX_ENV=dev`, so a path dep behind `if Mix.env() == :prod` is not seen.
 - **It cannot read a manifest that raises.** A `mix.exs` needing something no
-  build has produced yet infers nothing for its own project, nor for a project
-  whose path-dep closure reaches it, warns with Mix's own message, and leaves
-  every other project unaffected.
-- **It declares only a project's own `mix.exs` as a project-graph input.** A
-  manifest the closure walk reached that belongs to no moon project is read but
-  not declared, so editing it does not invalidate the cached graph.
+  build has produced yet infers nothing for its own project, warns with Mix's
+  own message, and leaves every other project unaffected.
 - **It reads the manifest before any task runs.** A `mix.exs` computing its
   dependency list from a directory some task writes answers differently before
   and after that task, and the list the plugin hands over is the earlier

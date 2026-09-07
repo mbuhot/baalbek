@@ -98,19 +98,13 @@ pub fn extend_project_graph(
             })
             .collect::<AnyResult<Vec<_>>>()?;
 
-        // The task carries the list even for a project with no path deps, and
-        // the dependencies exist even for one with no third-party tree, so
-        // either alone is worth an entry.
-        let path_deps: Vec<String> = manifest
-            .path_deps
-            .iter()
-            .map(|dep| dep.app.clone())
-            .collect();
-
+        // The task carries the list even for a project with no third-party
+        // tree, and the dependencies exist even then, so either alone is worth
+        // an entry.
         let tasks = BTreeMap::from([(
             Id::new(DEPS_TASK)?,
             PartialTaskConfig {
-                env: Some(dependency_env(&manifest.third_party, &path_deps)),
+                env: Some(dependency_env(&manifest.third_party)),
                 ..Default::default()
             },
         )]);

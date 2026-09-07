@@ -72,13 +72,7 @@ defmodule Core.MixProject do
       {:ash, "~> 3.0"},
       {:ash_postgres, "~> 2.0"},
       {:boundary, "~> 0.10", runtime: false},
-      # Not yet published to Hex (verified: GET https://hex.pm/api/packages/ash_boundary
-      # -> 404) — pinned to a commit sha on `main` (no tags exist in the repo either)
-      # rather than `branch: "main"`, so the dependency is reproducible the same way a
-      # Hex version pin would be.
-      {:ash_boundary,
-       git: "https://github.com/mbuhot/ash_boundary.git",
-       ref: "8e358e3f292725151eb03e147150db4750c498ac"},
+      {:ash_boundary, "~> 0.1"},
       {:cucumber, "~> 1.0", only: [:dev, :test]}
     ]
   end

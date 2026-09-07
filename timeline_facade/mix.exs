@@ -8,9 +8,9 @@ defmodule TimelineFacade.MixProject do
   #
   # Written out rather than read from that directory: moon-elixir-plugin
   # evaluates this manifest while it builds the project graph, before
-  # `timeline:build` writes the directory, and every consumer's
-  # `$MIX_PATH_DEPS` is whatever it answers then. `check_shipment!/0` fails on
-  # drift. See ../spec/decisions/adr-0010-third-party-deps-compile-in-their-own-task.md.
+  # `timeline:build` writes the directory, so the manifest has to answer the
+  # same on a cold graph as on a warm one. `check_shipment!/0` fails on drift.
+  # See ../spec/decisions/adr-0010-third-party-deps-compile-in-their-own-task.md.
   @timeline_otp_apps ~w(
     backoff
     exception

@@ -20,6 +20,11 @@ compiles the path dependencies too, and `server` has five of those while
 `timeline_facade` has eleven. Naming them in each `moon.yml` would duplicate
 `mix.lock`, which is the duplication seed.md §2 asks this plugin to remove.
 
+This ADR was first written with a second list, the `path:` closure, alongside
+the locked names. That list existed only because the consuming workspace could
+not let Mix run its own dependency check; the section below records why, and
+why it is gone.
+
 ## Decision
 
 ### The list comes from the lock, not from `deps`
@@ -74,35 +79,28 @@ An environment variable rather than arguments, for the same kind of reason:
 inherited arguments are appended *before* the project's own, so the dependency
 names would land ahead of the `mix` subcommand.
 
-### The `path:` names are handed over too, as a closure
+### The `path:` names are not handed over
 
-`--no-deps-check`, which a consumer needs once moon owns the `deps/` tree,
-also skips the step that compiles a `path:` dependency into the build path. So
-the consumer has to name those as well, and the plugin already resolved them
-for the inference: `$MIX_PATH_DEPS` carries every `path:` dependency's app
-name.
+A second list, `$MIX_PATH_DEPS`, was shipped alongside the locked names and is
+now deleted. It carried each project's `path:` closure, because
+`--no-deps-check` — which the consuming workspace needed while it locked
+`ash_boundary` from git, a dependency whose `.git` moon's archiver will not
+carry — also skips the step that compiles a `path:` dependency into the build
+path. Direct entries were not enough: `mix deps.compile timeline_facade` links
+`timeline_facade` and does not descend, so `server` compiled against the eleven
+Gleam applications behind that facade with none of them loaded, and the program
+had to walk each manifest's path deps recursively.
 
-The direct entries are not enough, for the same reason `Mix.Project.config()`
-was the wrong source for the locked names. `mix deps.compile timeline_facade`
-links `timeline_facade` and does not descend, so `server` compiled against the
-eleven Gleam applications behind that facade with none of them loaded. The
-program therefore walks each manifest's path deps recursively, memoised by
-directory, and reports the closure. A directory with no `mix.exs` is a leaf: a
-`path:` dependency may name a plain OTP application directory.
+`ash_boundary` 0.1.0 is published, and Mix verifies a Hex dependency through
+`deps/<name>/.hex`, a dotfile the archiver carries. So the consumer runs plain
+`mix compile` and `mix test`, Mix's own check resolves the path-dep closure at
+the moment it matters, and no graph-time list is needed. The recursive walk,
+its memoisation, and the `PathDep` closure field are gone;
+`../../spec/decisions/adr-0010-third-party-deps-compile-in-their-own-task.md`
+records the measurement.
 
-It is deliberately Mix's list and not the project graph's. `infer_dependencies`
-drops a path dep that resolves outside the workspace, onto the project itself,
-or onto no project at all — none of which stops `mix deps.compile` needing the
-name. The `app` fixture shows both differences: its inferred edges are
-`lib, facade`, and its `$MIX_PATH_DEPS` is
-`facade fixtures gleam_a gleam_b lib` — `fixtures` points inside `lib`'s source
-and is nobody's project, and `gleam_a`/`gleam_b` are `facade`'s path deps and
-not `app`'s.
-
-An unevaluable manifest anywhere in the closure fails the whole project rather
-than shortening its list. A short list is the silent failure: the consuming
-task compiles and exits 0 against an application it never linked. No list at
-all is the loud one.
+The **direct** `path:` entries are still read. They are what `dependsOn` is
+inferred from, which is adr-0001's decision and unaffected by any of this.
 
 ### An entry is emitted for every readable manifest
 
@@ -113,11 +111,11 @@ with no *locked* dependencies has an empty one, which is a fact worth stating.
 
 The three cases the consuming task distinguishes:
 
-| manifest | lock | `$MIX_THIRD_PARTY_DEPS` | `$MIX_PATH_DEPS` |
-|---|---|---|---|
-| evaluates, closure evaluates | readable | the names | the closure |
-| evaluates, closure evaluates | missing, conflicted, or not a map | empty | the closure |
-| raises, or its closure raises | not read | unset | unset |
+| manifest | lock | `$MIX_THIRD_PARTY_DEPS` |
+|---|---|---|
+| evaluates | readable | the names |
+| evaluates | missing, conflicted, or not a map | empty |
+| raises | not read | unset |
 
 Unset is the signal that the plugin could not read the manifest at all. It is
 distinguishable from empty, and the consuming task treats the two differently:
@@ -149,24 +147,22 @@ is not.
   `MIX_ENV=prod` cannot use this list, because it names dependencies that
   environment excludes. `server`'s release task compiles its own tree for
   exactly this reason.
-- **The crate keeps its zero workspace dependencies.** The new expectations
-  come from two fixture lockfiles (`app`, `lib`), one deliberately unreadable
-  one (`unlockable`), and two fixtures for the closure — `facade`, whose path
-  deps `app` must also name, and `consumer`, whose path dep raises. Nothing
-  asserts on the host workspace's manifests. 30 tests,
+- **The crate keeps its zero workspace dependencies.** The expectations come
+  from two fixture lockfiles (`app`, `lib`) and one deliberately unreadable one
+  (`unlockable`). Nothing asserts on the host workspace's manifests. 26 tests,
   `--no-default-features` for the rule and the compiled `wasm32-wasip1`
-  artifact for the plugin functions.
-- **A manifest outside every moon project is read but not declared.** Only a
-  project's own `mix.exs` becomes a project-graph input file, so a closure that
-  walks into a directory belonging to no moon project reads a manifest whose
-  edit will not invalidate the cached graph. Every such directory in the
-  consuming workspace is a plain OTP application with no manifest at all.
-- **The closure is still the answer from before any task ran.** Walking
-  recursively does not change *when* the plugin reads a manifest. A `mix.exs`
-  that computes its list from a directory some task writes still answers one
-  way on a cold project graph and another on a warm one, and the closure
-  inherits that. `../../spec/decisions/adr-0010-third-party-deps-compile-in-their-own-task.md`
+  artifact for the plugin functions. The `consumer` fixture, whose path dep
+  raised, went with the closure it existed to cover.
+- **The list is still the answer from before any task ran.** A `mix.exs` that
+  computes its dependency list from a directory some task writes answers one
+  way on a cold project graph and another on a warm one, and both the inferred
+  `dependsOn` and this list inherit that.
+  `../../spec/decisions/adr-0010-third-party-deps-compile-in-their-own-task.md`
   records what the consuming workspace does about it.
+- **A consumer taking a first-party dependency from git brings the second list
+  back.** moon's archiver still refuses a nested `.git/`, so a workspace in
+  that position needs `--no-deps-check` and therefore needs to name its path
+  deps again. The plugin no longer offers to.
 
 ## Alternatives considered
 
@@ -188,11 +184,9 @@ plugin is silent.
 closure.** That is re-implementing Hex's resolver against the lock, in YAML or
 in a script, to produce what the lock already contains.
 
-**Let the consumer pass `mix deps.compile --include-children` instead of a
-closure.** Mix then resolves the closure at the moment it matters, which is
-strictly better information than the plugin can have. Rejected on
-measurement: `--include-children` expands from the path deps into their
-third-party children, so it names the git dependency whose `.git` moon's
-archive does not carry, and in exactly the state CI restores it fails with
-`Cannot compile dependency :ash_boundary because it isn't available`. Naming
-only path deps is what keeps that dependency out of the command.
+**Keeping the `path:` closure for a consumer that still wants it.** It is 224
+lines of plugin, test and fixture for a list no consumer of this plugin needs
+once its dependencies are all fetchable, and a list that is wrong by
+construction the moment a manifest computes itself from a build output.
+Rejected: the plugin should not carry a workaround for one workspace's
+unpublished dependency.
