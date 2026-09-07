@@ -17,28 +17,18 @@ if [ -z "${MOON_BASE:-}" ]; then
   exit 0
 fi
 
-query_output="$(moon query tasks --affected --upstream deep)"
+# Read from the first `{` and take one document: under load, moon's stdout has
+# been seen carrying log noise ahead of its JSON and more than one document.
+targets="$(moon query tasks --affected --upstream deep |
+  sed -n '/{/,$p' | sed '1s/^[^{]*//' |
+  jq -r -n 'input.tasks // {} | .[] | .[] | .target')"
 
-python3 - "$query_output" "$TARGET" <<'PY'
-import json
-import sys
+count="$(printf '%s' "$targets" | grep -c . || true)"
 
-raw, target = sys.argv[1], sys.argv[2]
-start = raw.find("{")
-if start == -1:
-    sys.exit(f"affected-needs-sandbox-image: `moon query tasks` printed no JSON object:\n{raw[:500]}")
+if printf '%s\n' "$targets" | grep -qxF "$TARGET"; then
+  echo "affected: ${TARGET} is in the affected set (${count} tasks)"
+  exit 0
+fi
 
-# raw_decode ignores whatever follows, per report-excluded-tasks.sh.
-document, _ = json.JSONDecoder().raw_decode(raw[start:])
-
-targets = {
-    task["target"] for tasks in document.get("tasks", {}).values() for task in tasks.values()
-}
-
-if target in targets:
-    print(f"affected: {target} is in the affected set ({len(targets)} tasks)")
-    sys.exit(0)
-
-print(f"affected: {target} is not in the affected set ({len(targets)} tasks)")
-sys.exit(1)
-PY
+echo "affected: ${TARGET} is not in the affected set (${count} tasks)"
+exit 1

@@ -14,43 +14,28 @@ trap 'rm -f "$query_file"' EXIT
 moon query tasks > "$query_file"
 echo "moon query tasks: $(wc -c < "$query_file") bytes"
 
-# Read from a file, not argv: this JSON exceeds the 128 KiB one-argument limit
-# on a 4 KiB-page runner.
-# Parsed defensively for the reason mobile/scripts/build.sh documents: under
-# load, moon's stdout has been seen carrying more than the one JSON document.
-python3 - "$query_file" <<'PY'
-import json
-import sys
+# Read from the first `{` and take one document: under load, moon's stdout has
+# been seen carrying log noise ahead of its JSON and more than one document.
+excluded="$(sed -n '/{/,$p' "$query_file" | sed '1s/^[^{]*//' | jq -r -n '
+  [ input.tasks // {} | .[] | .[]
+    # `== false`, not `// true`: the `//` operator in jq treats a `false`
+    # value as absent, so it would read this very setting as its default.
+    | select(.options.runInCI == false)
+    | { target, tags: (.tags // []) } ]
+  | sort_by(.target)[]
+  | "  \(.target) — \(if (.tags | length) > 0 then (.tags | join(", ")) else "NO TAG" end)"
+')"
 
-raw = open(sys.argv[1], encoding="utf-8").read()
-start = raw.find("{")
-if start == -1:
-    sys.exit(f"report-excluded-tasks: `moon query tasks` printed no JSON object:\n{raw[:500]}")
+if [ -z "$excluded" ]; then
+  echo "moon ci excludes no tasks in this workspace."
+  exit 0
+fi
 
-try:
-    # raw_decode reads the first JSON value and ignores whatever follows it.
-    document, _ = json.JSONDecoder().raw_decode(raw[start:])
-except json.JSONDecodeError as error:
-    sys.exit(f"report-excluded-tasks: could not parse `moon query tasks` output ({error}):\n{raw[:500]}")
+echo "moon ci will NOT run these tasks (runInCI: false):"
+printf '%s\n' "$excluded"
 
-excluded = []
-for tasks in document.get("tasks", {}).values():
-    for task in tasks.values():
-        if not task.get("options", {}).get("runInCI", True):
-            excluded.append((task["target"], task.get("tags") or []))
-excluded.sort()
-
-if not excluded:
-    print("moon ci excludes no tasks in this workspace.")
-    sys.exit(0)
-
-print("moon ci will NOT run these tasks (runInCI: false):")
-untagged = []
-for target, tags in excluded:
-    print(f"  {target} — {', '.join(tags) if tags else 'NO TAG'}")
-    if not tags:
-        untagged.append(target)
-
-if untagged:
-    sys.exit("report-excluded-tasks: excluded with no tag saying why: " + ", ".join(untagged))
-PY
+untagged="$(printf '%s\n' "$excluded" | sed -n 's/^  \(.*\) — NO TAG$/\1/p' | paste -sd, -)"
+if [ -n "$untagged" ]; then
+  echo "report-excluded-tasks: excluded with no tag saying why: ${untagged}" >&2
+  exit 1
+fi

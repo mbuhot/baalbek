@@ -49,6 +49,6 @@ cp "${CARGO_TARGET_DIR}/wasm32-wasip1/release/moon_elixir_plugin.wasm" "${ARTIFA
 # The gate asserts provenance, not byte-equality: the same source does not
 # produce the same bytes on a different host architecture, which
 # spec/decisions/adr-0002 records along with the rest of this rule.
-python3 scripts/provenance.py "${MODE}"
+bash scripts/provenance.sh "${MODE}"
 
 rm -f "${ARTIFACT}.new"

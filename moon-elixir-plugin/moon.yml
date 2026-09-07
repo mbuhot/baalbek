@@ -22,7 +22,7 @@ tasks:
     description: "Compiles the plugin and checks the committed artifact came from this source."
     command: "bash scripts/build.sh"
     toolchain: "rust"
-    # Equal to SOURCE_PATHS in scripts/provenance.py, which fingerprints them:
+    # Equal to SOURCE_PATHS in scripts/provenance.sh, which fingerprints them:
     # an input listed here and not there lets a stale artifact pass.
     inputs:
       - "Cargo.toml"

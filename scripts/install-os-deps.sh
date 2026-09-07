@@ -38,10 +38,11 @@ TOOLCHAIN_PGDG_PACKAGES=(
   libpq-dev
 )
 
-# python3 runs test-paths.py; the rest is playwright-core 1.63.0's own
-# `debian12` chromium set, plus fontconfig and one font family.
+# jq parses `moon query` output and moon's own CI report; the rest is
+# playwright-core 1.63.0's own `debian12` chromium set, plus fontconfig and
+# one font family.
 TASK_PACKAGES=(
-  python3
+  jq
   "libasound2t64|libasound2"
   "libatk-bridge2.0-0t64|libatk-bridge2.0-0"
   "libatk1.0-0t64|libatk1.0-0"

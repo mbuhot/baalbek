@@ -18,72 +18,46 @@ if [ ! -f "${REPORT}" ]; then
   exit 0
 fi
 
-python3 - "${REPORT}" <<'PY'
-import json
-import os
-import sys
+text="$(jq -r '
+  # moon reports a duration as {secs, nanos}; render it to one decimal place.
+  def secs: if . == null then 0 else (.secs // 0) + ((.nanos // 0) / 1000000000) end;
+  def fmt: (. * 10 | round) as $t | "\($t / 10 | floor).\($t % 10)";
+  def optypes: [ (.operations // [])[] | .meta.type? ];
 
-with open(sys.argv[1], encoding="utf-8") as handle:
-    report = json.load(handle)
+  [ (.actions // [])[] | select(.label | startswith("RunTask(")) ] as $tasks
+  | [ $tasks[] | select(optypes | index("task-execution")) ] as $executed
+  | ($executed | map(.label)) as $ran
+  # Replayed means hydrated from the cache without executing.
+  | [ $tasks[] | select((optypes | index("output-hydration")) and (.label as $l | $ran | index($l) | not)) ] as $replayed
+  | [ $tasks[] | select(.status == "skipped") ] as $skipped
+  | [ $tasks[] | select(.status == "failed" or .status == "aborted" or .status == "timed-out") ] as $failed
+  # Fully parenthesised: `as` binds looser than `//`, so without these jq
+  # reads the rest of the program as the right-hand side of the last `//`.
+  | ((((.context // {}).affected // {}).projects) // {}) as $projects
 
+  | [ "**moon ci:** \(.status // "unknown") in \(.duration | secs | fmt)s", "",
+      "- **\($executed | length)** tasks executed",
+      "- **\($replayed | length)** replayed from cache",
+      "- **\($skipped | length)** skipped" ]
+  + (if ($failed | length) > 0
+     then [ "- **\($failed | length)** failed: \($failed | map(.label) | join(", "))" ]
+     else [] end)
+  + (if ($projects | length) > 0
+     then [ "", "Affected by the changed files:", "" ]
+          + [ $projects | to_entries | sort_by(.key)[]
+              | "- `\(.key)` — \(((.value.tasks // []) | join(", ")) | if . == "" then "(no tasks)" else . end)",
+                (((.value.files // [])[0:5])[] | "  - `\(.)`") ]
+     else [ "", "No project was reported affected by the changed files." ] end)
+  + (if ($executed | length) > 0
+     then [ "", "Slowest executed tasks:", "" ]
+          + [ $executed | sort_by(.duration | secs) | reverse | .[0:8][]
+              | "- `\(.label | ltrimstr("RunTask(") | rtrimstr(")"))` \(.duration | secs | fmt)s" ]
+     else [] end)
+  | .[]
+' "${REPORT}")"
 
-def seconds(value):
-    if not value:
-        return 0.0
-    return value.get("secs", 0) + value.get("nanos", 0) / 1_000_000_000
+printf '%s\n' "$text"
 
-
-def op_types(action):
-    return {op.get("meta", {}).get("type") for op in (action.get("operations") or [])}
-
-
-tasks = [a for a in report.get("actions", []) if a["label"].startswith("RunTask(")]
-executed = [a for a in tasks if "task-execution" in op_types(a)]
-executed_labels = {a["label"] for a in executed}
-replayed = [
-    a for a in tasks if "output-hydration" in op_types(a) and a["label"] not in executed_labels
-]
-skipped = [a for a in tasks if a["status"] == "skipped"]
-failed = [a for a in tasks if a["status"] in ("failed", "aborted", "timed-out")]
-
-lines = []
-lines.append(f"**moon ci:** {report.get('status', 'unknown')} in {seconds(report.get('duration')):.1f}s")
-lines.append("")
-lines.append(f"- **{len(executed)}** tasks executed")
-lines.append(f"- **{len(replayed)}** replayed from cache")
-lines.append(f"- **{len(skipped)}** skipped")
-if failed:
-    lines.append(f"- **{len(failed)}** failed: " + ", ".join(a["label"] for a in failed))
-
-affected = (report.get("context") or {}).get("affected") or {}
-projects = affected.get("projects") or {}
-if projects:
-    lines.append("")
-    lines.append("Affected by the changed files:")
-    lines.append("")
-    for name in sorted(projects):
-        entry = projects[name] or {}
-        selected = ", ".join(entry.get("tasks") or []) or "(no tasks)"
-        lines.append(f"- `{name}` — {selected}")
-        for path in (entry.get("files") or [])[:5]:
-            lines.append(f"  - `{path}`")
-else:
-    lines.append("")
-    lines.append("No project was reported affected by the changed files.")
-
-if executed:
-    lines.append("")
-    lines.append("Slowest executed tasks:")
-    lines.append("")
-    for action in sorted(executed, key=lambda a: seconds(a.get("duration")), reverse=True)[:8]:
-        label = action["label"][len("RunTask(") : -1]
-        lines.append(f"- `{label}` {seconds(action.get('duration')):.1f}s")
-
-text = "\n".join(lines)
-print(text)
-
-summary = os.environ.get("GITHUB_STEP_SUMMARY")
-if summary:
-    with open(summary, "a", encoding="utf-8") as handle:
-        handle.write(text + "\n\n")
-PY
+if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+  printf '%s\n\n' "$text" >> "${GITHUB_STEP_SUMMARY}"
+fi
