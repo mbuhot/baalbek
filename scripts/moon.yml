@@ -1,0 +1,5 @@
+# The OS package list the sandbox image and a CI runner both install.
+
+# Carries no business capability; explorer/capabilities.yml records why.
+tags:
+  - "platform"

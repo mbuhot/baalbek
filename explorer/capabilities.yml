@@ -66,6 +66,8 @@ platform:
     reason: The shared TypeScript compiler base every TS project extends.
   - id: spec
     reason: Workspace-wide architecture decision records.
+  - id: scripts
+    reason: The OS package list the sandbox image and a CI runner both install.
   - id: moon-elixir-plugin
     reason: Build-graph inference for Mix path dependencies.
   - id: explorer
