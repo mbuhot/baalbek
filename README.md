@@ -62,7 +62,7 @@ once.
 | Each Elixir component connects as its own Postgres role, granted only on its own schema. | `core/priv/repo/bootstrap.sql` |
 | The e2e suite drives a containerised `MIX_ENV=prod` release, never a development server. | `e2e/moon.yml`, `e2e/docker-compose.yml` |
 | The architecture site regenerates from `moon project-graph --json`, git history and 11 named capabilities. | `explorer/moon.yml`, `explorer/capabilities.yml` |
-| An Elixir test file must mirror the module it covers. A Moon task checks the mapping. | `test-paths.py` |
+| Within an Elixir app, `mix test --stale` selects what to rerun locally. | `spec/decisions/adr-0012-*` |
 
 ## CI
 

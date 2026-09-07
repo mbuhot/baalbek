@@ -15,8 +15,8 @@ reachable from `:draft` or `:issued`.
 - **`spec/features/invoice_lifecycle.feature`** — the acceptance criteria for
   raising, issuing, and paying an invoice, executed by ExUnit through
   `cucumber`. Steps and the sandbox hook sit beside it in `spec/features/`.
-- **`mix test.changed`** runs only the tests mirroring the `lib/` files
-  changed since `main`. `../test-paths.py` owns the mapping.
+- **`mix test --stale`** runs only the tests whose compile-time
+  dependencies changed since the last run.
 
 ## Local setup
 

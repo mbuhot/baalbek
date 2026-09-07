@@ -8,16 +8,6 @@ tags:
   - "platform"
 
 tasks:
-  # Named `test`, not `check-test-paths`, so `moon run :test` sweeps it up.
-  test:
-    description: "Checks the lib/<area> -> test/<area> mirroring (seed.md §7.3)."
-    command: "python3 test-paths.py --check"
-    toolchain: "system"
-    inputs:
-      - "test-paths.py"
-      - "*/lib/**/*.ex"
-      - "*/test/**/*_test.exs"
-
   sandbox-image:
     description: "Builds the sandbox/CI image, which is also server/Dockerfile's build stage."
     # `buildx build`, not `build`: without the Buildx plugin `docker build` falls

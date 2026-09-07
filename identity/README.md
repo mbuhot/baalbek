@@ -14,8 +14,8 @@ changes passwords, storing only a hash.
 - **`spec/features/account_access.feature`** — the acceptance criteria for
   technician and dispatcher sign-in, executed by ExUnit through `cucumber`.
   Steps and the sandbox hook sit beside it in `spec/features/`.
-- **`mix test.changed`** runs only the tests mirroring the `lib/` files
-  changed since `main`. `../test-paths.py` owns the mapping.
+- **`mix test --stale`** runs only the tests whose compile-time
+  dependencies changed since the last run.
 
 ## Local setup
 

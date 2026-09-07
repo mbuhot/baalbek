@@ -1,6 +1,6 @@
 # ADR-0005: Within-app test selection is a path convention, checked by a Moon task
 
-**Status:** Accepted
+**Status:** Superseded by adr-0012
 **Date:** 2026-09-06
 **Stage:** 8
 

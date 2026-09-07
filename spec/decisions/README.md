@@ -28,13 +28,14 @@ decision confined to one component lives in that component's own
 | [0002](adr-0002-cross-language-edges-need-project-inputs.md) | A cross-language edge needs a `project://` input | Superseded by 0006 |
 | [0003](adr-0003-pnpm-workspace-without-a-root-package-json.md) | The pnpm workspace has no root `package.json` | Accepted |
 | [0004](adr-0004-gherkin-acceptance-specs-run-on-cucumber.md) | Gherkin acceptance specs run on `cucumber` | Accepted |
-| [0005](adr-0005-within-app-test-selection-by-path.md) | Within-app test selection is by path convention | Accepted |
+| [0005](adr-0005-within-app-test-selection-by-path.md) | Within-app test selection is by path convention | Superseded by 0012 |
 | [0006](adr-0006-task-deps-on-output-declaring-tasks.md) | Cross-project edges are task deps on output-declaring tasks | Accepted. Amended by 0010 |
 | [0007](adr-0007-ci-runs-moon-ci-inside-the-sandbox-image.md) | CI runs `moon ci` inside the sandbox image, from the runner | Accepted |
 | [0008](adr-0008-the-sandbox-image-is-published-to-ghcr.md) | The sandbox image is published to GHCR, and one builder writes the cache | Accepted |
 | [0009](adr-0009-where-ci-runs-moon-ci.md) | Where CI runs `moon ci`, and what it may replay | Accepted |
 | [0010](adr-0010-third-party-deps-compile-in-their-own-task.md) | Third-party dependencies compile in their own task | Accepted |
 | [0011](adr-0011-what-ci-treats-as-affected.md) | CI runs a changed project's consumers, not just the project | Accepted |
+| [0012](adr-0012-within-app-test-selection-is-mix-test-stale.md) | Within-app test selection is `mix test --stale` | Accepted. Supersedes 0005 |
 
 ## Where the other spec directories are
 

@@ -75,5 +75,5 @@ conclusion the review exists to reach. Treat a verdict in a brief as the first t
 ## Test tree layout (Elixir)
 
 `test/` mirrors `lib/`: `test/a/b_test.exs` covers `lib/a/b.ex`, `test/a/` covers `lib/a/`.
-`test-paths.py` owns that mapping — `--check` enforces it as the `root:test` Moon task, and
-`--select` backs each app's `mix test.changed`. Move tests when you move code.
+Nothing enforces it, so move tests when you move code. Locally, `mix test --stale` reruns
+what your change actually affects.

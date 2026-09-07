@@ -49,11 +49,9 @@
   HTTP contract `core-api-client` is generated from, executed by ExUnit
   through `cucumber` as real requests via `Phoenix.ConnTest`. Steps and the
   sandbox hook sit beside it in `spec/features/`.
-- **`mix test.changed`** runs only the tests mirroring the `lib/` files
-  changed since `main`. `lib/server/api/*` has no mirrored test path, so a
-  change there selects the whole suite — deliberately, since those resources
-  are exercised through HTTP by `test/server_web/`. See
-  `../spec/decisions/adr-0005-within-app-test-selection-by-path.md`.
+- **`mix test --stale`** runs only the tests whose compile-time
+  dependencies changed since the last run. See
+  `../spec/decisions/adr-0012-within-app-test-selection-is-mix-test-stale.md`.
 
 ## Stage 6c
 
