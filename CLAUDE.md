@@ -44,16 +44,21 @@ snapshots), `decisions/` (ADRs). Never create an empty one to complete the patte
 On macOS and Windows the working tree usually sits on a case-insensitive filesystem, and in a
 Linux container it is reached over a bind mount. `Foo` and `foo` are then the same file, and
 writing one silently overwrites the other. Two entries can still appear in a listing, because the
-guest caches a dentry per spelling — sometimes with a stale size, which makes one file look like
-two that differ.
+guest caches a dentry per spelling, so one file can appear twice in a listing. The stale entry
+serves stale attributes, so the two can differ in inode, size and content. Differing inodes
+therefore do not prove that two files exist.
 
 - Use each path's canonical spelling exactly. `Dockerfile`, never `dockerfile`.
-- **Never delete an apparent case-duplicate.** Compare inodes with `ls -i` first: if they match it
-  is one file and deleting either destroys it. This has happened here. Recover a stale listing
-  with `git status` and `git checkout`, not with `rm`.
-- `git ls-files` and `find -iname` report the truth. `ls` and a cached `stat` may not.
-- The same mount can corrupt a `cp` inside the repo — right length, NUL or space content. Prefer
-  `git mv`, `git checkout`, and editor writes over shell copies, and check `git diff` after a move.
+- **Never delete an apparent case-duplicate.** Deleting either spelling destroys the one real
+  file. This has happened here. A phantom entry also clears itself when the dentry revalidates.
+- `git ls-files` and `git status -uall` are the only truthful sources. `ls`, `stat` and
+  `find -iname` all report phantom entries, and the same `stat` can answer differently a minute
+  later.
+- To force a path to be re-read, `rm` it and restore it with `git checkout --`, then confirm
+  `git hash-object` matches the blob. Never make a `cp` the only copy of a tracked file.
+- A stale entry can make a read return the wrong bytes, and a copy then reproduces them
+  faithfully. Check `git diff` after moving a file. `cp` itself is sound: 80 copies over this
+  mount reproduced the source hash 80 times.
 
 ## Reviewing
 
