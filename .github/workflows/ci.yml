@@ -20,14 +20,18 @@ concurrency:
   group: "ci-${{ github.ref }}"
   cancel-in-progress: true
 
+# An unlisted scope is `none`, so `packages: read` has to be named even though
+# the repository's default workflow permission is already read.
 permissions:
   contents: read
+  packages: read
 
 jobs:
   moon-ci:
     runs-on: ubuntu-latest
-    # A cold run compiles Erlang/OTP from source: an ephemeral runner starts
-    # with an empty Docker layer cache, and nothing here restores one.
+    # Still sized for a cold run: an ephemeral runner has no Docker layer cache,
+    # and whenever no published image matches this tree the sandbox image
+    # compiles Erlang/OTP from source.
     timeout-minutes: 180
 
     # Postgres on the defaults every app's config.exs and `mix <app>.bootstrap`
@@ -103,11 +107,28 @@ jobs:
           key: "sandbox-downloads-${{ runner.os }}-${{ hashFiles('.prototools', 'pnpm-lock.yaml', 'e2e/package.json', 'mobile/scripts/setup-android-sdk.sh', '**/Cargo.lock', '**/mix.lock') }}"
           restore-keys: "sandbox-downloads-${{ runner.os }}-"
 
-      - name: Build the sandbox image
-        # Plain `docker build`, not buildx: it leaves the daemon's own layer
-        # cache warm, so `moon ci` re-running `root:sandbox-image` from inside
-        # the container is a cache hit instead of a second OTP compile.
-        run: docker build --tag baalbek-sandbox:latest --file Dockerfile .
+      - name: Log in to GHCR
+        # Skipped for a fork PR, whose token has no `packages` scope, so that
+        # branch takes the cold path by construction. Everywhere else a failed
+        # login is a real regression and fails the job, rather than hiding as
+        # a run that is merely slow.
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+      - name: Resolve the sandbox image
+        # Builds the current Dockerfile with the published image as a cache
+        # source, rather than running a pulled image that could be older than
+        # the tree. `docker buildx build`, matching `root:sandbox-image`, so
+        # both writes land in the one BuildKit cache and moon's later run of
+        # that task is a cache hit rather than a second OTP compile.
+        env:
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          # The same override sandbox-image.yml publishes to.
+          SANDBOX_IMAGE_REPO: ${{ vars.SANDBOX_IMAGE_REPO }}
+        run: .github/scripts/resolve-sandbox-image.sh
 
       - name: Hand the workspace and the mounted caches to the image's user
         # The image runs as `vscode`, uid 1000; a runner checkout is uid 1001.

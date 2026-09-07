@@ -1,0 +1,98 @@
+# Publishes this repository's sandbox/CI image to GHCR.
+#
+# CI and developers reuse the published layers instead of compiling Erlang/OTP
+# from source on every machine. See
+# spec/decisions/adr-0008-the-sandbox-image-is-published-to-ghcr.md.
+name: Sandbox image
+
+on:
+  push:
+    branches: ["main"]
+    # The image's only inputs, matching `root:sandbox-image`'s `inputs:`. The
+    # last two entries are the publishing machinery, so a fix to it runs without
+    # waiting for the next toolchain change.
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".prototools"
+      - ".github/workflows/sandbox-image.yml"
+      - ".github/scripts/sandbox-image-tag.sh"
+  workflow_dispatch:
+
+concurrency:
+  # Never cancelled: a half-pushed manifest is worse than a duplicate build.
+  group: "sandbox-image"
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # A cold publish compiles Erlang/OTP from source, which is the whole point
+    # of publishing the result.
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Free disk space
+        # The image is over 4 GB before the OTP build tree on top of it.
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup
+          df -h /
+
+      - name: Resolve the image reference
+        id: ref
+        env:
+          OWNER: ${{ github.repository_owner }}
+          SANDBOX_IMAGE_REPO: ${{ vars.SANDBOX_IMAGE_REPO }}
+        run: |
+          # The same override resolve-sandbox-image.sh honours, so both sides
+          # of the publish/consume pair can be pointed elsewhere together.
+          # GHCR rejects an uppercase path segment.
+          repo="${SANDBOX_IMAGE_REPO:-ghcr.io/$(printf '%s' "$OWNER" | tr '[:upper:]' '[:lower:]')/baalbek-sandbox}"
+          tag="$(.github/scripts/sandbox-image-tag.sh)"
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "publishing $repo:$tag"
+
+      - name: Log in to GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+      - name: Build and push
+        env:
+          REPO: ${{ steps.ref.outputs.repo }}
+          TAG: ${{ steps.ref.outputs.tag }}
+        run: |
+          # `--cache-to type=inline` is what lets ci.yml's `--cache-from` reuse
+          # these layers; `:latest` as a cache source keeps a change below the
+          # OTP layer from recompiling it.
+          docker buildx build \
+            --builder default \
+            --push \
+            --cache-from "type=registry,ref=${REPO}:latest" \
+            --cache-to type=inline \
+            --tag "${REPO}:${TAG}" \
+            --tag "${REPO}:latest" \
+            --tag "${REPO}:sha-${GITHUB_SHA:0:12}" \
+            --file Dockerfile \
+            .
+
+      - name: Report what was published
+        env:
+          REPO: ${{ steps.ref.outputs.repo }}
+          TAG: ${{ steps.ref.outputs.tag }}
+        run: |
+          {
+            echo "Published:"
+            echo ""
+            echo "- \`${REPO}:${TAG}\`"
+            echo "- \`${REPO}:latest\`"
+            echo "- \`${REPO}:sha-${GITHUB_SHA:0:12}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
