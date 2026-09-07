@@ -1,11 +1,11 @@
-# The edge onto `timeline` is NOT declared here. This app's mix.exs builds its
-# dependency list by listing ../timeline/build/otp at Mix-evaluation time, and
-# moon-elixir-plugin asks Mix rather than parsing the file, so it resolves
-# those path deps onto the `timeline` project. Before ../timeline:package has
-# run the manifest raises, the plugin warns and infers nothing, and the edge
-# falls back to this project's `deps` on `timeline:package` — affected
-# detection is identical either way. See
-# ../moon-elixir-plugin/spec/decisions/adr-0001-mix-path-dep-inference.md.
+# Stage 5 of PLAN.md: the sole caller of the Gleam `timeline` modules.
+#
+# No task here names the `timeline` edge: this app's mix.exs takes one path dep
+# per application under ../timeline/build/otp, moon-elixir-plugin resolves
+# those onto the `timeline` project, and the inherited `^:build` turns that
+# into an edge onto `timeline:build`.
+#
+# `deps`, `build` and `test` come from ../.moon/tasks/elixir.yml.
 language: elixir
 layer: library
 
@@ -14,55 +14,22 @@ tags:
   - "capability/technician-availability"
 
 tasks:
-  build:
+  boundary-check:
     description: >-
-      Compiles this app against timeline's packaged OTP applications, into
-      the Moon-owned `build/` tree. Declared as this project's artefact so
-      `server`'s tasks can express the edge onto it, and onto the Gleam
-      source behind it, as a single `deps` entry. Same shape as
-      core/moon.yml's `build` task; see
-      ../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md.
-    deps:
-      - "timeline:package"
+      Fails on a direct `:timeline.` call outside TimelineFacade.Gleam, which
+      `boundary` cannot enforce over Gleam's bare-atom modules. See
+      spec/decisions/adr-0001-gleam-elixir-interop.md.
     command: "bash"
     args:
-      - "-lc"
-      - "mix deps.get && mix compile"
+      - "scripts/boundary-check.sh"
     toolchain: "system"
-    env:
-      MIX_ENV: "dev"
-      MIX_BUILD_PATH: "build"
     inputs:
-      - "mix.exs"
-      - "mix.lock"
       - "lib/**/*"
-    outputs:
-      - "build/lib/timeline_facade/ebin"
+      - "scripts/boundary-check.sh"
 
   test:
-    description: >-
-      Runs the ExUnit suite against timeline's compiled Gleam output.
-      Also runs a compensating check standing in for boundary, which
-      cannot classify Gleam's bare-atom modules (see
-      spec/decisions/adr-0001-gleam-elixir-interop.md).
-    command: "bash"
-    args:
-      - "scripts/moon-test.sh"
-    # `timeline:package` declares `outputs`, so it both orders the Gleam
-    # build before this suite and folds the Gleam sources into this task's
-    # hash. It is not optional either way: this project's mix.exs reads
-    # ../timeline/build/otp to build its dependency list, and raises if
-    # that directory is missing.
     deps:
-      - "timeline:package"
-      # Uncached, so a warm Moon cache against a fresh database still
-      # creates the schema this suite writes to.
+      # Uncached, so a warm Moon cache against a fresh database still creates
+      # the schema this suite writes to.
       - "timeline:bootstrap"
-    toolchain: "system"
-    inputs:
-      - "mix.exs"
-      - "mix.lock"
-      - ".formatter.exs"
-      - "lib/**/*"
-      - "test/**/*"
-      - "scripts/moon-test.sh"
+      - "~:boundary-check"

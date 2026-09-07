@@ -1,10 +1,30 @@
 defmodule TimelineFacade.MixProject do
   use Mix.Project
 
-  # timeline's compiled OTP applications, produced by `moon run
-  # timeline:package`. Each one becomes a real Mix path dependency below, so
-  # a `mix release` bundles it. See
+  # timeline's runtime OTP closure, produced by `moon run timeline:build`. Each
+  # one becomes a real Mix path dependency below, so a `mix release` bundles
+  # it. See
   # ../server/spec/decisions/adr-0001-release-assembly-and-gleam-packaging.md.
+  #
+  # Written out rather than read from that directory: moon-elixir-plugin
+  # evaluates this manifest while it builds the project graph, before
+  # `timeline:build` writes the directory, and every consumer's
+  # `$MIX_PATH_DEPS` is whatever it answers then. `check_shipment!/0` fails on
+  # drift. See ../spec/decisions/adr-0010-third-party-deps-compile-in-their-own-task.md.
+  @timeline_otp_apps ~w(
+    backoff
+    exception
+    gleam_erlang
+    gleam_otp
+    gleam_stdlib
+    gleam_time
+    opentelemetry_api
+    pg_types
+    pgo
+    pog
+    timeline
+  )
+
   @timeline_otp Path.expand("../timeline/build/otp", __DIR__)
 
   def project do
@@ -29,25 +49,34 @@ defmodule TimelineFacade.MixProject do
     [{:boundary, "~> 0.10", runtime: false} | timeline_deps()]
   end
 
-  # `compile: "exit 0"` is a no-op valid in both `sh -c` and `cmd /c`: these
-  # directories are already compiled. It must be a command and not `false` —
-  # only the command branch of Mix.Tasks.Deps.Compile links a dep's ebin/
-  # into _build, and without that link Mix reports "could not find an app
-  # file". `override: true` means these vendored copies win over any Hex
-  # dependency of the same name; see the ADR for which names that covers.
   defp timeline_deps do
+    check_shipment!()
+    Enum.map(@timeline_otp_apps, &timeline_dep/1)
+  end
+
+  # `compile: "exit 0"` and `override: true` are load bearing; the ADR above
+  # says why.
+  defp timeline_dep(otp_app) do
+    {String.to_atom(otp_app),
+     path: Path.join(@timeline_otp, otp_app), compile: "exit 0", override: true}
+  end
+
+  # The directory is absent until `timeline:build` writes it, and holds exactly
+  # @timeline_otp_apps after that.
+  defp check_shipment! do
     case File.ls(@timeline_otp) do
-      {:ok, otp_apps} ->
-        Enum.map(otp_apps, fn otp_app ->
-          {String.to_atom(otp_app),
-           path: Path.join(@timeline_otp, otp_app), compile: "exit 0", override: true}
-        end)
+      {:ok, shipped} ->
+        if Enum.sort(shipped) != @timeline_otp_apps do
+          Mix.raise("""
+          timeline_facade: @timeline_otp_apps does not match #{@timeline_otp}.
+          shipped: #{Enum.join(Enum.sort(shipped), " ")}
+          listed:  #{Enum.join(@timeline_otp_apps, " ")}
+          Update the list in mix.exs, or the closure in ../timeline.
+          """)
+        end
 
       {:error, :enoent} ->
-        Mix.raise("""
-        timeline_facade: #{@timeline_otp} does not exist.
-        Run `moon run timeline:package` (or bash timeline/scripts/package-otp.sh) first.
-        """)
+        :ok
 
       {:error, reason} ->
         Mix.raise("timeline_facade: cannot read #{@timeline_otp}: #{:file.format_error(reason)}")

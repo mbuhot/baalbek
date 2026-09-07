@@ -21,6 +21,10 @@ pub const RESULT_MARKER: &str = "@@moon-elixir-plugin-result@@";
 /// manifest that raises is caught per project: Mix's own error text is the
 /// most useful thing to show, because it is written for the person who has to
 /// fix it.
+///
+/// The program then walks each project's `path:` dependencies recursively, so
+/// the list it reports is the closure and not the direct entries. Every
+/// manifest is evaluated at most once, whichever project reached it.
 pub const READ_MANIFESTS_EXS: &str = r#"
 Mix.start()
 
@@ -29,7 +33,8 @@ defmodule MoonElixirPlugin do
 
   def main(specs) do
     root = File.cwd!()
-    json = encode(%{"projects" => Enum.map(specs, &read(&1, root))})
+    {projects, _read} = Enum.map_reduce(specs, %{}, &read(&1, &2, root))
+    json = encode(%{"projects" => projects})
 
     # The marker starts a line of its own, so anything a mix.exs printed while
     # being evaluated cannot run into the result.
@@ -47,25 +52,100 @@ defmodule MoonElixirPlugin do
     end
   end
 
-  defp read(spec, root) do
+  defp read(spec, read, root) do
     [id, source] = String.split(spec, "=", parts: 2)
-    dir = Path.expand(source, root)
 
-    try do
-      deps =
-        Mix.Project.in_project(:"moon_elixir_plugin_#{id}", dir, fn _module ->
-          Mix.Project.config()[:deps] || []
-        end)
+    case manifest(Path.expand(source, root), read, root) do
+      {{:error, message}, read} ->
+        {failed(id, message), read}
 
-      %{"id" => id, "error" => nil, "deps" => Enum.flat_map(deps, &path_dep(&1, dir, root))}
-    rescue
-      error -> failed(id, Exception.message(error))
-    catch
-      kind, reason -> failed(id, Exception.format(kind, reason))
+      {{:ok, deps, third_party}, read} ->
+        case closure(deps, read, root) do
+          {{:ok, path_deps}, read} ->
+            {%{
+               "id" => id,
+               "error" => nil,
+               "deps" => deps,
+               "path_deps" => path_deps,
+               "third_party" => third_party
+             }, read}
+
+          {{:error, message}, read} ->
+            {failed(id, message), read}
+        end
     end
   end
 
-  defp failed(id, message), do: %{"id" => id, "error" => message, "deps" => []}
+  # One evaluation per directory: a path dependency can name a directory that
+  # is also a project, or one that two projects both depend on.
+  defp manifest(dir, read, root) do
+    case Map.fetch(read, dir) do
+      {:ok, result} ->
+        {result, read}
+
+      :error ->
+        result = evaluate(dir, root)
+        {result, Map.put(read, dir, result)}
+    end
+  end
+
+  defp evaluate(dir, root) do
+    # A path dependency may name a plain OTP application directory. It has no
+    # manifest, so it has no dependencies of its own.
+    if not File.regular?(Path.join(dir, "mix.exs")) do
+      {:ok, [], []}
+    else
+      try do
+        {deps, third_party} =
+          Mix.Project.in_project(project_name(dir), dir, fn _module ->
+            {Mix.Project.config()[:deps] || [], third_party()}
+          end)
+
+        {:ok, Enum.flat_map(deps, &path_dep(&1, dir, root)), third_party}
+      rescue
+        error -> {:error, Exception.message(error)}
+      catch
+        kind, reason -> {:error, Exception.format(kind, reason)}
+      end
+    end
+  end
+
+  # Mix keys its project stack on this name, so it must differ per directory.
+  defp project_name(dir),
+    do: :"moon_elixir_plugin_#{Path.basename(dir)}_#{:erlang.phash2(dir)}"
+
+  # `mix deps.compile` links exactly the applications it is named, so a path
+  # dependency of a path dependency has to be named too.
+  defp closure(deps, read, root), do: walk(deps, %{}, read, root)
+
+  defp walk([], seen, read, _root),
+    do: {{:ok, seen |> Map.values() |> Enum.sort_by(& &1["app"])}, read}
+
+  defp walk([dep | rest], seen, read, root) do
+    if Map.has_key?(seen, dep["path"]) do
+      walk(rest, seen, read, root)
+    else
+      case manifest(Path.expand(dep["path"], root), read, root) do
+        {{:ok, children, _third_party}, read} ->
+          walk(children ++ rest, Map.put(seen, dep["path"], dep), read, root)
+
+        # A short list is what compiles against an application it never linked,
+        # so an unevaluable manifest anywhere in the closure fails the project.
+        {{:error, message}, read} ->
+          {{:error, "path dep :#{dep["app"]}: #{message}"}, read}
+      end
+    end
+  end
+
+  # Every dependency Mix resolves from a registry or a git ref, transitive ones
+  # included: a `path:` dependency is never written to the lock. A lockfile Mix
+  # cannot read is an empty map, which is what `Mix.Dep.Lock.read/1` returns.
+  defp third_party do
+    Mix.Dep.Lock.read() |> Map.keys() |> Enum.map(&to_string/1) |> Enum.sort()
+  end
+
+  defp failed(id, message),
+    do: %{"id" => id, "error" => message, "deps" => [], "path_deps" => [], "third_party" => []}
 
   defp path_dep({app, opts}, dir, root) when is_list(opts), do: path_dep(app, opts, dir, root)
   defp path_dep({app, _req, opts}, dir, root) when is_list(opts), do: path_dep(app, opts, dir, root)
@@ -116,10 +196,18 @@ pub struct PathDep {
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 pub struct ProjectManifest {
     pub id: String,
-    /// Mix's own message when the manifest could not be evaluated. The
-    /// dependency list is then empty and nothing is inferred for the project.
+    /// Mix's own message when a manifest in this project's `path:` closure
+    /// could not be evaluated. Every list is then empty and nothing is
+    /// inferred for the project.
     pub error: Option<String>,
+    /// The `path:` dependencies this project's own manifest declares.
     pub deps: Vec<PathDep>,
+    /// Every `path:` dependency reachable from this project, sorted by app
+    /// name: the direct ones and the ones their manifests declare.
+    pub path_deps: Vec<PathDep>,
+    /// Every locked dependency name, sorted: the third-party tree, transitive
+    /// entries included, and never a `path:` dependency.
+    pub third_party: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -173,7 +261,7 @@ mod tests {
     #[test]
     fn reads_the_projects_out_of_the_marked_line() {
         let manifests = parse_manifests(&output(
-            r#"{"projects":[{"id":"server","error":null,"deps":[{"app":"core","path":"core","dev_only":false}]}]}"#,
+            r#"{"projects":[{"id":"server","error":null,"deps":[{"app":"core","path":"core","dev_only":false}],"path_deps":[{"app":"core","path":"core","dev_only":false},{"app":"jason_path","path":"vendor/jason","dev_only":false}],"third_party":["jason","phoenix"]}]}"#,
         ))
         .unwrap();
 
@@ -187,6 +275,19 @@ mod tests {
                     path: "core".into(),
                     dev_only: false
                 }],
+                path_deps: vec![
+                    PathDep {
+                        app: "core".into(),
+                        path: "core".into(),
+                        dev_only: false
+                    },
+                    PathDep {
+                        app: "jason_path".into(),
+                        path: "vendor/jason".into(),
+                        dev_only: false
+                    }
+                ],
+                third_party: vec!["jason".into(), "phoenix".into()],
             }]
         );
     }
@@ -195,7 +296,8 @@ mod tests {
     /// the result, whether or not its output ends in a newline.
     #[test]
     fn ignores_anything_a_manifest_printed_before_the_result() {
-        let json = r#"{"projects":[{"id":"a","error":null,"deps":[]}]}"#;
+        let json =
+            r#"{"projects":[{"id":"a","error":null,"deps":[],"path_deps":[],"third_party":[]}]}"#;
 
         for noise in ["compiling something\n", "no trailing newline", ""] {
             let manifests = parse_manifests(&format!("{noise}{}", output(json)))

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Moon task body for timeline:package. Builds build/otp/ — timeline and its
+# Moon task body for timeline:build. Builds build/otp/ — timeline and its
 # runtime dependencies as ordinary OTP application directories, the form
 # `timeline_facade`'s mix.exs consumes as Mix path dependencies. See
 # ../../server/spec/decisions/adr-0001-release-assembly-and-gleam-packaging.md.

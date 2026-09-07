@@ -17,7 +17,13 @@ cd ../timeline_facade && mix deps.get && mix test
 Or via Moon: `moon run timeline:test timeline_facade:test`.
 
 `mix.exs` declares one Mix path dependency per OTP application in
-`../timeline/build/otp`, so `mix.exs` raises if `timeline:package` has not run.
+`../timeline/build/otp`, from a list written out in `@timeline_otp_apps`. The
+list is the same answer before and after `timeline:build` has written that
+directory, because moon-elixir-plugin reads it while it builds the project
+graph and every consumer's `$MIX_PATH_DEPS` is whatever it says then;
+`check_shipment!/0` fails the manifest when the list and the directory
+disagree. See
+`../spec/decisions/adr-0010-third-party-deps-compile-in-their-own-task.md`.
 See `../server/spec/decisions/adr-0001-release-assembly-and-gleam-packaging.md`
 for why that shape, and `spec/decisions/adr-0001-gleam-elixir-interop.md` (now
 superseded) for the Stage 5 mechanism it replaced.

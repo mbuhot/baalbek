@@ -1,6 +1,8 @@
 # ADR-0001: Release assembly, and how Gleam code gets into the release
 
-**Status:** Accepted
+**Status:** Accepted. Amended by spec/decisions/adr-0010: `timeline_facade`
+names the shipment's applications itself rather than listing the directory,
+and the task that builds the shipment is `timeline:build`.
 **Date:** 2026-09-06
 **Stage:** 6c
 

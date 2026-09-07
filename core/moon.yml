@@ -1,5 +1,8 @@
 # Stage 2 of PLAN.md: Ash resources, schema `core` + role `core`, `boundary`,
 # ExUnit. Domain: jobs, customers, sites, work orders (field service).
+#
+# `deps`, `build` and `test` come from ../.moon/tasks/elixir.yml; a declaration
+# here merges into that one.
 language: elixir
 layer: library
 
@@ -9,65 +12,40 @@ tags:
   - "capability/work-order-scheduling"
 
 tasks:
-  build:
+  bootstrap:
     description: >-
-      Compiles the app into `build/`, a Moon-owned build tree separate from
-      the `_build/` that Mix, ElixirLS and the `test` task share. Declared
-      as this project's artefact so `server`'s tasks express their edge onto
-      it as a `deps` entry that actually contributes to their hash — a task
-      with no `outputs` contributes nothing. The edge rides on this task's
-      declared *inputs*, not on the artefact's bytes; see
-      ../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md for the
-      measurement and for why the output path carries no MIX_ENV. No
-      database needed: `mix compile` never connects.
+      Creates the `core` Postgres role and schema (idempotent — see
+      priv/repo/bootstrap.sql), then creates and migrates the test database.
+      Requires a live Postgres (the `postgres` service in
+      .devcontainer/docker-compose.yml).
+    deps:
+      - "~:deps"
+    extends: "deps-list"
     command: "bash"
     args:
       - "-lc"
-      - "mix deps.get && mix compile"
+      # One `loadpaths --no-deps-check` covers the three tasks after it, and
+      # one BEAM start serves all four.
+      - >-
+        { test -z "$MIX_PATH_DEPS" || mix deps.compile $MIX_PATH_DEPS; } &&
+        mix do loadpaths --no-deps-check +
+        core.bootstrap +
+        ecto.create --quiet +
+        ecto.migrate --quiet
     toolchain: "system"
-    # MIX_ENV is pinned because MIX_BUILD_PATH drops Mix's per-environment
-    # subdirectory: without it, two environments would share one tree.
     env:
-      MIX_ENV: "dev"
-      MIX_BUILD_PATH: "build"
+      MIX_ENV: "test"
+      MIX_BUILD_PATH: "build/test"
+    # Never cached: a warm cache against a fresh database would skip this.
+    options:
+      cache: false
+
+  build:
     inputs:
-      - "mix.exs"
-      - "mix.lock"
-      - "config/**/*"
-      - "lib/**/*"
       - "priv/**/*"
-    outputs:
-      - "build/lib/core/ebin"
 
   test:
-    description: >-
-      Fetch Mix deps, bootstrap the `core` Postgres role/schema (idempotent
-      — see priv/repo/bootstrap.sql), create+migrate the test database, then
-      run the ExUnit suite. moon-elixir-plugin (Stage 11) reads this
-      project's mix.exs to infer `dependsOn`; it runs no commands, so this
-      stays a `system` task that shells out to `mix`, resolved via proto's
-      PATH activation (assumed already on PATH — proto/moon are set up in
-      Stage 0).
-      Requires a live Postgres (the `postgres` service in
-      .devcontainer/docker-compose.yml) reachable with the connection
-      details in config/config.exs / lib/mix/tasks/core.bootstrap.ex's
-      defaults.
-    command: "bash"
-    args:
-      - "-lc"
-      - >-
-        mix deps.get &&
-        mix core.bootstrap &&
-        MIX_ENV=test mix ecto.create --quiet &&
-        MIX_ENV=test mix ecto.migrate --quiet &&
-        MIX_ENV=test mix test
-    toolchain: "system"
+    deps:
+      - "~:bootstrap"
     inputs:
-      - "mix.exs"
-      - "mix.lock"
-      - ".formatter.exs"
-      - "config/**/*"
-      - "lib/**/*"
       - "priv/**/*"
-      - "spec/**/*"
-      - "test/**/*"

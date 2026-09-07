@@ -8,6 +8,7 @@
 //! rather than parsing `mix.exs`.
 
 use moon_config::DependencyScope;
+use moon_elixir_plugin::deps_task::{DEPS_TASK, PATH_DEPS_ENV, THIRD_PARTY_ENV};
 use moon_pdk_api::*;
 use moon_pdk_test_utils::create_moon_sandbox;
 use serde_json::json;
@@ -16,11 +17,43 @@ use serde_json::json;
 fn all_project_sources() -> ExtendProjectGraphInput {
     let mut input = ExtendProjectGraphInput::default();
 
-    for id in ["app", "lib", "facade", "noisy", "unevaluable", "escaping", "no-mix"] {
+    for id in [
+        "app",
+        "lib",
+        "facade",
+        "noisy",
+        "consumer",
+        "unevaluable",
+        "unlockable",
+        "escaping",
+        "no-mix",
+    ] {
         input.project_sources.insert(Id::raw(id), id.into());
     }
 
     input
+}
+
+/// One dependency list the plugin attached to a project, as the `deps` task
+/// reads it.
+fn dep_list(output: &ExtendProjectGraphOutput, id: &str, var: &str) -> Option<String> {
+    output
+        .extended_projects
+        .get(&Id::raw(id))?
+        .tasks
+        .get(&Id::raw(DEPS_TASK))?
+        .env
+        .as_ref()?
+        .get(var)?
+        .clone()
+}
+
+fn third_party(output: &ExtendProjectGraphOutput, id: &str) -> Option<String> {
+    dep_list(output, id, THIRD_PARTY_ENV)
+}
+
+fn path_deps(output: &ExtendProjectGraphOutput, id: &str) -> Option<String> {
+    dep_list(output, id, PATH_DEPS_ENV)
 }
 
 fn dependency_ids(output: &ExtendProjectGraphOutput, id: &str) -> Vec<String> {
@@ -45,10 +78,109 @@ async fn infers_a_literal_path_dep_list() {
     let output = plugin.extend_project_graph(all_project_sources()).await;
 
     assert_eq!(dependency_ids(&output, "app"), ["lib", "facade"]);
+    assert!(dependency_ids(&output, "lib").is_empty());
 
-    // No path deps, so no entry at all.
-    assert!(!output.extended_projects.contains_key(&Id::raw("lib")));
+    // A project with no mix.exs is not read at all.
     assert!(!output.extended_projects.contains_key(&Id::raw("no-mix")));
+}
+
+/// Every locked dependency, transitive ones included, and no path dependency:
+/// `app`'s manifest lists three of those and `mix.lock` locks none of them.
+#[tokio::test(flavor = "multi_thread")]
+async fn reads_the_third_party_dependency_list_out_of_the_lock() {
+    let sandbox = create_moon_sandbox("projects");
+    let plugin = sandbox.create_toolchain("elixir").await;
+
+    let output = plugin.extend_project_graph(all_project_sources()).await;
+
+    assert_eq!(
+        third_party(&output, "app").as_deref(),
+        Some("phoenix plug vendored")
+    );
+
+    // `nimble_parsec` is locked without appearing in the manifest.
+    assert_eq!(
+        third_party(&output, "lib").as_deref(),
+        Some("jason nimble_parsec")
+    );
+}
+
+/// Every `path:` dependency Mix resolved, as Mix names it. `fixtures` resolves
+/// to no moon project and is still a dependency `mix deps.compile` must be
+/// given, so the two lists are not the same thing.
+#[tokio::test(flavor = "multi_thread")]
+async fn reports_the_path_dependency_names_mix_resolved() {
+    let sandbox = create_moon_sandbox("projects");
+    let plugin = sandbox.create_toolchain("elixir").await;
+
+    let output = plugin.extend_project_graph(all_project_sources()).await;
+
+    assert_eq!(dependency_ids(&output, "app"), ["lib", "facade"]);
+
+    // No path deps at all, and the variable is still set.
+    assert_eq!(path_deps(&output, "lib").as_deref(), Some(""));
+}
+
+/// The list is the closure, not the direct entries: `mix deps.compile` links
+/// exactly the applications it is named, so `app` has to name `facade`'s two
+/// path deps as well as its own three. A direct-only list is what compiles
+/// against an application it never linked.
+#[tokio::test(flavor = "multi_thread")]
+async fn reports_the_path_dependencies_of_a_path_dependency() {
+    let sandbox = create_moon_sandbox("projects");
+    let plugin = sandbox.create_toolchain("elixir").await;
+
+    let output = plugin.extend_project_graph(all_project_sources()).await;
+
+    assert_eq!(
+        path_deps(&output, "facade").as_deref(),
+        Some("gleam_a gleam_b")
+    );
+    assert_eq!(
+        path_deps(&output, "app").as_deref(),
+        Some("facade fixtures gleam_a gleam_b lib")
+    );
+}
+
+/// A manifest that raises anywhere in the closure delivers no list: a short
+/// list is the silent failure, and no list is the loud one.
+#[tokio::test(flavor = "multi_thread")]
+async fn delivers_no_list_when_a_path_dependency_cannot_be_evaluated() {
+    let sandbox = create_moon_sandbox("projects");
+    let plugin = sandbox.create_toolchain("elixir").await;
+
+    let output = plugin.extend_project_graph(all_project_sources()).await;
+
+    assert_eq!(path_deps(&output, "consumer"), None);
+    assert!(!output.extended_projects.contains_key(&Id::raw("consumer")));
+}
+
+/// A lockfile Mix cannot read is an empty map, not an error, so the project
+/// keeps its inferred edges and its list is empty.
+#[tokio::test(flavor = "multi_thread")]
+async fn reports_an_empty_list_for_a_lock_it_cannot_read() {
+    let sandbox = create_moon_sandbox("projects");
+    let plugin = sandbox.create_toolchain("elixir").await;
+
+    let output = plugin.extend_project_graph(all_project_sources()).await;
+
+    assert_eq!(third_party(&output, "unlockable").as_deref(), Some(""));
+    assert_eq!(dependency_ids(&output, "unlockable"), ["lib"]);
+
+    // No lockfile at all reads the same way.
+    assert_eq!(third_party(&output, "escaping").as_deref(), Some(""));
+}
+
+/// A manifest that raises delivers no list, which is what the consuming task
+/// distinguishes from a list that is genuinely empty.
+#[tokio::test(flavor = "multi_thread")]
+async fn delivers_no_list_for_a_manifest_that_cannot_be_evaluated() {
+    let sandbox = create_moon_sandbox("projects");
+    let plugin = sandbox.create_toolchain("elixir").await;
+
+    let output = plugin.extend_project_graph(all_project_sources()).await;
+
+    assert_eq!(third_party(&output, "unevaluable"), None);
 }
 
 /// The reason this plugin asks Mix instead of reading the file: `facade`'s
@@ -124,7 +256,7 @@ async fn infers_nothing_from_paths_that_name_no_other_project() {
 
     let output = plugin.extend_project_graph(all_project_sources()).await;
 
-    assert!(!output.extended_projects.contains_key(&Id::raw("escaping")));
+    assert!(dependency_ids(&output, "escaping").is_empty());
 }
 
 /// The `mix.exs` files the inference read, so moon invalidates its cached
@@ -147,11 +279,13 @@ async fn reports_every_mix_exs_it_read_as_an_input_file() {
         files,
         [
             "/workspace/app/mix.exs",
+            "/workspace/consumer/mix.exs",
             "/workspace/escaping/mix.exs",
             "/workspace/facade/mix.exs",
             "/workspace/lib/mix.exs",
             "/workspace/noisy/mix.exs",
             "/workspace/unevaluable/mix.exs",
+            "/workspace/unlockable/mix.exs",
         ]
     );
 }
