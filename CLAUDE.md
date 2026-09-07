@@ -52,7 +52,11 @@ different inode, size and content. Differing inodes do not prove two files exist
 - `git ls-files` and `git status -uall` are the only truthful sources. `ls`, `stat` and
   `find -iname` all report phantoms, and one `stat` can contradict the next.
 - To force a re-read, `rm` the path and restore it with `git checkout --`, then check
-  `git hash-object`. A stale read returns wrong bytes that any copy reproduces.
+  `git hash-object`.
+- `cp` can write stale bytes at the right length, because `copy_file_range` does not revalidate
+  the guest's cache and `cat`, `dd`, `tar` and a plain read do. Measured in one window: 540 of 596
+  files under `timeline/build/erlang-shipment` differed from source through `cp -R` and none
+  through `tar`. It is intermittent, so a spot check that passes proves nothing.
 
 ## Reviewing
 
