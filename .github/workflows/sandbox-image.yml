@@ -15,6 +15,7 @@ on:
       - "Dockerfile"
       - ".dockerignore"
       - ".prototools"
+      - "scripts/install-os-deps.sh"
       - ".github/workflows/sandbox-image.yml"
       - ".github/scripts/sandbox-image-tag.sh"
   workflow_dispatch:

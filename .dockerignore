@@ -1,4 +1,4 @@
-# Build context for the root Dockerfile, which COPYs exactly one file.
+# Build context for the root Dockerfile, which COPYs exactly two files.
 #
 # Deny everything, then allow that file back, as server/Dockerfile.dockerignore
 # does — an exclusion list would need extending for every new build tree. This
@@ -11,3 +11,4 @@
 *
 
 !.prototools
+!scripts/install-os-deps.sh

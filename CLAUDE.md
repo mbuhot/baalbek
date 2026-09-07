@@ -66,6 +66,23 @@ This is not hypothetical. Stage 9 required the server tier to run its real relea
 let the web tier be served by a config that existed only in the test directory — because the brief
 listed that as acceptable, so the implementation conformed and the review passed it.
 
+Answer two questions in every review, before anything else.
+
+**What is measurably different now?** Name the observable change. If a measurement shows no
+difference, that is a finding, not a footnote. Stage 11 built a plugin to infer the Elixir
+dependency graph. Its review measured that affected-task queries were byte-identical with
+inference on and off, reported it as "honest scoping", and passed the stage. The measurement was
+the disproof.
+
+**Does the outcome satisfy the purpose clause in `seed.md`?** Quote the clause and answer against
+it. `seed.md` §2 asks for the plugin "so the Mix dependency graph is not duplicated by hand in
+YAML". After Stage 11 the graph was still duplicated by hand, as task `deps`. Nobody re-read the
+clause against the result.
+
+A brief may state facts and constraints. It may not state verdicts. "`dependsOn` does not
+invalidate" is a fact to verify. "Therefore this stage is a maintenance win and that is fine" is a
+conclusion the review exists to reach. Treat a verdict in a brief as the first thing to attack.
+
 ## Test tree layout (Elixir)
 
 `test/` mirrors `lib/`: `test/a/b_test.exs` covers `lib/a/b.ex`, `test/a/` covers `lib/a/`.

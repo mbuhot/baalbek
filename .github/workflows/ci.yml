@@ -1,8 +1,16 @@
-# Runs `moon ci` inside this repository's own sandbox image.
+# Runs the tasks a change affects, in one of two shapes, selected by the
+# `shape` input and defaulting to `image`.
 #
-# The job runs on the runner and invokes the image per step, rather than using
-# `container:` or a nested daemon. See
-# spec/decisions/adr-0007-ci-runs-moon-ci-inside-the-sandbox-image.md.
+#   image  — `moon ci` runs inside the sandbox image, through
+#            run-in-sandbox.sh. Every task sees exactly the binaries the image
+#            carries (adr-0007).
+#   native — `moon ci` runs on the runner, with proto's pinned toolchains and
+#            the image's OS packages installed on it.
+#
+# Everything either shape does not select is shared, down to the `moon ci`
+# invocation itself, so a run of each against one commit differs only in the
+# shape. The comparison is pending; see
+# spec/decisions/adr-0009-where-ci-runs-moon-ci.md.
 name: CI
 
 on:
@@ -12,12 +20,20 @@ on:
   workflow_dispatch:
     inputs:
       base:
-        description: "Ref to diff affected tasks against. Empty uses moon's own default."
+        description: "Ref to diff affected tasks against. Empty uses moon's own default, which is the whole graph."
         required: false
         default: ""
+      shape:
+        description: "Where moon ci runs."
+        required: false
+        default: "image"
+        type: choice
+        options:
+          - "image"
+          - "native"
 
 concurrency:
-  group: "ci-${{ github.ref }}"
+  group: "ci-${{ github.ref }}-${{ inputs.shape || 'image' }}"
   cancel-in-progress: true
 
 # An unlisted scope is `none`, so `packages: read` has to be named even though
@@ -29,29 +45,22 @@ permissions:
 jobs:
   moon-ci:
     runs-on: ubuntu-latest
-    # Still sized for a cold run: an ephemeral runner has no Docker layer cache,
-    # and whenever no published image matches this tree the sandbox image
-    # compiles Erlang/OTP from source.
+    # Still sized for a cold run: `main` restores no task output, and whenever
+    # no published image matches this tree the sandbox image compiles
+    # Erlang/OTP from source.
     timeout-minutes: 180
 
-    # Postgres on the defaults every app's config.exs and `mix <app>.bootstrap`
-    # read — localhost:5432, postgres/postgres, database `baalbek` — the same
-    # service .devcontainer/docker-compose.yml provides. The port is published
-    # because the job runs on the runner; the sandbox container reaches it by
-    # sharing the runner's network namespace.
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: baalbek
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+    env:
+      SHAPE: ${{ inputs.shape || 'image' }}
+      # `.moon/cache` is a symlink to this in both shapes, so every step that
+      # touches moon's cache is shape-independent. run-in-sandbox.sh reads the
+      # variable too, and then mounts this path at itself.
+      SANDBOX_MOON_CACHE: /tmp/baalbek-sandbox-moon-cache
+      # Prefixed onto each moon invocation. Empty in the native shape, where
+      # the unquoted expansion vanishes and leaves the bare command. The
+      # non-empty value must sit in the true branch: `''` is falsy, so
+      # `cond && '' || x` yields `x` for both values of cond.
+      RUN_PREFIX: ${{ (inputs.shape || 'image') == 'image' && '.github/scripts/run-in-sandbox.sh' || '' }}
 
     steps:
       - uses: actions/checkout@v7
@@ -61,6 +70,9 @@ jobs:
           # shallow clone.
           fetch-depth: 0
 
+      - name: Report the shape
+        run: echo "shape=$SHAPE, moon prefix='${RUN_PREFIX}'" | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Free disk space
         # The sandbox image is over 4 GB before it compiles anything, and the
         # release image, the OTP build tree and node_modules land on top of it.
@@ -69,6 +81,14 @@ jobs:
         run: |
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup
           df -h /
+
+      - name: Start Postgres
+        # The devcontainer's own service definition, so the version, the
+        # credentials and the healthcheck exist once. That file is also one of
+        # moon's implicit inputs, which is what makes a Postgres bump
+        # invalidate every cached test result instead of replaying results
+        # proven against the old server.
+        run: docker compose -p baalbek-ci -f .devcontainer/docker-compose.yml up -d --wait postgres
 
       - name: Resolve the affected base
         env:
@@ -91,12 +111,66 @@ jobs:
           echo "affected base: ${base:-<moon default>}"
           [ -z "$base" ] || echo "MOON_BASE=$base" >> "$GITHUB_ENV"
 
-      - name: Restore toolchain downloads
-        # Downloads only, and each named rather than the cache root wholesale:
-        # Moon's own task cache must never be restored, because a fresh
-        # `.moon/cache` on every run is what makes an under-declared task input
-        # fail here rather than pass on a stale hit (PLAN.md "Sandbox"). None of
-        # these four is a task output.
+      - name: Point moon's cache at the shared host directory
+        # One host path in both shapes: the native shape writes through this
+        # symlink, and run-in-sandbox.sh resolves it and mounts the target at
+        # the same absolute path inside the container.
+        run: |
+          mkdir -p "$SANDBOX_MOON_CACHE" .moon
+          ln -sfn "$SANDBOX_MOON_CACHE" .moon/cache
+          ls -l .moon/cache
+
+      - name: Install the OS packages the sandbox image has
+        if: env.SHAPE == 'native'
+        # The same script the image's two apt layers run.
+        run: scripts/install-os-deps.sh all
+
+      - name: Put proto on the login-shell PATH
+        if: env.SHAPE == 'native'
+        # /etc/profile resets PATH, and proto's shims cannot locate `erl`,
+        # `elixir` or `mix`; only `bin` can, and only `shims` has pnpm.
+        run: |
+          sudo tee /etc/profile.d/proto.sh > /dev/null <<'PROFILE'
+          export PROTO_HOME="$HOME/.proto"
+          export PATH="$PROTO_HOME/bin:$PATH:$PROTO_HOME/shims"
+          PROFILE
+          sudo chmod +r /etc/profile.d/proto.sh
+
+      - name: Install the pinned toolchains
+        if: env.SHAPE == 'native'
+        # Caches ~/.proto, so Erlang/OTP builds once per pin change.
+        uses: moonrepo/setup-toolchain@v0
+        with:
+          auto-install: true
+
+      - name: Install hex and rebar
+        if: env.SHAPE == 'native'
+        # Mix ships neither, and the image bakes them in.
+        run: bash -lc 'mix local.hex --force && mix local.rebar --force'
+
+      - name: Restore toolchain downloads, on the runner
+        if: env.SHAPE == 'native'
+        # Downloads and third-party build state only, never a task output.
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/.cache/pnpm
+            ~/.cache/gleam
+            ~/.cache/baalbek-cargo-target
+            ~/.cache/baalbek-gradle/caches/modules-2
+            ~/.cache/baalbek-gradle/wrapper
+            ~/.cargo/registry
+            ~/.hex
+            ~/.mix
+            ~/.android-sdk
+          key: "downloads-native-${{ runner.os }}-${{ hashFiles('.prototools', 'pnpm-lock.yaml', 'e2e/package.json', 'mobile/scripts/setup-android-sdk.sh', '**/Cargo.lock', '**/mix.lock') }}"
+          restore-keys: "downloads-native-${{ runner.os }}-"
+
+      - name: Restore toolchain downloads, for the image
+        if: env.SHAPE == 'image'
+        # The four directories run-in-sandbox.sh mounts into the container.
+        # None of them is a task output.
         uses: actions/cache@v6
         with:
           path: |
@@ -104,8 +178,27 @@ jobs:
             ~/.cache/baalbek-sandbox/android-sdk
             ~/.cache/baalbek-sandbox/cargo-registry
             ~/.cache/baalbek-sandbox/hex
-          key: "sandbox-downloads-${{ runner.os }}-${{ hashFiles('.prototools', 'pnpm-lock.yaml', 'e2e/package.json', 'mobile/scripts/setup-android-sdk.sh', '**/Cargo.lock', '**/mix.lock') }}"
-          restore-keys: "sandbox-downloads-${{ runner.os }}-"
+          key: "downloads-image-${{ runner.os }}-${{ hashFiles('.prototools', 'pnpm-lock.yaml', 'e2e/package.json', 'mobile/scripts/setup-android-sdk.sh', '**/Cargo.lock', '**/mix.lock') }}"
+          restore-keys: "downloads-image-${{ runner.os }}-"
+
+      - name: Restore first-party build outputs
+        # Pull requests only, and restore-only. `main` writes every entry and
+        # reads none, so this can only ever replay what a cold `main` run built.
+        #
+        # The shape is part of the key: the two shapes compile against
+        # different libc, and replaying one shape's output into the other is
+        # how a green run ships a broken artifact.
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.SANDBOX_MOON_CACHE }}
+          key: "moon-outputs-${{ env.SHAPE }}-${{ github.event.pull_request.base.sha }}"
+          restore-keys: "moon-outputs-${{ env.SHAPE }}-"
+
+      - name: Drop the restored run reports
+        # Or an aborted run uploads `main`'s report as its own.
+        if: github.event_name == 'pull_request'
+        run: rm -f "$SANDBOX_MOON_CACHE/ciReport.json" "$SANDBOX_MOON_CACHE/runReport.json"
 
       - name: Log in to GHCR
         # Skipped for a fork PR, whose token has no `packages` scope, so that
@@ -121,16 +214,21 @@ jobs:
       - name: Resolve the sandbox image
         # Builds the current Dockerfile with the published image as a cache
         # source, rather than running a pulled image that could be older than
-        # the tree. `docker buildx build`, matching `root:sandbox-image`, so
-        # both writes land in the one BuildKit cache and moon's later run of
-        # that task is a cache hit rather than a second OTP compile.
+        # the tree. The image shape always needs it; the native shape needs it
+        # only when the affected tasks reach `root:sandbox-image`.
         env:
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
           # The same override sandbox-image.yml publishes to.
           SANDBOX_IMAGE_REPO: ${{ vars.SANDBOX_IMAGE_REPO }}
-        run: .github/scripts/resolve-sandbox-image.sh
+        run: |
+          if [ "$SHAPE" = "image" ] || .github/scripts/affected-needs-sandbox-image.sh; then
+            .github/scripts/resolve-sandbox-image.sh
+          else
+            echo "sandbox image: not affected by this change, so it is not built here"
+          fi
 
       - name: Hand the workspace and the mounted caches to the image's user
+        if: env.SHAPE == 'image'
         # The image runs as `vscode`, uid 1000; a runner checkout is uid 1001.
         # Every host path run-in-sandbox.sh mounts has to be created here, so
         # that this one chown covers all of them.
@@ -140,32 +238,49 @@ jobs:
             ~/.cache/baalbek-sandbox/android-sdk \
             ~/.cache/baalbek-sandbox/cargo-registry \
             ~/.cache/baalbek-sandbox/hex \
-            /tmp/baalbek-sandbox-moon-cache
+            "$SANDBOX_MOON_CACHE"
           sudo chown -R 1000:1000 \
             "$GITHUB_WORKSPACE" \
             ~/.cache/baalbek-sandbox \
-            /tmp/baalbek-sandbox-moon-cache
+            "$SANDBOX_MOON_CACHE"
 
       - name: Report the tasks this environment cannot run
-        run: .github/scripts/run-in-sandbox.sh bash .github/scripts/report-excluded-tasks.sh
+        # Unquoted on purpose: an empty RUN_PREFIX has to disappear.
+        run: $RUN_PREFIX bash .github/scripts/report-excluded-tasks.sh
 
       - name: moon ci
-        run: .github/scripts/run-in-sandbox.sh moon ci --summary detailed
+        run: $RUN_PREFIX moon ci --summary detailed
+
+      - name: Summarize what this run did
+        if: always()
+        run: bash .github/scripts/summarize-ci-report.sh "$SANDBOX_MOON_CACHE/ciReport.json"
+
+      - name: Save first-party build outputs
+        # `main` only, and the sole writer of this cache.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.SANDBOX_MOON_CACHE }}
+          key: "moon-outputs-${{ env.SHAPE }}-${{ github.sha }}"
 
       - name: Upload moon's CI report
+        # From the mount's host path, not `.moon/cache`: in the image shape the
+        # container writes through the mount, which would leave an
+        # in-workspace mountpoint empty.
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: moon-ci-report
-          path: .moon/cache/ciReport.json
-          if-no-files-found: ignore
+          name: "moon-ci-report-${{ env.SHAPE }}"
+          path: ${{ env.SANDBOX_MOON_CACHE }}/ciReport.json
+          if-no-files-found: warn
           retention-days: 7
 
       - name: Upload the Playwright report
+        # `ignore`: this exists only when `e2e:test` was affected.
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: "playwright-report-${{ env.SHAPE }}"
           path: e2e/playwright-report
           if-no-files-found: ignore
           retention-days: 7

@@ -3,10 +3,10 @@
 #
 #   .github/scripts/run-in-sandbox.sh moon ci
 #
-# CI uses it so every task runs in the image the devcontainer runs, and a
-# developer can use it to reproduce a CI failure locally. Several flags below
-# are load-bearing rather than conventional, and so is the separate Moon cache;
-# see spec/decisions/adr-0007-ci-runs-moon-ci-inside-the-sandbox-image.md.
+# .github/workflows/image-gate.yml runs the whole graph through it, and a
+# developer can use it to reproduce a failure locally. Several flags below are
+# load-bearing rather than conventional, and so is the separate Moon cache;
+# adr-0007 covers each, and adr-0009 covers where CI calls this.
 set -euo pipefail
 
 WORKSPACE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"

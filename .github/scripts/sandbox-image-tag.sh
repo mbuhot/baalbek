@@ -11,7 +11,7 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
-INPUTS=(Dockerfile .dockerignore .prototools)
+INPUTS=(Dockerfile .dockerignore .prototools scripts/install-os-deps.sh)
 
 for input in "${INPUTS[@]}"; do
   if [ ! -f "${input}" ]; then

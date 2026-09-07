@@ -12,6 +12,9 @@ packages:
   - "e2e"
   - "explorer"
 
+# Inside the one directory CI caches; pnpm 11 reads this setting only here.
+storeDir: "~/.cache/pnpm/store"
+
 # msw isn't a direct dependency here (web/src/test/mockFetch.ts stubs fetch
 # directly instead — see web/README.md) but vitest's own @vitest/mocker
 # pulls it in as an optional peer; its postinstall only copies an unused

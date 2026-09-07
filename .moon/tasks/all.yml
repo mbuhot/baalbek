@@ -1,0 +1,15 @@
+# Task configuration inherited by every project.
+# https://moonrepo.dev/docs/config/tasks
+#
+# Must live here; moon 2.5.4 ignores `.moon/tasks.yml`. See
+# spec/decisions/adr-0009-where-ci-runs-moon-ci.md.
+
+# Inputs to the environment every task runs in.
+implicitInputs:
+  - "/Dockerfile"
+  - "/.dockerignore"
+  - "/scripts/install-os-deps.sh"
+  # Covers the pinned Postgres version.
+  - "/.devcontainer/docker-compose.yml"
+  # Moon's own default reaches `/.moon/*.yml`, one level above this file.
+  - "/.moon/tasks/*.yml"

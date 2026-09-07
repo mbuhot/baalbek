@@ -13,9 +13,8 @@
 #      docker-compose service, per PLAN.md's "Sandbox" section — it is
 #      deliberately not baked into this image).
 #
-# Same image is used for the sandbox/devcontainer and for CI, so an
-# under-declared task input surfaces as an immediate failure rather than a
-# stale-cache pass.
+# Same image serves the devcontainer, `server:image`, and the cold full-graph
+# gate in .github/workflows/image-gate.yml.
 
 FROM debian:bookworm-slim
 
@@ -24,72 +23,11 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LC_ALL=C.UTF-8
 
 # --- OS build dependencies -------------------------------------------------
-#
-# Split into groups so the reason for each package is traceable:
-#
-#  * generic toolchain / fetch:
-#      build-essential (gcc/g++/make), git, curl, ca-certificates, gnupg,
-#      pkg-config, unzip, xz-utils (proto's own release archives are .tar.xz),
-#      file, locales
-#
-#  * Erlang/OTP build-from-source (asdf:erlang), per the official OTP
-#    "Required" + commonly-needed optional list:
-#      autoconf, m4, libncurses-dev, libssl-dev (crypto/ssl/otp ssl app),
-#      unixodbc-dev (odbc app), libsctp-dev (sctp), zlib1g-dev
-#    wxWidgets (for wx/debugger/observer/et's GUIs) and doc-build toolchains
-#    (fop/xsltproc/openjdk) are intentionally NOT installed: this is a
-#    headless server build. Verified in this sandbox: unlike most optional
-#    OTP apps, wx-*based* apps' builds (not just their runtime GUIs) hard-
-#    fail when wxWidgets dev headers are absent — configure only warns, but
-#    `make` still tries to compile their wx-dependent modules (lib/wx itself,
-#    plus lib/debugger/src/dbg_wx_*.erl, lib/observer's and lib/et's wx
-#    frontends) and errors out, which stops the whole build. So each must be
-#    explicitly disabled via KERL_CONFIGURE_OPTIONS (set below) rather than
-#    relying on graceful degradation.
-#
-#  * Rustler NIF builds (pricing_native, moon-elixir-plugin's own tooling):
-#      build-essential + pkg-config + libssl-dev (already listed above) cover
-#      the usual crate needs; cargo/rustc themselves come from proto's rust
-#      plugin, not apt.
-#
-#  * Postgres 17 client libraries, for later Ecto/Postgrex and Gleam `pog`
-#    work (wire-protocol drivers that don't strictly need libpq, but psql
-#    and libpq headers are kept on hand for migrations/debugging tooling):
-#      postgresql-client-17, libpq-dev
-#    Debian bookworm's own repos only ship the Postgres 15 client, so the
-#    PGDG apt repo is added first to get 17.
+# One list, shared with the CI runner. wxWidgets is absent, so
+# KERL_CONFIGURE_OPTIONS below must disable the wx-based OTP applications.
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        build-essential \
-        git \
-        curl \
-        wget \
-        ca-certificates \
-        gnupg \
-        lsb-release \
-        pkg-config \
-        unzip \
-        xz-utils \
-        file \
-        locales \
-        autoconf \
-        m4 \
-        libncurses-dev \
-        libssl-dev \
-        unixodbc-dev \
-        libsctp-dev \
-        zlib1g-dev \
-    && install -d /usr/share/postgresql-common/pgdg \
-    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
-        -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
-    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" \
-        > /etc/apt/sources.list.d/pgdg.list \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends \
-        postgresql-client-17 \
-        libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+COPY scripts/install-os-deps.sh /tmp/install-os-deps.sh
+RUN bash /tmp/install-os-deps.sh toolchain
 
 # --- Non-root user ----------------------------------------------------------
 # Matches the devcontainer's default `vscode` remote user convention.
@@ -137,76 +75,15 @@ RUN proto install
 
 # === Everything below is appended after the toolchain layer ================
 #
-# New packages and settings go here, never into the apt list or the ENV/RUN
-# steps above. Those are inputs to `proto install`'s from-source Erlang/OTP
-# build, so touching one forces a full OTP recompile, and the task chain
-# `e2e:test` -> `server:image` -> `root:sandbox-image` would drag that
-# recompile into the e2e gate. PLAN.md's "Adding OS packages after the fact"
-# states the rule and says when to consolidate.
+# Settings go here, never into the ENV/RUN steps above, which are inputs to
+# `proto install`'s from-source Erlang/OTP build. An OS package added to either
+# group of the script COPYed above invalidates that build; adr-0009 records why
+# PLAN.md's "Adding OS packages after the fact" rule for it.
 
 # --- OS packages for tasks that run in this image ---------------------------
-#
-#  * Python 3. `root:test` runs test-paths.py, every Elixir app's
-#    `mix test.changed` calls it to select tests, and two shell scripts parse
-#    `moon query` output with it. Debian's slim base carries no interpreter.
-#
-#  * Chromium's shared libraries, for `e2e:test`, which drives a real browser
-#    from this image against the composed release stack. The list is
-#    playwright-core 1.63.0's own `debian12` chromium set, read out of its
-#    nativeDeps table rather than guessed, plus fontconfig and one font family
-#    so text renders at all. Playwright downloads the browser binary itself
-#    into ~/.cache/ms-playwright; only these OS libraries have to be baked in.
-#
-#  * Docker CLI, the Buildx plugin and the Compose v2 plugin.
-#    `root:sandbox-image`, `server:image`, `web:image` and `e2e:test` all shell
-#    out to `docker`, and CI runs those tasks from inside this image against the
-#    host daemon's mounted socket
-#    (spec/decisions/adr-0007-ci-runs-moon-ci-inside-the-sandbox-image.md).
-#    Buildx is not optional: without it `docker build` falls back to the legacy
-#    builder, which shares no cache with the daemon's BuildKit, so
-#    `root:sandbox-image` rebuilds Erlang/OTP from source. The three image
-#    tasks name `docker buildx build` so a missing plugin errors instead.
-#    No daemon is installed here; the devcontainer gets one from its
-#    docker-in-docker feature.
+# No Docker daemon; the devcontainer gets one from its docker-in-docker feature.
 USER root
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        python3 \
-        libasound2 \
-        libatk-bridge2.0-0 \
-        libatk1.0-0 \
-        libatspi2.0-0 \
-        libcairo2 \
-        libcups2 \
-        libdbus-1-3 \
-        libdrm2 \
-        libgbm1 \
-        libglib2.0-0 \
-        libnspr4 \
-        libnss3 \
-        libpango-1.0-0 \
-        libx11-6 \
-        libxcb1 \
-        libxcomposite1 \
-        libxdamage1 \
-        libxext6 \
-        libxfixes3 \
-        libxkbcommon0 \
-        libxrandr2 \
-        fontconfig \
-        fonts-liberation \
-    && install -d -m 0755 /etc/apt/keyrings \
-    && curl -fsSL https://download.docker.com/linux/debian/gpg \
-        -o /etc/apt/keyrings/docker.asc \
-    && chmod a+r /etc/apt/keyrings/docker.asc \
-    && echo "deb [signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable" \
-        > /etc/apt/sources.list.d/docker.list \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends \
-        docker-ce-cli \
-        docker-buildx-plugin \
-        docker-compose-plugin \
-    && rm -rf /var/lib/apt/lists/*
+RUN bash /tmp/install-os-deps.sh tasks
 
 # proto puts `pnpm` in $PROTO_HOME/shims only — $PROTO_HOME/bin has no entry
 # for it — so every `toolchain: "node"` task needs the shims directory too.

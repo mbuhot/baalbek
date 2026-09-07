@@ -33,7 +33,7 @@ moon           = "2"
 node           = "26.7.0"
 pnpm           = "11.9.0"
 rust           = "stable"
-"asdf:erlang"  = "28.5"
+"asdf:erlang"  = "28.4.3"
 "asdf:elixir"  = "1.20.2"
 "asdf:gleam"   = "1.13"
 ```
@@ -77,16 +77,16 @@ First case, landed in Stage 12: Playwright's browser libraries (`libglib-2.0.so.
 
 | Project | Language | Owns | Notes |
 |---|---|---|---|
-| `core` | Elixir / Ash | schema `core` | Jobs, customers, sites, work orders. Publishes OpenAPI. |
+| `core` | Elixir / Ash | schema `core` | Jobs, customers, sites, work orders. |
 | `identity` | Elixir / Ash | schema `identity` | Technicians, dispatchers, auth. |
 | `billing` | Elixir / Ash | schema `billing` | Invoices raised from completed jobs. |
 | `timeline` | Gleam | schema `timeline` | Event-sourced technician shift / travel / on-site events; availability projections. |
 | `timeline_facade` | Elixir | — | Sole caller of the Gleam modules; `boundary`-enforced. |
 | `pricing` | Rust crate | — | Quote computation: travel + labour + parts. `cargo test`. |
 | `pricing_native` | Elixir | — | Rustler NIF facade; sole referencer of the NIF module. |
-| `server` | Elixir / Phoenix | — | Release assembly; HTTP surface; depends on all domain apps. |
+| `server` | Elixir / Phoenix | — | Release assembly; HTTP surface; publishes the OpenAPI document; depends on all domain apps. |
 | `web` | TypeScript | — | PWA: dispatch board + technician view. |
-| `core-api-client` | TypeScript (generated) | — | From `core`'s OpenAPI spec. Build-time edge. |
+| `core-api-client` | TypeScript (generated) | — | From `server`'s OpenAPI spec. Build-time edge. |
 | `mobile` | Capacitor | — | Android (Gradle) + iOS (xcodebuild) as tier-0 system tasks. |
 | `e2e` | Playwright | — | Depends on `server` + `web` builds. |
 | `explorer` | TypeScript | — | Static site from project-graph JSON + git stats + `capabilities.yml`. |

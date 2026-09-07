@@ -1,0 +1,105 @@
+# Runs every task in the workspace inside the sandbox image, from nothing: no
+# toolchain cache, no downloads, no `.moon/cache`.
+#
+# It fails when a task under-declares an input, or calls a binary the image
+# does not carry. Nightly, on an environment change, and on demand. See
+# spec/decisions/adr-0009-where-ci-runs-moon-ci.md.
+name: Image gate
+
+on:
+  schedule:
+    - cron: "0 16 * * *"
+  push:
+    branches: ["main"]
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".prototools"
+      - "scripts/install-os-deps.sh"
+      - ".github/workflows/image-gate.yml"
+      - ".github/scripts/run-in-sandbox.sh"
+  workflow_dispatch:
+
+concurrency:
+  group: "image-gate"
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  cold-full-graph:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # `explorer:generate` reads git history.
+          fetch-depth: 0
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup
+          df -h /
+
+      - name: Start Postgres
+        run: docker compose -p baalbek-image-gate -f .devcontainer/docker-compose.yml up -d --wait postgres
+
+      - name: Log in to GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+      - name: Resolve the sandbox image
+        env:
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          SANDBOX_IMAGE_REPO: ${{ vars.SANDBOX_IMAGE_REPO }}
+        run: .github/scripts/resolve-sandbox-image.sh
+
+      - name: Hand the workspace and the mounted caches to the image's user
+        # The image runs as uid 1000; a runner checkout is uid 1001.
+        run: |
+          mkdir -p \
+            ~/.cache/baalbek-sandbox/cache \
+            ~/.cache/baalbek-sandbox/android-sdk \
+            ~/.cache/baalbek-sandbox/cargo-registry \
+            ~/.cache/baalbek-sandbox/hex \
+            /tmp/baalbek-sandbox-moon-cache
+          sudo chown -R 1000:1000 \
+            "$GITHUB_WORKSPACE" \
+            ~/.cache/baalbek-sandbox \
+            /tmp/baalbek-sandbox-moon-cache
+
+      - name: Report the tasks this environment cannot run
+        run: .github/scripts/run-in-sandbox.sh bash .github/scripts/report-excluded-tasks.sh
+
+      - name: moon ci
+        # No MOON_BASE: moon then treats the whole graph as affected.
+        run: .github/scripts/run-in-sandbox.sh moon ci --summary detailed
+
+      - name: Summarize what this run did
+        if: always()
+        run: bash .github/scripts/summarize-ci-report.sh
+
+      - name: Upload moon's CI report
+        # `include-hidden-files`, or upload-artifact drops `.moon` silently.
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: image-gate-ci-report
+          path: .moon/cache/ciReport.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload the Playwright report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: image-gate-playwright-report
+          path: e2e/playwright-report
+          if-no-files-found: warn
+          retention-days: 14
