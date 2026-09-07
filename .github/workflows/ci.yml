@@ -17,6 +17,11 @@ on:
   pull_request:
   push:
     branches: ["main"]
+  # The under-declared-input and env-drift probe: the whole graph, in the
+  # image, restoring nothing. Nightly, because a stale hit on a pull request
+  # is bounded by how often this runs.
+  schedule:
+    - cron: "0 16 * * *"
   workflow_dispatch:
     inputs:
       base:
@@ -100,6 +105,8 @@ jobs:
           case "$EVENT_NAME" in
             pull_request) base="origin/$PR_BASE" ;;
             workflow_dispatch) base="$DISPATCH_BASE" ;;
+            # The nightly probe runs the whole graph from a cold cache.
+            schedule) base="$(git rev-list --max-parents=0 HEAD | head -1)" ;;
             *) base="$PUSH_BEFORE" ;;
           esac
           # A new branch or a force-push reports an all-zero "before". Moon's
