@@ -1,9 +1,8 @@
-# Stage 4 of PLAN.md: Elixir Rustler NIF facade for the `pricing` crate.
-# `boundary` enforces that PricingNative.Native (the raw NIF module) is
-# reachable only from PricingNative itself.
+# Elixir Rustler NIF facade for the `pricing` crate.
 #
-# `deps`, `build` and `test` come from ../.moon/tasks/elixir.yml. No database,
-# so no `bootstrap` task.
+# `boundary` enforces that PricingNative.Native (the raw NIF module) is
+# reachable only from PricingNative. `deps`, `build` and `test` come from
+# ../.moon/tasks/elixir.yml.
 language: elixir
 layer: library
 
@@ -12,28 +11,21 @@ tags:
   - "capability/quote-pricing"
 
 # Hand-declared: the crate edge is a Cargo path dependency in
-# native/pricingnative/Cargo.toml, which Mix never sees. It is also what the
-# inherited `^:build` edge resolves to.
+# native/pricingnative/Cargo.toml, which Mix never sees.
 dependsOn:
   - "pricing"
 
-# One cargo target directory for the workspace, out of the repo for the
-# virtiofs reason pricing/moon.yml gives. Cargo namespaces it by package.
+# Off the repo mount, for the virtiofs reason ../pricing/moon.yml gives.
 env:
   CARGO_TARGET_DIR: "$HOME/.cache/baalbek-cargo-target"
 
 tasks:
   build:
-    description: >-
-      Compiles this app and its Rustler NIF into `build/dev`.
     # priv/native/pricingnative.so is neither an input nor an output: three
     # tasks write that path in the source tree.
     inputs:
       - "native/**/*"
 
   test:
-    description: >-
-      Compiles the pricingnative NIF crate from source, then runs the ExUnit
-      suite, which calls PricingNative.quote/3 through the real compiled NIF.
     inputs:
       - "native/**/*"

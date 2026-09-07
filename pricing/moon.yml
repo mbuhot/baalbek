@@ -1,8 +1,7 @@
-# Stage 4 of PLAN.md: Rust crate computing a field-service job quote
-# (travel + labour + parts). `cargo test`. Sits outside Mix's dependency
-# graph; the pricing -> pricing_native edge is declared explicitly as
-# dependsOn on pricing_native's side (PLAN.md "Two facades, one pattern"),
-# not here and not reachable by moon-elixir-plugin's mix.exs inference.
+# Rust crate computing a field-service job quote (travel + labour + parts).
+#
+# The pricing -> pricing_native edge is declared as `dependsOn` on
+# pricing_native's side; Mix never sees this crate.
 language: rust
 layer: library
 
@@ -10,36 +9,20 @@ layer: library
 tags:
   - "capability/quote-pricing"
 
+# Off the repo mount: virtiofs was observed to fail concurrent target-dir
+# creation with EEXIST. pricing_native shares this directory.
+env:
+  CARGO_TARGET_DIR: "$HOME/.cache/baalbek-cargo-target"
+
 tasks:
   build:
-    description: >-
-      Proves the crate compiles on its own, and declares the resulting rlib
-      so that tasks needing a `pricing` source change to invalidate them can
-      depend on this task rather than on `test`: a task with no declared
-      `outputs` contributes nothing to a dependent's hash.
-
-      `build/libpricing.rlib` is a marker, not a hand-off. Nothing reads it —
-      `pricing_native`'s NIF links its own release-profile
-      `libpricing-<hash>.rlib`, rebuilt from the Cargo path dependency in
-      that project's CARGO_TARGET_DIR. See
-      ../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md for
-      why the edge rides on this task's declared inputs, not on the file.
-
-      CARGO_TARGET_DIR is redirected under $HOME for the reason `test`
-      documents, so the rlib is copied in-tree to be a declarable output.
-      `cat` rather than `cp` — this repo is mounted over virtiofs, where
-      `cp`'s reflink path was observed to produce NUL-filled files. The
-      target directory is spelled out twice because Moon substitutes `$VAR`
-      in a task's args from its own environment, so `$CARGO_TARGET_DIR`
-      would expand to empty.
-    command: "bash"
-    args:
-      - "-lc"
-      - >-
-        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target" &&
-        cargo build &&
-        mkdir -p build &&
-        cat "$HOME/.cache/baalbek-cargo-target/debug/libpricing.rlib" > build/libpricing.rlib
+    description: "Compiles the crate and declares the resulting rlib as an output."
+    # The rlib is a marker, not a hand-off: nothing reads build/libpricing.rlib.
+    # See ../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md.
+    # `cat` not `cp` — `cp`'s reflink path produces NUL-filled files on virtiofs.
+    script: >-
+      cargo build && mkdir -p build &&
+      cat "$CARGO_TARGET_DIR/debug/libpricing.rlib" > build/libpricing.rlib
     toolchain: "rust"
     inputs:
       - "Cargo.toml"
@@ -49,21 +32,10 @@ tasks:
       - "build/libpricing.rlib"
 
   test:
-    description: >-
-      Run this crate's `cargo test` suite on its own — no Elixir, no NIF,
-      just the plain Rust unit tests for travel/labour/parts quote
-      computation. CARGO_TARGET_DIR is redirected under $HOME rather than
-      left at the crate-local default: this sandbox mounts the repo over
-      virtiofs, which was observed (Stage 4 development) to spuriously fail
-      concurrent target-dir subdirectory creation with EEXIST; building
-      instead on local (non-virtiofs) storage side-steps it and is a no-op
-      relocation on any normal filesystem.
-    command: "bash"
+    description: "Runs the crate's `cargo test` suite, with no Elixir and no NIF."
+    command: "cargo"
     args:
-      - "-lc"
-      - >-
-        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target" &&
-        cargo test
+      - "test"
     toolchain: "rust"
     inputs:
       - "Cargo.toml"

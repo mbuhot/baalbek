@@ -1,15 +1,9 @@
-# Stage 7 of PLAN.md: Capacitor wrapper over `web`'s built PWA. Android
-# (Gradle) and iOS (xcodebuild) run as tier-0 `system` tasks — no Moon-
-# native toolchain fits Capacitor/Gradle/xcodebuild (seed.md §3, "Optional
-# extension: mobile"). `cap sync` consumes `web/dist`, so both native
-# builds take a task `deps` on `web:build`, which declares that directory
-# as its `outputs` — the edge shape adr-0006 describes.
+# Capacitor wrapper over `web`'s built PWA, built by Gradle and xcodebuild as
+# tier-0 `system` tasks (seed.md §3, "Optional extension: mobile").
 #
-# No `layer:` (stays `unknown`) — same reason as core-api-client/moon.yml:
-# moon's `enforceLayerRelationships` constraint forbids one `application`
-# depending on another (`web` is `application`), and this is the
-# deliberate application -> application edge PLAN.md's Component
-# inventory describes for `mobile`.
+# No `layer:` (stays `unknown`), same reason as core-api-client/moon.yml:
+# `enforceLayerRelationships` forbids one `application` depending on another,
+# and this is the deliberate application -> application edge onto `web`.
 language: system
 
 # Capabilities this component serves, in explorer/capabilities.yml's vocabulary.
@@ -21,25 +15,12 @@ dependsOn:
 
 tasks:
   build-android:
-    description: >-
-      Real Gradle build of the Capacitor Android project, producing an
-      installable unsigned debug APK. `scripts/setup-android-sdk.sh`
-      bootstraps the Android SDK (OS-level, not proto-managed) and, on
-      aarch64, qemu emulation for aapt2. `cap sync android` copies
-      `web/dist` into the native project first. Gradle's build/ dirs are
-      redirected off the virtiofs-mounted repo via
-      scripts/external-build-dir.init.gradle — same flake pricing/moon.yml
-      documents for CARGO_TARGET_DIR — and the APK copied back to the
-      in-repo path below.
-
-      `scripts/stamp-api-config.sh` then points the synced bundle at a real
-      API host (`MOBILE_API_BASE_URL`, default the emulator's host alias):
-      the packaged app cannot use `web`'s same-origin default, because its
-      WebView origin is the device. That variable is not part of this task's
-      hash, same as SERVER_IMAGE/WEB_IMAGE elsewhere, so changing it needs
-      `moon run mobile:build-android --force`. See mobile/README.md.
+    description: "Gradle build of the Capacitor Android project, producing an unsigned debug APK."
+    # `MOBILE_API_BASE_URL` is not part of this task's hash: changing it needs
+    # `--force`. See mobile/README.md.
     command: "bash scripts/build-android.sh"
     toolchain: "system"
+    # `web:build` declares web/dist as its outputs, which `cap sync` consumes.
     deps:
       - "web:build"
     inputs:
@@ -51,17 +32,12 @@ tasks:
       - "android/app/build/outputs/apk/debug/app-debug.apk"
 
   build-ios:
-    description: >-
-      Real xcodebuild of the Capacitor iOS project (Debug, iphonesimulator
-      SDK, unsigned) — genuinely runnable on a Mac, never a stub.
-      `requires-macos` is PLAN.md's one accepted toolchain-purity
-      exception ("iOS builds need macOS"): xcodebuild exists only on
-      macOS, so this cannot run in this sandbox or container CI. Three
-      mechanisms keep it out, none weakening the Mac build: this tag
-      (read by scripts/build.sh), `runInCI: false` (Stage 12's `moon ci`),
-      and build-ios.sh's own Darwin guard, which is what keeps
-      `moon check --all` green since that command has no tag filtering.
-      See mobile/README.md.
+    description: "xcodebuild of the Capacitor iOS project (Debug, iphonesimulator SDK, unsigned)."
+    # `requires-macos` is PLAN.md's one accepted toolchain-purity exception.
+    # Three mechanisms keep it out of Linux runs, none weakening the Mac build:
+    # this tag (read by scripts/build.sh), `runInCI: false`, and
+    # scripts/build-ios.sh's own Darwin guard, which is what keeps the
+    # untagged `moon check --all` green. See mobile/README.md.
     command: "bash scripts/build-ios.sh"
     toolchain: "system"
     tags:
@@ -74,21 +50,16 @@ tasks:
       - "package.json"
       - "capacitor.config.ts"
       - "ios/**/*"
-    # `optional: true` — off macOS scripts/build-ios.sh exits 0 with an
-    # explicit skip and produces nothing; without this Moon fails the task
-    # for a missing declared output. On a Mac the real build produces it.
+    # `optional: true` — off macOS the script exits 0 and produces nothing.
     outputs:
       - glob: "ios/build/Build/Products/Debug-iphonesimulator/App.app/**/*"
         optional: true
 
   build:
-    description: >-
-      PLAN.md Stage 7 gate. `build-android` is an unconditional `deps`
-      edge — Android has no accepted exception and runs everywhere.
-      `scripts/build.sh` handles every other mobile task tagged
-      `requires-macos`, found by tag query rather than by name: run on
-      macOS, explicitly logged as skipped elsewhere.
+    description: "PLAN.md Stage 7 gate: runs `build-android`, then every `requires-macos` task by tag."
     command: "bash scripts/build.sh"
     toolchain: "system"
+    # Android has no accepted exception and runs everywhere, so this edge is
+    # unconditional; scripts/build.sh finds the tagged tasks by query.
     deps:
       - "build-android"

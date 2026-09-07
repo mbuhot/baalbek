@@ -1,6 +1,6 @@
-# Event-sourced technician timeline (Gleam). No Gleam toolchain plugin
-# exists for Moon yet, so this is a system task, same as other
-# non-first-party projects here.
+# Event-sourced technician timeline (Gleam).
+#
+# Every task is `system`: no Gleam toolchain plugin exists for Moon yet.
 language: gleam
 layer: library
 
@@ -10,13 +10,8 @@ tags:
 
 tasks:
   deps:
-    description: >-
-      Downloads the third-party Gleam packages into `build/packages`. Keyed on
-      `gleam.toml` and `manifest.toml` alone, so no change under `src/`
-      invalidates it.
-    command: "bash"
-    args:
-      - "scripts/deps-download.sh"
+    description: "Downloads the third-party Gleam packages into `build/packages`."
+    command: "bash scripts/deps-download.sh"
     toolchain: "system"
     inputs:
       - "gleam.toml"
@@ -27,32 +22,20 @@ tasks:
       - "build/packages/**/*"
 
   bootstrap:
-    description: >-
-      Creates the timeline Postgres role, schema and tables (idempotent).
-      Never cached: a warm Moon cache and a fresh database is a real
-      combination (a new container, a dropped schema, CI's first run
-      against a new Postgres), and a cache hit here would skip the one
-      thing every timeline-touching task needs to have happened. This is
-      why `core`/`identity`/`billing` run their own `mix *.bootstrap`
-      unconditionally inside each task's command line.
-    command: "bash"
-    args:
-      - "scripts/bootstrap.sh"
+    description: "Creates the timeline Postgres role, schema and tables (idempotent)."
+    command: "bash scripts/bootstrap.sh"
     toolchain: "system"
     options:
+      # A warm Moon cache against a fresh database is a real combination, and a
+      # cache hit here would skip the schema every timeline task needs.
       cache: false
 
   test:
-    description: >-
-      Runs the Gleam test suite against the real timeline schema. Requires
-      a live Postgres (the postgres service in
-      .devcontainer/docker-compose.yml).
+    description: "Runs the Gleam test suite against the real timeline schema."
     deps:
       - "~:deps"
       - "~:bootstrap"
-    command: "bash"
-    args:
-      - "scripts/moon-test.sh"
+    command: "bash scripts/moon-test.sh"
     toolchain: "system"
     inputs:
       - "gleam.toml"
@@ -63,18 +46,12 @@ tasks:
       - "scripts/toolchain-path.sh"
 
   build:
-    description: >-
-      Builds build/otp/ — this project and its runtime dependencies as
-      ordinary OTP application directories, with real {modules, ...} lists.
-      `timeline_facade`'s mix.exs takes one Mix path dependency per
-      directory, which is what puts the Gleam code inside `server`'s
-      release. See ../server/spec/decisions/adr-0001-release-assembly-and-gleam-packaging.md.
-      No database needed: this compiles and copies only.
+    description: "Builds this project and its runtime deps into `build/otp` as OTP application directories."
+    # Named `build`, not `package`, so the inherited `^:build` edge reaches it.
+    # See ../server/spec/decisions/adr-0001-release-assembly-and-gleam-packaging.md.
     deps:
       - "~:deps"
-    command: "bash"
-    args:
-      - "scripts/package-otp.sh"
+    command: "bash scripts/package-otp.sh"
     toolchain: "system"
     inputs:
       - "gleam.toml"

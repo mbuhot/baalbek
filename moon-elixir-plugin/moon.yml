@@ -1,10 +1,9 @@
-# Stage 11 of PLAN.md: the WASM toolchain plugin that asks Mix for each Elixir
-# project's dependency list and infers `dependsOn` from its path deps. Wired
-# into ../.moon/toolchains.yml as the `elixir` toolchain; see
-# spec/decisions/adr-0001-mix-path-dep-inference.md.
+# The WASM toolchain plugin that asks Mix for each Elixir project's dependency
+# list and infers `dependsOn` from its path deps; ../.moon/toolchains.yml loads
+# it as the `elixir` toolchain.
 #
-# This project declares no input, dependsOn, or test expectation outside its
-# own directory: seed.md:161 says it may live in its own repo, so copying the
+# This project declares no input, dependsOn, or test expectation outside its own
+# directory: seed.md:161 says it may live in its own repo, so copying the
 # directory into an empty repository must lose nothing.
 language: rust
 layer: tool
@@ -13,32 +12,14 @@ layer: tool
 tags:
   - "platform"
 
+# Must equal the value scripts/build.sh exports: moon's plugin test harness
+# resolves the wasm artifact under $CARGO_TARGET_DIR/wasm32-wasip1.
+env:
+  CARGO_TARGET_DIR: "$HOME/.cache/baalbek-cargo-target/moon-elixir-plugin"
+
 tasks:
   build:
-    description: >-
-      Compiles the plugin to `plugin/moon_elixir_plugin.wasm`, the artifact
-      ../.moon/toolchains.yml loads.
-
-      That artifact is committed, unlike every other project's build output.
-      Moon reads the WASM file while it builds the project graph, so a
-      missing file fails every moon command — this one included.
-
-      This task is what makes a stale commit impossible: neither `git status`
-      nor moon's own output reveals one on its own, because an artifact nobody
-      rebuilt leaves a clean tree and a rebuilt one does not change what moon
-      reports until the project-graph cache is invalidated by a manifest
-      change. Failing this task is the only place the divergence is visible.
-
-      What it asserts is provenance, not byte-equality: the committed artifact
-      carries a `plugin/moon_elixir_plugin.provenance` record of the source it
-      was built from, and the task fails when the source moved, when the record
-      is missing or unreadable, or when the artifact is not the one recorded.
-      Byte-equality was tried first and cannot hold — rustc 1.98.1 emits a
-      different function section from an x86_64 host than from an aarch64 one,
-      on identical source and flags (spec/decisions/adr-0002). `--accept` is
-      the only thing that writes the tracked files, so a failing check never
-      leaves them modified. scripts/provenance.py holds the rule and
-      scripts/build.sh the build.
+    description: "Compiles the plugin and checks the committed artifact came from this source."
     command: "bash scripts/build.sh"
     toolchain: "rust"
     # Equal to SOURCE_PATHS in scripts/provenance.py, which fingerprints them:
@@ -52,24 +33,18 @@ tasks:
       - "plugin/moon_elixir_plugin.wasm"
 
   test:
-    description: >-
-      Runs the crate's own suite. `--no-default-features` turns the `wasm`
-      feature off so the inference rule compiles and runs as plain Rust; the
-      integration tests then load the compiled wasm32-wasip1 artifact through
-      moon's plugin test harness, which is why `build` runs first.
-
-      Every expectation comes from tests/__fixtures__, so the suite proves the
-      rule rather than this repository's present shape. It needs `elixir` on
-      PATH, because the plugin asks Mix for each dependency list instead of
-      parsing the manifest.
+    description: "Runs the crate's suite against tests/__fixtures__, wasm artifact included."
+    # `~:build` produces the wasm the integration tests load.
     deps:
       - "~:build"
+    # `bash -lc`, unlike every other task here: the plugin runs `elixir`, and
+    # only a login shell puts proto's working ~/.proto/bin ahead of the asdf
+    # shims, which cannot locate an asdf-backed Erlang (adr-0007, adr-0009).
+    # `--no-default-features` turns off `wasm`, so the rule runs as plain Rust.
     command: "bash"
     args:
       - "-lc"
-      - >-
-        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/moon-elixir-plugin" &&
-        cargo test --no-default-features
+      - "cargo test --no-default-features"
     toolchain: "rust"
     inputs:
       - "Cargo.toml"

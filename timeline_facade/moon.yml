@@ -1,10 +1,8 @@
-# Stage 5 of PLAN.md: the sole caller of the Gleam `timeline` modules.
+# The sole caller of the Gleam `timeline` modules.
 #
-# No task here names the `timeline` edge: this app's mix.exs takes one path dep
-# per application under ../timeline/build/otp, moon-elixir-plugin resolves
-# those onto the `timeline` project, and the inherited `^:build` turns that
-# into an edge onto `timeline:build`.
-#
+# No task names the `timeline` edge: mix.exs takes one path dep per application
+# under ../timeline/build/otp, moon-elixir-plugin resolves those onto the
+# `timeline` project, and the inherited `^:build` turns that into an edge.
 # `deps`, `build` and `test` come from ../.moon/tasks/elixir.yml.
 language: elixir
 layer: library
@@ -15,13 +13,10 @@ tags:
 
 tasks:
   boundary-check:
-    description: >-
-      Fails on a direct `:timeline.` call outside TimelineFacade.Gleam, which
-      `boundary` cannot enforce over Gleam's bare-atom modules. See
-      spec/decisions/adr-0001-gleam-elixir-interop.md.
-    command: "bash"
-    args:
-      - "scripts/boundary-check.sh"
+    description: "Fails on a direct `:timeline.` call outside TimelineFacade.Gleam."
+    # `boundary` cannot enforce this over Gleam's bare-atom modules. See
+    # spec/decisions/adr-0001-gleam-elixir-interop.md.
+    command: "bash scripts/boundary-check.sh"
     toolchain: "system"
     inputs:
       - "lib/**/*"

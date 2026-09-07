@@ -1,10 +1,5 @@
-# Root pseudo-project (source ".") — repo-wide tooling, not a component
-# from PLAN.md's Component inventory table.
-#
-# Holds the lib/<area> -> test/<area> mirroring check (seed.md §7.3), and
-# gives `moon check --all` at least one task to run at Stage 1, when no other
-# project has real tasks yet. See .moon/workspace.yml's header comment for
-# why that's necessary.
+# Repo-wide tooling for the root pseudo-project (source "."), not a component
+# from PLAN.md's inventory.
 language: bash
 layer: tool
 
@@ -13,12 +8,9 @@ tags:
   - "platform"
 
 tasks:
-  # Named `test`, not `check-test-paths`, so `moon run :test` (PLAN.md's
-  # Stage 8 gate) sweeps up this repo-wide convention check alongside every
-  # project's own suite. `boundary` cannot see the test tree, so this
-  # convention is all that holds the within-app mapping honest.
+  # Named `test`, not `check-test-paths`, so `moon run :test` sweeps it up.
   test:
-    description: "Check the lib/<area> -> test/<area> mirroring every Elixir app's `mix test.changed` selects from (seed.md §7.3)."
+    description: "Checks the lib/<area> -> test/<area> mirroring (seed.md §7.3)."
     command: "python3 test-paths.py --check"
     toolchain: "system"
     inputs:
@@ -27,28 +19,10 @@ tasks:
       - "*/test/**/*_test.exs"
 
   sandbox-image:
-    description: >-
-      Builds the sandbox/CI image (PLAN.md "Sandbox"). Also the build stage
-      of server/Dockerfile, so `server:image` depends on this rather than
-      redeclaring the toolchain.
-
-      Uncached deliberately. Moon would happily cache this task on its
-      inputs, and a cache hit replays a log claiming the image was built
-      while `docker image prune` has since removed it — a task reporting
-      success and producing nothing. Docker's own layer cache makes the
-      real rebuild cheap, which is what makes the flag nearly free.
-
-      `buildx build`, not `build`, in all three image tasks: without the
-      Buildx plugin `docker build` degrades to the legacy builder behind a
-      deprecation warning, and the legacy builder shares no cache with the
-      daemon's BuildKit — this task then recompiles Erlang/OTP from source.
-      Naming buildx turns that into an error instead.
-
-      `--builder default` pins the daemon's own BuildKit, the one cache
-      .github/workflows/ci.yml's image step also writes. A `docker-container`
-      builder shares no cache with it, so this task would recompile OTP; and
-      `setup-buildx-action` makes such a builder current without renaming
-      `default`, so the flag is the enforcement rather than a check.
+    description: "Builds the sandbox/CI image, which is also server/Dockerfile's build stage."
+    # `buildx build`, not `build`: without the Buildx plugin `docker build` falls
+    # back to a legacy builder that shares no cache and recompiles OTP.
+    # `--builder default` pins the daemon's own BuildKit, the cache CI writes.
     command: "bash"
     args:
       - "-lc"
@@ -57,7 +31,11 @@ tasks:
         -t "${SANDBOX_IMAGE:-baalbek-sandbox:latest}" -f Dockerfile .
     toolchain: "system"
     options:
+      # An image in the local daemon is not a file output, so a cache hit would
+      # replay a log for an image `docker image prune` has since removed.
       cache: false
+    # Also reached by .moon/tasks/all.yml's implicitInputs, but declared here
+    # too: this is the task that builds them, not just one that runs on them.
     inputs:
       - "Dockerfile"
       - ".dockerignore"
