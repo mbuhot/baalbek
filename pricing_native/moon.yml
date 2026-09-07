@@ -15,7 +15,7 @@ tags:
 dependsOn:
   - "pricing"
 
-# Off the repo mount, for the virtiofs reason ../pricing/moon.yml gives.
+# Off the repo mount, for the input-glob reason ../pricing/moon.yml gives.
 env:
   CARGO_TARGET_DIR: "$HOME/.cache/baalbek-cargo-target"
 

@@ -13,10 +13,8 @@ import { BASE_URL } from "./stack";
  */
 export default defineConfig({
   testDir: "./tests",
-  // Off the virtiofs-mounted repo: Playwright deletes this directory at the
-  // start of a run and its workers immediately re-create it, which fails with
-  // ENOTDIR on that mount. Same workaround as CARGO_TARGET_DIR in
-  // pricing/moon.yml and Gradle's build dir in mobile/.
+  // Off the repo: Playwright deletes this directory at the start of a run, so
+  // it must not sit anywhere Moon reads as a task input.
   outputDir: process.env.PLAYWRIGHT_OUTPUT_DIR ?? join(homedir(), ".cache", "baalbek-playwright", "test-results"),
   globalSetup: "./global-setup.ts",
   globalTeardown: "./global-teardown.ts",

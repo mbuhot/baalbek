@@ -9,8 +9,8 @@ layer: library
 tags:
   - "capability/quote-pricing"
 
-# Off the repo mount: virtiofs was observed to fail concurrent target-dir
-# creation with EEXIST. pricing_native shares this directory.
+# Off the repo mount: an in-tree `target/` falls inside pricing_native's
+# `native/**/*` input glob. pricing_native shares this directory.
 env:
   CARGO_TARGET_DIR: "$HOME/.cache/baalbek-cargo-target"
 
@@ -19,10 +19,9 @@ tasks:
     description: "Compiles the crate and declares the resulting rlib as an output."
     # The rlib is a marker, not a hand-off: nothing reads build/libpricing.rlib.
     # See ../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md.
-    # `cat` not `cp` — `cp`'s reflink path produces NUL-filled files on virtiofs.
     script: >-
       cargo build && mkdir -p build &&
-      cat "$CARGO_TARGET_DIR/debug/libpricing.rlib" > build/libpricing.rlib
+      cp "$CARGO_TARGET_DIR/debug/libpricing.rlib" build/libpricing.rlib
     toolchain: "rust"
     inputs:
       - "Cargo.toml"

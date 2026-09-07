@@ -24,12 +24,9 @@ services:
       - ..:/workspaces/baalbek:cached
 
       # Every directory a build writes into gets a named volume, so no build
-      # artefact ever lands on the bind mount above. On macOS and Windows that
-      # mount is VirtioFS, and this repository has repeatedly seen it corrupt
-      # concurrent writes: a source file silently zeroed, `cp` producing a
-      # NUL-filled file of the correct length, and Moon's own lock files
-      # failing ENOENT immediately after being created. Speed is the lesser
-      # reason; correctness is the reason.
+      # artefact ever lands on the bind mount above. That keeps the host's
+      # working tree to source alone, and a build off the bind mount is
+      # faster.
       #
       # The list is per-directory and grows with the workspace, which is the
       # price of keeping the source itself on the host where the editor,

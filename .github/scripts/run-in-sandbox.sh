@@ -60,9 +60,9 @@ fi
 
 # Mounted at whatever `.moon/cache` resolves to, which is the workspace path in
 # CI and somewhere off the working tree wherever that tree is a bind mount — a
-# named volume in the devcontainer, a symlink in an agent sandbox — because
-# Moon's lock files fail on VirtioFS. Resolving it covers both, and the mount
-# both keeps the host's cache out and stops a symlink dangling in here.
+# named volume in the devcontainer, a symlink in an agent sandbox. Resolving it
+# covers both, and the mount keeps the host's cache out and stops a symlink
+# dangling in here.
 MOON_CACHE_TARGET="$(readlink -f "${WORKSPACE}/.moon/cache")"
 
 # The image runs as `vscode`, uid 1000. Every host path mounted below has to be

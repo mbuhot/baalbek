@@ -92,10 +92,8 @@ elsewhere.
 
 On macOS and Windows the working tree usually sits on a case-insensitive
 filesystem. `Foo` and `foo` are then one file, and a listing can still show two
-entries. Never delete an apparent case-duplicate; compare inodes with `ls -i`
-first. Concurrent writes to the bind mount can also corrupt a file, so the
-devcontainer puts every build-artifact directory on a named volume. `CLAUDE.md`
-holds the working rules.
+entries. Never delete an apparent case-duplicate. `CLAUDE.md` holds the working
+rules.
 
 ## Where the reasoning is
 

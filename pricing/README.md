@@ -38,9 +38,7 @@ cargo test
 
 Or, via Moon: `moon run pricing:test` from the repo root.
 
-Note: this sandbox mounts the repo over virtiofs, which was observed
-(Stage 4 development) to occasionally fail Cargo's concurrent target-dir
-directory creation with a spurious `EEXIST`. The Moon task redirects
-`CARGO_TARGET_DIR` under `$HOME` to avoid it; running `cargo test` directly
-falls back to an in-tree `target/` (gitignored), which works too, just
-without that workaround.
+Note: the Moon task redirects `CARGO_TARGET_DIR` under `$HOME`, so an
+in-tree `target/` stays out of `pricing_native`'s `native/**/*` input glob.
+Running `cargo test` directly falls back to an in-tree `target/`
+(gitignored), which works too.

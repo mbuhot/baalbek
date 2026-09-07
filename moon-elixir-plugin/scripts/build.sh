@@ -19,7 +19,7 @@ case "${1:-}" in
   *) echo "usage: build.sh [--accept]" >&2; exit 2 ;;
 esac
 
-# Redirected under $HOME for the virtiofs reason ../pricing/moon.yml documents.
+# Redirected under $HOME for the input-glob reason ../pricing/moon.yml documents.
 export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/moon-elixir-plugin"
 
 # A release build bakes every `panic!` location into the artifact as data, and
@@ -43,9 +43,8 @@ fi
 # builds different code from the same commit.
 cargo build --locked --target wasm32-wasip1 --release
 
-# `cat` rather than `cp` for the reflink reason ../pricing/moon.yml documents.
 mkdir -p plugin
-cat "${CARGO_TARGET_DIR}/wasm32-wasip1/release/moon_elixir_plugin.wasm" > "${ARTIFACT}.new"
+cp "${CARGO_TARGET_DIR}/wasm32-wasip1/release/moon_elixir_plugin.wasm" "${ARTIFACT}.new"
 
 # The gate asserts provenance, not byte-equality: the same source does not
 # produce the same bytes on a different host architecture, which

@@ -87,10 +87,9 @@ Those steps need `sudo`, which the sandbox grants.
 `scripts/build-android.sh` also passes
 `scripts/external-build-dir.init.gradle` as a Gradle `--init-script`,
 relocating every subproject's `build/` directory to
-`$HOME/.cache/baalbek-gradle-build`, off the virtiofs-mounted repo — the
-same concurrent-I/O flake `pricing/moon.yml` documents for
-`CARGO_TARGET_DIR`. The APK is copied back to its in-repo path so Moon
-caches it as a declared output. A no-op relocation on other filesystems.
+`$HOME/.cache/baalbek-gradle-build`, so Gradle's intermediates stay out of
+the working tree. The APK is copied back to its in-repo path so Moon caches
+it as a declared output.
 
 ## iOS
 

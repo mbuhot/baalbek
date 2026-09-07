@@ -11,12 +11,9 @@ deps/
 erl_crash.dump
 .elixir_ls/
 
-# Rust (pricing crate + pricing_native's native/pricingnative Rustler NIF
-# crate, Stage 4). Build output for both actually lands under
-# $HOME/.cache/baalbek-cargo-target/* (see pricing/moon.yml and
-# pricing_native/moon.yml — a virtiofs workaround), but a plain `cargo
-# test`/`cargo build` run without that env var falls back to an in-tree
-# target/, so it's still ignored defensively. Cargo.lock is NOT ignored —
+# Rust. Build output lands under $HOME/.cache/baalbek-cargo-target/* (see
+# pricing/moon.yml), but a plain `cargo build` without that env var falls back
+# to an in-tree target/, so it is still ignored. Cargo.lock is NOT ignored —
 # committed for the same hermeticity reason core's mix.lock is committed.
 target/
 

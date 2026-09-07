@@ -20,10 +20,8 @@ apps="$(escript scripts/otp-closure.escript build/erlang-shipment timeline)"
 
 rm -rf build/otp
 mkdir -p build/otp
-# tar, not cp: cp -R across this repo's virtiofs mount has been observed
-# writing a NUL-filled file of the right length instead of the contents.
 for app in $apps; do
-  tar -C build/erlang-shipment -cf - "$app" | tar -C build/otp -xf -
+  cp -R "build/erlang-shipment/$app" build/otp/
 done
 
 # The copied tree is what Mix reads, so re-check it rather than the source.

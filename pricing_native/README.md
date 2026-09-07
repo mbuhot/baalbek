@@ -43,8 +43,6 @@ Or, via Moon: `moon run pricing_native:test` from the repo root.
 No database, no `Application` supervision tree — this app's only job is
 hosting the NIF, so there's nothing to boot.
 
-Note: this sandbox mounts the repo over virtiofs, which was observed
-(Stage 4 development) to occasionally fail the Rustler-invoked `cargo rustc`
-subprocess's concurrent target-dir directory creation with a spurious
-`EEXIST`. The Moon task, and the commands above, redirect `CARGO_TARGET_DIR`
-under `$HOME` to avoid it.
+Note: the Moon task, and the commands above, redirect `CARGO_TARGET_DIR`
+under `$HOME`, so the Rustler-invoked `cargo rustc` never writes an in-tree
+`target/` into this project's `native/**/*` input glob.

@@ -41,22 +41,8 @@ snapshots), `decisions/` (ADRs). Never create an empty one to complete the patte
 
 ## Case-insensitive hosts
 
-On macOS and Windows the working tree sits on a case-insensitive filesystem, reached over a bind
-mount in a Linux container. `Foo` and `foo` are the same file, and writing one overwrites the
-other. The guest caches a dentry per spelling, so one file can appear twice in a listing, with a
-different inode, size and content. Differing inodes do not prove two files exist.
-
-- Use each path's canonical spelling exactly. `Dockerfile`, never `dockerfile`.
-- **Never delete an apparent case-duplicate.** Deleting either spelling destroys the one real
-  file. This has happened here. A phantom clears itself when the dentry revalidates.
-- `git ls-files` and `git status -uall` are the only truthful sources. `ls`, `stat` and
-  `find -iname` all report phantoms, and one `stat` can contradict the next.
-- To force a re-read, `rm` the path and restore it with `git checkout --`, then check
-  `git hash-object`.
-- `cp` can write stale bytes at the right length, because `copy_file_range` does not revalidate
-  the guest's cache and `cat`, `dd`, `tar` and a plain read do. Measured in one window: 540 of 596
-  files under `timeline/build/erlang-shipment` differed from source through `cp -R` and none
-  through `tar`. It is intermittent, so a spot check that passes proves nothing.
+On macOS and Windows the working tree is case-insensitive, so use each path's canonical spelling
+exactly and never delete an apparent case-duplicate — both spellings are the one file.
 
 ## Reviewing
 
