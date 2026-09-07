@@ -6,3 +6,4 @@ defmodule Billing do
   use Boundary, deps: [Billing.Repo]
 end
 
+# Verify: repeats the billing probe now that deps are cached.
