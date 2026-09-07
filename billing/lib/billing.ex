@@ -5,3 +5,5 @@ defmodule Billing do
 
   use Boundary, deps: [Billing.Repo]
 end
+
+# Exercise: a first-party Elixir change, to measure what CI rebuilds.
