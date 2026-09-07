@@ -37,7 +37,7 @@ Anything a changed file cannot be mapped from — `mix.exs`, `config/`, `priv/`,
 `spec/`, test support files — selects the whole suite, since any of them can
 change every test's outcome.
 
-No third-party dependencies, matching check-deps-drift.py.
+No third-party dependencies, so the sandbox image needs no Python packages.
 """
 
 from __future__ import annotations
@@ -59,8 +59,8 @@ WHOLE_SUITE = "test"
 
 
 def elixir_apps() -> dict[str, Path]:
-    """Direct subdirectories of the repo root holding a mix.exs — the same
-    project discovery check-deps-drift.py uses."""
+    """Direct subdirectories of the repo root holding a mix.exs — mirrors the
+    `globs: ["*"]` project source pattern in .moon/workspace.yml."""
     return {
         p.name: p
         for p in sorted(REPO_ROOT.iterdir())

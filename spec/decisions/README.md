@@ -38,4 +38,5 @@ decision confined to one component lives in that component's own
 | `timeline_facade/spec/decisions/` | The Gleam ↔ Elixir interop decision (superseded) |
 | `web/spec/mocks/`, `web/spec/decisions/` | Dated UI mock snapshots, and the PWA's own decisions |
 | `e2e/spec/decisions/` | How the dockerized e2e stack is composed and bootstrapped |
+| `moon-elixir-plugin/spec/decisions/` | How `dependsOn` between Elixir projects is inferred from `mix.exs`, and what that does not cover |
 | `explorer/spec/decisions/` | How the architecture explorer is generated, how it shows its own blind spots, and how capabilities are claimed. 0001 and 0002 are superseded by 0004 and 0005 |

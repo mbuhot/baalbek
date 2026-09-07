@@ -71,3 +71,7 @@ core-api-client/src/generated/
 # drift from the workspace it describes, which is the one thing seed.md §9
 # says it must not do.
 explorer/src/generated/
+
+# moon-elixir-plugin writes its WASM artifact beside the committed one and
+# renames over it, so a failed compile leaves the loadable file intact.
+moon-elixir-plugin/plugin/*.wasm.new

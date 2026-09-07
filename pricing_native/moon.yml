@@ -4,8 +4,8 @@
 # sole sanctioned entry point.
 #
 # `pricing` compiles outside Mix's dependency graph (native/pricingnative's
-# Cargo.toml has a Cargo *path* dependency on ../../../pricing, invisible to
-# Moon and to check-deps-drift.py's Mix-only comparison), so this dependsOn
+# Cargo.toml has a Cargo *path* dependency on ../../../pricing, which Mix
+# never sees and moon-elixir-plugin therefore cannot infer), so this dependsOn
 # is hand-declared per seed.md §3 ("Rust: NIF behind a facade app") and
 # PLAN.md's "Two facades, one pattern".
 language: elixir
@@ -59,10 +59,11 @@ tasks:
       crate from source (no precompiled binary — PLAN.md is explicit that a
       binary artefact has no source dependency edge, which would defeat the
       point of this stage), then run the ExUnit suite, which calls
-      PricingNative.quote/3 through the real compiled NIF. Elixir isn't a
-      Moon-native toolchain yet (Stage 11 adds moon-elixir-plugin), so this
-      is declared as a `system` task that shells out to `mix`, resolved via
-      proto's PATH activation. CARGO_TARGET_DIR is redirected under $HOME
+      PricingNative.quote/3 through the real compiled NIF.
+      moon-elixir-plugin (Stage 11) reads this project's mix.exs to infer
+      `dependsOn`; it runs no commands, so this stays a `system` task that
+      shells out to `mix`, resolved via proto's PATH activation.
+      CARGO_TARGET_DIR is redirected under $HOME
       for the same virtiofs reason documented in pricing/moon.yml's test
       task — the Rustler-invoked `cargo rustc` subprocess inherits it same
       as a direct `cargo test` would.

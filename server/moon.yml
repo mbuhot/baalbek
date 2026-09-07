@@ -19,22 +19,19 @@ tags:
   - "capability/api-contract"
   - "capability/release-assurance"
 
-# The first five are the Elixir-to-Elixir slice of mix.exs's path deps,
-# checked against this list by check-deps-drift.py; `pricing_native` and
-# `timeline_facade` are themselves Elixir path deps of `server`, so they
-# belong there too.
+# The five Elixir edges (`core`, `identity`, `billing`, `pricing_native`,
+# `timeline_facade`) are NOT declared here: moon-elixir-plugin reads them from
+# this project's mix.exs path deps. See
+# ../moon-elixir-plugin/spec/decisions/adr-0001-mix-path-dep-inference.md.
 #
-# `pricing` (Rust) and `timeline` (Gleam) are not Mix path deps and are
-# correctly ignored by check-deps-drift.py's Mix-only comparison. They are
-# declared here because this project's tasks name `timeline:package` as a
-# task dependency, and because `moon ci` walks this list to decide what a
-# `pricing` or `timeline` change affects.
+# `pricing` (Rust) and `timeline` (Gleam) are not Mix path deps of this
+# project, so nothing infers them. They are kept as the explicit statement
+# seed.md §3 asks every cross-language edge to carry, NOT because affected
+# detection needs them: removing both leaves `moon query tasks --affected
+# --downstream deep` byte-identical for a `pricing` or a `timeline` change,
+# because `pricing` is reached through `pricing_native` and `timeline`
+# through this project's `deps` on `timeline:package`.
 dependsOn:
-  - "core"
-  - "identity"
-  - "billing"
-  - "pricing_native"
-  - "timeline_facade"
   - "pricing"
   - "timeline"
 

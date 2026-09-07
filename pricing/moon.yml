@@ -2,7 +2,7 @@
 # (travel + labour + parts). `cargo test`. Sits outside Mix's dependency
 # graph; the pricing -> pricing_native edge is declared explicitly as
 # dependsOn on pricing_native's side (PLAN.md "Two facades, one pattern"),
-# not here and not inferred by check-deps-drift.py.
+# not here and not reachable by moon-elixir-plugin's mix.exs inference.
 language: rust
 layer: library
 

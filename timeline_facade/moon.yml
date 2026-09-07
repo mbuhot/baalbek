@@ -1,14 +1,17 @@
-# Cross-language edge: timeline is a Gleam project, not a Mix path dep.
-# check-deps-drift.py correctly ignores it (Mix-to-Mix only).
+# The edge onto `timeline` is NOT declared here. This app's mix.exs builds its
+# dependency list by listing ../timeline/build/otp at Mix-evaluation time, and
+# moon-elixir-plugin asks Mix rather than parsing the file, so it resolves
+# those path deps onto the `timeline` project. Before ../timeline:package has
+# run the manifest raises, the plugin warns and infers nothing, and the edge
+# falls back to this project's `deps` on `timeline:package` — affected
+# detection is identical either way. See
+# ../moon-elixir-plugin/spec/decisions/adr-0001-mix-path-dep-inference.md.
 language: elixir
 layer: library
 
 # Capabilities this component serves, in explorer/capabilities.yml's vocabulary.
 tags:
   - "capability/technician-availability"
-
-dependsOn:
-  - "timeline"
 
 tasks:
   build:

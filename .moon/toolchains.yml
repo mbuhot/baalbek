@@ -6,10 +6,8 @@
 # toolchain that supports it, so Moon reads versions from the root
 # .prototools instead of duplicating them here.
 #
-# Deliberately NOT enabled yet: a custom Elixir toolchain (PLAN.md says that
-# arrives in Stage 11 as moon-elixir-plugin). Elixir, Gleam, and Capacitor
-# projects fall back to the `system` toolchain until then — fine, since none
-# of them have real tasks at Stage 1.
+# Stage 11 adds the custom `elixir` toolchain at the bottom of this file.
+# Gleam and Capacitor projects still fall back to `system`.
 node:
   versionFromPrototools: true
 
@@ -30,3 +28,24 @@ rust:
   versionFromPrototools: true
 
 system: {}
+
+# Stage 11 of PLAN.md: moon-elixir-plugin, which asks Mix for each Elixir
+# project's dependency list and infers the `dependsOn` between them. It runs
+# one `elixir` process while the project graph is built, and manages no
+# versions; see
+# ../moon-elixir-plugin/spec/decisions/adr-0001-mix-path-dep-inference.md.
+#
+# The plugin is loaded from a committed artifact, not from
+# moon-elixir-plugin/build/: moon reads the WASM file while building the
+# project graph, so a missing file fails every moon command, including the
+# `moon run moon-elixir-plugin:build` that would produce it.
+elixir:
+  plugin: "file://../moon-elixir-plugin/plugin/moon_elixir_plugin.wasm"
+
+  # `asdf:elixir`, not `true`: `true` looks up the toolchain's own id, and
+  # this workspace has no plain `elixir` entry in .prototools (proto resolves
+  # Elixir through its asdf backend). Measured as inert either way today —
+  # every Elixir task declares `toolchain: "system"`, so the resolved version
+  # does not reach their hashes. Named correctly so it starts working if this
+  # plugin ever grows tier-2 dependency installs.
+  versionFromPrototools: "asdf:elixir"

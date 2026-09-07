@@ -43,10 +43,11 @@ tasks:
     description: >-
       Fetch Mix deps, bootstrap the `core` Postgres role/schema (idempotent
       — see priv/repo/bootstrap.sql), create+migrate the test database, then
-      run the ExUnit suite. Elixir isn't a Moon-native toolchain yet (Stage
-      11 adds moon-elixir-plugin), so this is declared as a `system` task
-      that shells out to `mix`, resolved via proto's PATH activation
-      (assumed already on PATH — proto/moon are set up in Stage 0).
+      run the ExUnit suite. moon-elixir-plugin (Stage 11) reads this
+      project's mix.exs to infer `dependsOn`; it runs no commands, so this
+      stays a `system` task that shells out to `mix`, resolved via proto's
+      PATH activation (assumed already on PATH — proto/moon are set up in
+      Stage 0).
       Requires a live Postgres (the `postgres` service in
       .devcontainer/docker-compose.yml) reachable with the connection
       details in config/config.exs / lib/mix/tasks/core.bootstrap.ex's
