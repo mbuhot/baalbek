@@ -43,7 +43,7 @@ decision confined to one component lives in that component's own
 | `spec/decisions/` (here) | Workspace-wide decisions |
 | `core`, `identity`, `billing`, `server` `/spec/features/` | Gherkin acceptance criteria, executed by ExUnit |
 | `server/spec/decisions/` | Release assembly, and how Gleam code reaches the release |
-| `timeline_facade/spec/decisions/` | The Gleam ↔ Elixir interop decision (superseded) |
+| `timeline_facade/spec/decisions/` | The Gleam ↔ Elixir interop decision (superseded), and the withdrawal of its boundary check |
 | `web/spec/mocks/`, `web/spec/decisions/` | Dated UI mock snapshots, and the PWA's own decisions |
 | `e2e/spec/decisions/` | How the dockerized e2e stack is composed and bootstrapped |
 | `moon-elixir-plugin/spec/decisions/` | How `dependsOn` and the third-party dependency list are read out of `mix.exs` and `mix.lock`, what that does not cover, and what the committed WASM artifact's gate asserts |

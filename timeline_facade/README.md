@@ -3,8 +3,8 @@
 **Language:** Elixir
 
 **Purpose:** Sole caller of the Gleam `timeline` modules; `boundary`-enforced
-for calls within this app (see the ADR for why `boundary` can't police the
-`:timeline` edge itself, and the compensating check in moon.yml).
+for calls within this app. The ADRs say why `boundary` cannot police the
+`:timeline` edge itself, and why nothing else does either.
 
 ## Local setup
 

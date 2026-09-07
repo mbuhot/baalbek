@@ -226,7 +226,9 @@ against the packaged output, which is what is done here.
   which ADR-0001 identified as one of two causes — but the other still holds:
   `boundary` filters candidate modules down to names beginning `Elixir.`, and
   Gleam's modules are bare atoms. The grep-based compensating check in
-  `timeline_facade`'s test task remains the control.
+  `timeline_facade`'s test task remains the control. Amended by
+  `timeline_facade/spec/decisions/adr-0002-the-gleam-boundary-grep-is-withdrawn.md`,
+  which withdraws that check and leaves review as the only control.
 
 ## What ADR-0001 got right and this does not change
 

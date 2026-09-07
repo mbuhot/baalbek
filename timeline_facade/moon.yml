@@ -12,19 +12,8 @@ tags:
   - "capability/technician-availability"
 
 tasks:
-  boundary-check:
-    description: "Fails on a direct `:timeline.` call outside TimelineFacade.Gleam."
-    # `boundary` cannot enforce this over Gleam's bare-atom modules. See
-    # spec/decisions/adr-0001-gleam-elixir-interop.md.
-    command: "bash scripts/boundary-check.sh"
-    toolchain: "system"
-    inputs:
-      - "lib/**/*"
-      - "scripts/boundary-check.sh"
-
   test:
     deps:
       # Uncached, so a warm Moon cache against a fresh database still creates
       # the schema this suite writes to.
       - "timeline:bootstrap"
-      - "~:boundary-check"
