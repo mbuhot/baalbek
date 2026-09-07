@@ -1,27 +1,11 @@
 # Ash resources for accounts and authentication: technicians and dispatchers.
 #
-# Schema `identity` and role `identity`. `deps`, `build`, `test` and the
-# `bootstrap` this one extends come from ../.moon/tasks/elixir.yml.
+# Schema `identity` and role `identity`. `deps`, `build` and `test` come from
+# ../.moon/tasks/elixir.yml, and `bootstrap` from
+# ../.moon/tasks/elixir-repo.yml.
 language: elixir
 layer: library
 
 # Capabilities this component serves, in explorer/capabilities.yml's vocabulary.
 tags:
   - "capability/account-access"
-
-tasks:
-  bootstrap:
-    extends: "bootstrap-repo"
-    # `extends` copies `internal: true` with the rest; this project opts back in.
-    options:
-      internal: false
-
-  build:
-    inputs:
-      - "priv/**/*"
-
-  test:
-    deps:
-      - "~:bootstrap"
-    inputs:
-      - "priv/**/*"

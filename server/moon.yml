@@ -28,7 +28,7 @@ tags:
 tasks:
   bootstrap:
     description: "Creates `core`'s, `identity`'s and `billing`'s Postgres roles and schemas, then creates and migrates `core`'s test database."
-    # Not `bootstrap-repo`: three schemas, and the repo is `core`'s.
+    # Declared here, not inherited: three schemas, and the repo is `core`'s.
     # Requires a live Postgres (the `postgres` service in
     # ../.devcontainer/docker-compose.yml).
     deps:

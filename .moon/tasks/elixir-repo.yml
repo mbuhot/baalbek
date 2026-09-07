@@ -1,0 +1,39 @@
+# Tasks inherited by every Elixir project that owns an Ecto repo.
+#
+# `inheritedBy` is required: moon 2.5.4 applies a conditionless
+# `.moon/tasks/*.yml` to every project. The `file` condition selects the
+# projects that own a repo, because `mix $project.bootstrap` exists only where
+# priv/repo/bootstrap.sql does. `server` bootstraps three schemas and owns no
+# repo, so it declares its own `bootstrap` instead (../../server/moon.yml).
+inheritedBy:
+  language: "elixir"
+  file: "priv/repo/bootstrap.sql"
+
+tasks:
+  bootstrap:
+    description: "Creates this app's Postgres role and schema, then creates and migrates its test database."
+    # Requires a live Postgres (../../.devcontainer/docker-compose.yml).
+    deps:
+      - "~:deps"
+    command: "bash"
+    args:
+      - "-lc"
+      - "mix do $project.bootstrap + ecto.create --quiet + ecto.migrate --quiet"
+    toolchain: "system"
+    env:
+      MIX_ENV: "test"
+      MIX_BUILD_PATH: "build/test"
+    # Never cached: a warm cache against a fresh database would skip this.
+    options:
+      cache: false
+
+  # A repo owner compiles and tests its migrations and seed SQL.
+  build:
+    inputs:
+      - "priv/**/*"
+
+  test:
+    deps:
+      - "~:bootstrap"
+    inputs:
+      - "priv/**/*"

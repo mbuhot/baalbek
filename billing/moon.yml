@@ -1,27 +1,11 @@
 # Ash resources for invoices raised from completed jobs.
 #
-# Schema `billing` and role `billing`. `deps`, `build`, `test` and the
-# `bootstrap` this one extends come from ../.moon/tasks/elixir.yml.
+# Schema `billing` and role `billing`. `deps`, `build` and `test` come from
+# ../.moon/tasks/elixir.yml, and `bootstrap` from
+# ../.moon/tasks/elixir-repo.yml.
 language: elixir
 layer: library
 
 # Capabilities this component serves, in explorer/capabilities.yml's vocabulary.
 tags:
   - "capability/invoicing"
-
-tasks:
-  bootstrap:
-    extends: "bootstrap-repo"
-    # `extends` copies `internal: true` with the rest; this project opts back in.
-    options:
-      internal: false
-
-  build:
-    inputs:
-      - "priv/**/*"
-
-  test:
-    deps:
-      - "~:bootstrap"
-    inputs:
-      - "priv/**/*"
