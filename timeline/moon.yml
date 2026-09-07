@@ -4,6 +4,10 @@
 language: gleam
 layer: library
 
+# Capabilities this component serves, in explorer/capabilities.yml's vocabulary.
+tags:
+  - "capability/technician-availability"
+
 tasks:
   bootstrap:
     description: >-

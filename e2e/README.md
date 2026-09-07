@@ -43,10 +43,25 @@ data.
 Why the stack is composed this way, and what was rejected, is in
 `spec/decisions/adr-0001-dockerized-e2e-stack.md`.
 
+## Capability tags
+
+Every test carries one or more `@capability/<id>` tags, in the vocabulary
+`explorer/capabilities.yml` defines.
+
+`moon run e2e:list` writes the resolved list, tags included, to
+`build/test-list.json` — a declared output, which is how `explorer:generate`
+takes its edge onto this project without reaching into this tree
+(`../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md`). The
+explorer fails its build on a tag naming a capability that does not exist; a
+capability with no test is reported in its Blind spots view instead. See
+`explorer/spec/decisions/adr-0003-capabilities-are-a-vocabulary-with-local-claims.md`.
+
 ## Running it
 
 ```bash
 moon run e2e:test          # builds the image and the PWA first, then runs
+moon run e2e:test -- --grep @capability/dispatch-board   # one capability's journeys
+moon run e2e:list          # just resolve the suite: no stack, no browser
 ```
 
 Locally, against a stack you keep between runs:

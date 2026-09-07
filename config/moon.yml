@@ -1,0 +1,6 @@
+# The shared TypeScript compiler base. No tasks: every TS project extends
+# tsconfig.base.json directly.
+
+# Carries no business capability; explorer/capabilities.yml records why.
+tags:
+  - "platform"

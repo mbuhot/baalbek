@@ -129,6 +129,23 @@ Each stage ends green on the gates named. A passing gate is not re-run.
 
 Stages 2–5 touch disjoint directories and can run in parallel once stage 1 lands. Stages 6–7 are sequential on 2–5. Stages 10 and 11 are independent of 6–9.
 
+### Capabilities: central vocabulary, local claims
+
+seed.md §9 makes `capabilities.yml` the explorer's one hand-maintained input. Split it in two, because the mapping and the vocabulary have different owners.
+
+- **`explorer/capabilities.yml` holds the vocabulary only** — id, name, description per capability. This is the artefact a CTO reads, and keeping it in one file is what makes seed.md's "a dozen capabilities, not hundreds" checkable at a glance.
+- **Each project claims its own capabilities in its `moon.yml`**, as project-level tags. A component's capability claim is metadata about that component, and belongs with it for the same reason seed.md §8 puts a component's `spec/` inside the component. It also removes the cross-project edit that adding a component otherwise required, and it is queryable — `moon query projects --tags`.
+
+`explorer:generate` joins the two and fails when a project claims nothing, or claims a capability the vocabulary doesn't define. Failing closed is the property that keeps the map honest; a central mapping file that nobody is forced to update is the failure mode this avoids.
+
+**e2e specs claim capabilities too**, using the same vocabulary — Playwright tags on each test. That makes the vocabulary span all three of what a capability *is*, which components *serve* it, and which journeys *prove* it, and it lets a capability's e2e coverage be run on demand (`--grep`) rather than only as an undifferentiated suite.
+
+The explorer must read those tags from `playwright test --list --reporter=json`, never by parsing spec files itself. Playwright owns that parser; re-implementing it invites the same drift as re-implementing Moon's hashing rule, where a wrong answer is worse than none because the tool reports confidently either way.
+
+Two rules, deliberately asymmetric: a spec tagging a capability the vocabulary doesn't define **fails** the build, because that is a typo or a rename nobody propagated. A capability with no e2e coverage **is reported, not failed** — it is exactly the "where to invest next" signal seed.md §9 asks the zoomed-out view to carry, and blocking on it would only teach people to add a hollow spec.
+
+Spellings as implemented: `capability/<id>` as a moon project tag (moon rejects a colon in a tag id; a slash is legal and unambiguous), `@capability/<id>` as a Playwright tag, and `platform` as the moon tag a project without a business capability carries. `explorer/spec/decisions/adr-0003-capabilities-are-a-vocabulary-with-local-claims.md` records the full rule set and what was rejected.
+
 ### Which gate to run, and when
 
 `moon check --all` is a blunt instrument and was over-used early on. It runs every build and test task in the workspace unconditionally, ignores `runInCI`, and has no affected detection — so as the workspace grew it came to demand a Docker daemon, a free port, browser binaries, and OS libraries the sandbox image doesn't carry, all to answer "does this still hang together". It was also being run alongside `moon run :test`, which is a strict subset of it.

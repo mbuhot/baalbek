@@ -3,7 +3,9 @@ import { createCustomer, createJob, createSite, unique } from "./seed";
 
 /** The dispatcher's journey: work created through the API appears on the board the PWA renders. */
 
-test("shows a job created through the API, joined to its site and customer", async ({ page, request }) => {
+test("shows a job created through the API, joined to its site and customer", {
+  tag: ["@capability/dispatch-board", "@capability/job-intake", "@capability/api-contract"],
+}, async ({ page, request }) => {
   const customerName = unique("Acme Facilities");
   const siteName = unique("Warehouse");
   const jobTitle = unique("Fix conveyor");
@@ -28,7 +30,9 @@ test("shows a job created through the API, joined to its site and customer", asy
   await expect(row).toContainText("requested");
 });
 
-test("reflects a job status change made through the API", async ({ page, request }) => {
+test("reflects a job status change made through the API", {
+  tag: ["@capability/dispatch-board", "@capability/work-order-scheduling"],
+}, async ({ page, request }) => {
   const customerId = await createCustomer(request, unique("Northwind"));
   const siteId = await createSite(request, unique("Depot"), customerId);
   const jobTitle = unique("Replace compressor");

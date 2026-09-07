@@ -5,6 +5,12 @@
 # types, so a breaking API change fails `tsc`, not just a runtime request.
 language: typescript
 
+# Capabilities this component serves, in explorer/capabilities.yml's vocabulary.
+tags:
+  - "capability/dispatch-board"
+  - "capability/technician-work-queue"
+  - "capability/api-contract"
+
 # No `layer:` (stays `unknown`) — moon's `enforceLayerRelationships`
 # constraint (on by default) ignores unknown-layer projects, so this
 # scopes the exemption to core-api-client's edges only, instead of

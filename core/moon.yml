@@ -3,6 +3,11 @@
 language: elixir
 layer: library
 
+# Capabilities this component serves, in explorer/capabilities.yml's vocabulary.
+tags:
+  - "capability/job-intake"
+  - "capability/work-order-scheduling"
+
 tasks:
   build:
     description: >-

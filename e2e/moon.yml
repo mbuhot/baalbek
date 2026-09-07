@@ -3,6 +3,10 @@
 language: typescript
 layer: automation
 
+# Capabilities this component serves, in explorer/capabilities.yml's vocabulary.
+tags:
+  - "capability/release-assurance"
+
 dependsOn:
   - "server"
   - "web"
@@ -15,6 +19,39 @@ toolchains:
     syncProjectReferences: false
 
 tasks:
+  list:
+    description: >-
+      Writes the resolved test list, with each test's `@capability/<id>`
+      tags, to build/test-list.json. Declared as this project's artefact so
+      `explorer:generate` expresses its edge as a `deps` entry that
+      contributes to its hash — see
+      ../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md.
+
+      The JSON goes to a file through PLAYWRIGHT_JSON_OUTPUT_NAME, not
+      through stdout: pnpm prepends its own NDJSON banner in an agent
+      environment, and anything else sharing that stream can do the same.
+
+      Listing resolves the specs without running them, so this starts no
+      container and needs no browser binary.
+    command: "bash"
+    args:
+      - "-lc"
+      - >-
+        pnpm install --frozen-lockfile &&
+        mkdir -p build &&
+        pnpm exec playwright test --list --reporter=json
+    env:
+      PLAYWRIGHT_JSON_OUTPUT_NAME: "build/test-list.json"
+    toolchain: "node"
+    inputs:
+      - "package.json"
+      - "tsconfig.json"
+      - "playwright.config.ts"
+      - "stack.ts"
+      - "tests/**/*"
+    outputs:
+      - "build/test-list.json"
+
   test:
     description: >-
       Runs the Playwright suite against the stack in docker-compose.yml: the

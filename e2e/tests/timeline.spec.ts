@@ -14,7 +14,9 @@ import { unique } from "./seed";
 
 const JSON_HEADERS = { "content-type": "application/json" };
 
-test("replays an event log into a technician's availability", async ({ request }) => {
+test("replays an event log into a technician's availability", {
+  tag: ["@capability/technician-availability", "@capability/release-assurance"],
+}, async ({ request }) => {
   const technicianId = unique("tech");
   const siteId = unique("site");
 
@@ -41,7 +43,9 @@ test("replays an event log into a technician's availability", async ({ request }
 
 // The guard is `Server.Timeline.append_event/4`'s clause for the three
 // site-bound kinds, in Elixir — no Gleam code runs on this path.
-test("rejects an on-site event with no site", async ({ request }) => {
+test("rejects an on-site event with no site", {
+  tag: ["@capability/technician-availability"],
+}, async ({ request }) => {
   const technicianId = unique("tech");
 
   const response = await request.post(`/api/timeline/technicians/${technicianId}/events`, {

@@ -3,6 +3,13 @@
 language: typescript
 layer: application
 
+# Capabilities this component serves, in explorer/capabilities.yml's vocabulary.
+tags:
+  - "capability/dispatch-board"
+  - "capability/technician-work-queue"
+  - "capability/field-app-delivery"
+  - "capability/release-assurance"
+
 dependsOn:
   - "core-api-client"
 

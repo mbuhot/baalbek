@@ -31,6 +31,28 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  explorer:
+    dependencies:
+      cytoscape:
+        specifier: ^3.34.2
+        version: 3.34.2
+    devDependencies:
+      '@types/node':
+        specifier: ^26.4.1
+        version: 26.4.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^8.2.2
+        version: 8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0)
+      vitest:
+        specifier: ^5.0.0
+        version: 5.0.0(@types/node@26.4.1)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0))
+      yaml:
+        specifier: ^2.8.1
+        version: 2.9.0
+
   mobile:
     dependencies:
       '@capacitor/android':
@@ -61,10 +83,10 @@ importers:
         version: 10.0.1(eslint@10.10.0(supports-color@10.2.2))
       '@preact/preset-vite':
         specifier: ^2.10.6
-        version: 2.10.6(@babel/core@7.29.7)(preact@10.29.8)(rollup@4.63.1)(supports-color@10.2.2)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2))
+        version: 2.10.6(@babel/core@7.29.7)(preact@10.29.8)(rollup@4.63.1)(supports-color@10.2.2)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0))
       '@testing-library/jest-dom':
         specifier: ^7.0.1
-        version: 7.0.1(@testing-library/dom@8.20.1)(vitest@5.0.0(@types/node@26.4.1)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)))
+        version: 7.0.1(@testing-library/dom@8.20.1)(vitest@5.0.0(@types/node@26.4.1)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0)))
       '@testing-library/preact':
         specifier: ^3.2.4
         version: 3.2.4(preact@10.29.8)
@@ -82,13 +104,13 @@ importers:
         version: 8.69.0(eslint@10.10.0(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.1)(terser@5.51.2)
+        version: 8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0)
       vite-plugin-pwa:
         specifier: ^1.3.0
-        version: 1.3.0(supports-color@10.2.2)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2))(workbox-build@7.4.1)(workbox-window@7.4.1)
+        version: 1.3.0(supports-color@10.2.2)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0))(workbox-build@7.4.1)(workbox-window@7.4.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.0(@types/node@26.4.1)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2))
+        version: 5.0.0(@types/node@26.4.1)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0))
 
 packages:
 
@@ -1533,6 +1555,10 @@ packages:
 
   css.escape@1.5.1:
     resolution: {integrity: sha512-YUifsXXuknHlUsmlgyY0PKzgPOr7/FjCePfHNt0jxm83wHZi44VDMQ7/fGNkjY3/jV1MC+1CmZbaHzugyeRtpg==}
+
+  cytoscape@3.34.2:
+    resolution: {integrity: sha512-Cm2jaj1X/PBNlzV9yH8zcfGOxO7U+CJ/+mxSBVPSchLaugdp4jtlGx5qaHtPRZ6tgiZ5P+o1XoRfJA+ba6KM3g==}
+    engines: {node: '>=0.10'}
 
   data-urls@7.0.0:
     resolution: {integrity: sha512-23XHcCF+coGYevirZceTVD7NdJOqVn+49IHyxgszm+JIiHLoB2TkmPtsYkNWT1pvRSGkc35L6NHs0yHkN2SumA==}
@@ -3119,6 +3145,11 @@ packages:
   yaml-ast-parser@0.0.43:
     resolution: {integrity: sha512-2PTINUwsRqSd+s8XxKaJWQlUuEMHJQyEuh2edBbW8KNJz0SJPwUSD2zRWqezFEdN7IzAgeuYHFUCF7o8zRdZ0A==}
 
+  yaml@2.9.0:
+    resolution: {integrity: sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
+
   yargs-parser@21.1.1:
     resolution: {integrity: sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==}
     engines: {node: '>=12'}
@@ -4094,19 +4125,19 @@ snapshots:
     dependencies:
       playwright: 1.63.0
 
-  '@preact/preset-vite@2.10.6(@babel/core@7.29.7)(preact@10.29.8)(rollup@4.63.1)(supports-color@10.2.2)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2))':
+  '@preact/preset-vite@2.10.6(@babel/core@7.29.7)(preact@10.29.8)(rollup@4.63.1)(supports-color@10.2.2)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0))':
     dependencies:
       '@babel/core': 7.29.7
       '@babel/plugin-transform-react-jsx': 7.29.7(@babel/core@7.29.7)
       '@babel/plugin-transform-react-jsx-development': 7.29.7(@babel/core@7.29.7)
-      '@prefresh/vite': 2.4.12(preact@10.29.8)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2))
+      '@prefresh/vite': 2.4.12(preact@10.29.8)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0))
       '@rollup/pluginutils': 5.4.0(rollup@4.63.1)
       babel-plugin-transform-hook-names: 1.0.2(@babel/core@7.29.7)
       debug: 4.4.3(supports-color@10.2.2)
       magic-string: 0.30.21
       picocolors: 1.1.1
-      vite: 8.2.2(@types/node@26.4.1)(terser@5.51.2)
-      vite-prerender-plugin: 0.5.13(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2))
+      vite: 8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0)
+      vite-prerender-plugin: 0.5.13(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0))
       zimmerframe: 1.1.5
     transitivePeerDependencies:
       - preact
@@ -4121,7 +4152,7 @@ snapshots:
 
   '@prefresh/utils@1.2.1': {}
 
-  '@prefresh/vite@2.4.12(preact@10.29.8)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2))':
+  '@prefresh/vite@2.4.12(preact@10.29.8)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0))':
     dependencies:
       '@babel/core': 7.29.7
       '@prefresh/babel-plugin': 0.5.3
@@ -4129,7 +4160,7 @@ snapshots:
       '@prefresh/utils': 1.2.1
       '@rollup/pluginutils': 4.2.1
       preact: 10.29.8
-      vite: 8.2.2(@types/node@26.4.1)(terser@5.51.2)
+      vite: 8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -4337,7 +4368,7 @@ snapshots:
       lz-string: 1.5.0
       pretty-format: 27.5.1
 
-  '@testing-library/jest-dom@7.0.1(@testing-library/dom@8.20.1)(vitest@5.0.0(@types/node@26.4.1)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)))':
+  '@testing-library/jest-dom@7.0.1(@testing-library/dom@8.20.1)(vitest@5.0.0(@types/node@26.4.1)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0)))':
     dependencies:
       '@adobe/css-tools': 4.5.0
       '@testing-library/dom': 8.20.1
@@ -4347,7 +4378,7 @@ snapshots:
       picocolors: 1.1.1
       redent: 3.0.0
     optionalDependencies:
-      vitest: 5.0.0(@types/node@26.4.1)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2))
+      vitest: 5.0.0(@types/node@26.4.1)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0))
 
   '@testing-library/preact@3.2.4(preact@10.29.8)':
     dependencies:
@@ -4481,14 +4512,14 @@ snapshots:
       '@typescript-eslint/types': 8.69.0
       eslint-visitor-keys: 5.0.1
 
-  '@vitest/mocker@5.0.0(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2))':
+  '@vitest/mocker@5.0.0(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       '@vitest/spy': 5.0.0
       estree-walker: 3.0.3
       magic-string: 1.2.3
     optionalDependencies:
-      vite: 8.2.2(@types/node@26.4.1)(terser@5.51.2)
+      vite: 8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0)
 
   '@vitest/spy@5.0.0': {}
 
@@ -4721,6 +4752,8 @@ snapshots:
   css-what@6.2.2: {}
 
   css.escape@1.5.1: {}
+
+  cytoscape@3.34.2: {}
 
   data-urls@7.0.0:
     dependencies:
@@ -6212,18 +6245,18 @@ snapshots:
 
   uuid@7.0.3: {}
 
-  vite-plugin-pwa@1.3.0(supports-color@10.2.2)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2))(workbox-build@7.4.1)(workbox-window@7.4.1):
+  vite-plugin-pwa@1.3.0(supports-color@10.2.2)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0))(workbox-build@7.4.1)(workbox-window@7.4.1):
     dependencies:
       debug: 4.4.3(supports-color@10.2.2)
       pretty-bytes: 6.1.1
       tinyglobby: 0.2.17
-      vite: 8.2.2(@types/node@26.4.1)(terser@5.51.2)
+      vite: 8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0)
       workbox-build: 7.4.1
       workbox-window: 7.4.1
     transitivePeerDependencies:
       - supports-color
 
-  vite-prerender-plugin@0.5.13(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)):
+  vite-prerender-plugin@0.5.13(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0)):
     dependencies:
       kolorist: 1.8.0
       magic-string: 0.30.21
@@ -6231,9 +6264,9 @@ snapshots:
       simple-code-frame: 1.3.0
       source-map: 0.7.6
       stack-trace: 1.0.0
-      vite: 8.2.2(@types/node@26.4.1)(terser@5.51.2)
+      vite: 8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0)
 
-  vite@8.2.2(@types/node@26.4.1)(terser@5.51.2):
+  vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
@@ -6244,11 +6277,12 @@ snapshots:
       '@types/node': 26.4.1
       fsevents: 2.3.3
       terser: 5.51.2
+      yaml: 2.9.0
 
-  vitest@5.0.0(@types/node@26.4.1)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)):
+  vitest@5.0.0(@types/node@26.4.1)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0)):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.0.0(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2))
+      '@vitest/mocker': 5.0.0(vite@8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0))
       chai: 6.2.2
       es-module-lexer: 2.3.2
       expect-type: 1.4.0
@@ -6259,7 +6293,7 @@ snapshots:
       tinybench: 6.1.4
       tinyexec: 1.3.0
       tinyglobby: 0.2.17
-      vite: 8.2.2(@types/node@26.4.1)(terser@5.51.2)
+      vite: 8.2.2(@types/node@26.4.1)(terser@5.51.2)(yaml@2.9.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 26.4.1
@@ -6485,6 +6519,8 @@ snapshots:
   yallist@5.0.0: {}
 
   yaml-ast-parser@0.0.43: {}
+
+  yaml@2.9.0: {}
 
   yargs-parser@21.1.1: {}
 

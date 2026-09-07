@@ -12,6 +12,10 @@
 # inventory describes for `mobile`.
 language: system
 
+# Capabilities this component serves, in explorer/capabilities.yml's vocabulary.
+tags:
+  - "capability/field-app-delivery"
+
 dependsOn:
   - "web"
 

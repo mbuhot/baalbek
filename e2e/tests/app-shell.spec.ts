@@ -2,7 +2,9 @@ import { expect, test } from "@playwright/test";
 
 /** The PWA shell as built by `web:build`, not as served by a dev server. */
 
-test("serves the production bundle and the web manifest", async ({ page, request }) => {
+test("serves the production bundle and the web manifest", {
+  tag: ["@capability/release-assurance", "@capability/field-app-delivery"],
+}, async ({ page, request }) => {
   await page.goto("/");
 
   await expect(page.getByRole("heading", { name: "Baalbek Dispatch" })).toBeVisible();

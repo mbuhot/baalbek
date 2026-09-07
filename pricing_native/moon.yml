@@ -11,6 +11,10 @@
 language: elixir
 layer: library
 
+# Capabilities this component serves, in explorer/capabilities.yml's vocabulary.
+tags:
+  - "capability/quote-pricing"
+
 dependsOn:
   - "pricing"
 

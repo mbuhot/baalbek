@@ -6,6 +6,19 @@
 language: elixir
 layer: application
 
+# Capabilities this component serves, in explorer/capabilities.yml's vocabulary.
+tags:
+  - "capability/job-intake"
+  - "capability/work-order-scheduling"
+  - "capability/technician-availability"
+  - "capability/account-access"
+  - "capability/quote-pricing"
+  - "capability/invoicing"
+  - "capability/dispatch-board"
+  - "capability/technician-work-queue"
+  - "capability/api-contract"
+  - "capability/release-assurance"
+
 # The first five are the Elixir-to-Elixir slice of mix.exs's path deps,
 # checked against this list by check-deps-drift.py; `pricing_native` and
 # `timeline_facade` are themselves Elixir path deps of `server`, so they

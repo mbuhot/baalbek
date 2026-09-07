@@ -1,0 +1,72 @@
+# The capability vocabulary (seed.md §9, PLAN.md "Capabilities: central
+# vocabulary, local claims"). This file names capabilities; it does not say
+# which components serve them.
+#
+# A component claims its capabilities in its own `moon.yml`, as the project
+# tag `capability/<id>`. An e2e spec claims the same ids as the Playwright
+# tag `@capability/<id>`. `explorer:generate` joins the three and fails on
+# any claim this file does not define — see spec/decisions/adr-0003-*.
+#
+# Capabilities are what the business buys, not what the code is shaped like.
+# Keep the list at a dozen; a capability per module is a second project graph
+# with worse data.
+
+capabilities:
+  - id: job-intake
+    name: Job intake
+    description: Customers, sites, and the jobs raised against them.
+
+  - id: work-order-scheduling
+    name: Work order scheduling
+    description: Breaking a job into scheduled work orders and tracking their status.
+
+  - id: technician-availability
+    name: Technician availability
+    description: The append-only shift, travel, and on-site event log, and the availability it projects.
+
+  - id: account-access
+    name: Account access
+    description: Dispatcher and technician accounts, credentials, and authentication.
+
+  - id: quote-pricing
+    name: Quote pricing
+    description: Computing a job quote from travel, labour, and parts.
+
+  - id: invoicing
+    name: Invoicing
+    description: Raising and settling invoices for completed work.
+
+  - id: dispatch-board
+    name: Dispatch board
+    description: The dispatcher's view of the day's jobs and who is on them.
+
+  - id: technician-work-queue
+    name: Technician work queue
+    description: A technician's own queue of assigned work orders.
+
+  - id: field-app-delivery
+    name: Field app delivery
+    description: Packaging the dispatch PWA as an installable Android and iOS app.
+
+  - id: api-contract
+    name: Published API contract
+    description: The JSON:API surface and the OpenAPI document generated from the Ash resources.
+
+  - id: release-assurance
+    name: Release assurance
+    description: Proving the built release serves the product before it ships.
+
+# Projects that deliberately carry no business capability. Each tags itself
+# `platform` and needs a reason here, so "platform" cannot become the drawer
+# everything is swept into.
+platform:
+  - id: root
+    reason: Workspace-wide convention checks and the sandbox image build.
+  - id: config
+    reason: The shared TypeScript compiler base every TS project extends.
+  - id: spec
+    reason: Workspace-wide architecture decision records.
+  - id: moon-elixir-plugin
+    reason: Build-graph inference for Mix path dependencies.
+  - id: explorer
+    reason: This site. Reports on the architecture; is not part of it.

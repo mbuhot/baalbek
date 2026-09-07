@@ -3,3 +3,7 @@
 # Stage 11. Real tasks land in Stage 11.
 language: rust
 layer: tool
+
+# Carries no business capability; explorer/capabilities.yml records why.
+tags:
+  - "platform"

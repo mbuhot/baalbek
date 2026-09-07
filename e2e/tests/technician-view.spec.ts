@@ -3,7 +3,9 @@ import { createCustomer, createJob, createSite, createWorkOrder, unique } from "
 
 /** The technician's journey: switch to the work queue and find the work order raised against a job. */
 
-test("lists an open work order against its job", async ({ page, request }) => {
+test("lists an open work order against its job", {
+  tag: ["@capability/technician-work-queue", "@capability/work-order-scheduling"],
+}, async ({ page, request }) => {
   const customerId = await createCustomer(request, unique("Globex"));
   const siteId = await createSite(request, unique("Plant"), customerId);
   const jobTitle = unique("Service chiller");

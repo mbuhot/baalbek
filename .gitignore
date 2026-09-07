@@ -65,3 +65,9 @@ e2e/playwright-report/
 # server/priv/static/ above, the source of truth is server's Ash/AshJsonApi
 # resources, not this file.
 core-api-client/src/generated/
+
+# The explorer's model (Stage 10, `explorer:generate`). Derived from the moon
+# graph, git history, and capabilities.yml; committing it would let the site
+# drift from the workspace it describes, which is the one thing seed.md §9
+# says it must not do.
+explorer/src/generated/

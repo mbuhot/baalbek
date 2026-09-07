@@ -1,0 +1,6 @@
+# Workspace-wide architecture decision records. No tasks: the ADRs are prose,
+# and each component's own spec/ directory holds its component-level decisions.
+
+# Carries no business capability; explorer/capabilities.yml records why.
+tags:
+  - "platform"

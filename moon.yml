@@ -10,6 +10,10 @@
 language: bash
 layer: tool
 
+# Carries no business capability; explorer/capabilities.yml records why.
+tags:
+  - "platform"
+
 tasks:
   check-deps-drift:
     description: "Diff declared moon.yml dependsOn against mix.exs path deps for every Elixir app (seed.md §2 fallback)."

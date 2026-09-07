@@ -1,0 +1,375 @@
+/* Explorer styling: one dark palette, shared by the capability, graph, and blind-spot views. */
+
+:root {
+  --bg: #0b1120;
+  --panel: #131c31;
+  --line: #24304a;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #38bdf8;
+  --ok: #4ade80;
+  --warn: #facc15;
+  --bad: #f87171;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+#app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 4rem;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0 0 0.25rem;
+}
+
+h2 {
+  font-size: 1.2rem;
+  margin: 1.5rem 0 0.35rem;
+}
+
+h3 {
+  font-size: 1rem;
+  margin: 1.25rem 0 0.4rem;
+}
+
+h4 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 1rem 0 0.3rem;
+}
+
+p {
+  margin: 0.4rem 0;
+}
+
+.provenance,
+.meta,
+.caption,
+.desc {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.lede {
+  max-width: 62ch;
+  color: var(--muted);
+}
+
+.banner {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--bad);
+  background: rgba(248, 113, 113, 0.08);
+  font-size: 0.88rem;
+}
+
+nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.75rem;
+}
+
+button {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+button small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+button.linkish {
+  background: none;
+  border: none;
+  color: var(--accent);
+  padding: 0;
+  text-decoration: underline;
+}
+
+.controls {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0.35rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.card h3 {
+  margin: 0 0 0.2rem;
+}
+
+.heat-border-0 { border-left-color: #334155; }
+.heat-border-1 { border-left-color: #1d4ed8; }
+.heat-border-2 { border-left-color: #7c3aed; }
+.heat-border-3 { border-left-color: #db2777; }
+.heat-border-4 { border-left-color: #f97316; }
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0.5rem 0;
+}
+
+.chip {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.heat-0 { background: #1e293b; }
+.heat-1 { background: #1e3a8a; }
+.heat-2 { background: #5b21b6; }
+.heat-3 { background: #9d174d; }
+.heat-4 { background: #9a3412; }
+
+.shared {
+  color: var(--warn);
+  margin-left: 0.2rem;
+}
+
+.metrics {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.ranking {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+
+.ranking li {
+  display: grid;
+  grid-template-columns: 15rem 1fr 3rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+  font-size: 0.85rem;
+}
+
+.bar {
+  display: block;
+  height: 10px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #1d4ed8, #f97316);
+  min-width: 2px;
+}
+
+.rank-value {
+  text-align: right;
+  color: var(--muted);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.82rem;
+  margin-top: 0.4rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+tr.undeclared td:last-child {
+  color: var(--warn);
+}
+
+.graph-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.cy {
+  height: 620px;
+  background: #0f172a;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.legend {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.1rem 0;
+}
+
+.swatch {
+  width: 26px;
+  height: 0;
+  border-top-width: 3px;
+  flex: none;
+}
+
+.swatch.direct { border-top: 3px solid var(--ok); }
+.swatch.transitive { border-top: 3px dashed var(--warn); }
+.swatch.declared-only { border-top: 3px dotted var(--bad); }
+
+.detail {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.85rem;
+  overflow-y: auto;
+  max-height: 700px;
+}
+
+.detail h3 {
+  margin-top: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.empty,
+.none {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.warn {
+  color: var(--warn);
+  font-size: 0.85rem;
+}
+
+.platform,
+.caps {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.edges,
+.specs {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.edges li {
+  padding: 0.2rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.edge-peer {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin-right: 0.4rem;
+}
+
+.edge-note {
+  color: var(--muted);
+}
+
+.edge-declared-only .edge-note {
+  color: var(--bad);
+}
+
+.edge-transitive .edge-note {
+  color: var(--warn);
+}
+
+.edge-ignored {
+  display: block;
+  color: var(--bad);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+}
+
+a.path,
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+}
+
+a {
+  color: var(--accent);
+}
+
+.gap {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--bad);
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  margin-top: 0.75rem;
+}
+
+.gap.clean {
+  border-left-color: var(--ok);
+}
+
+.gap h3 {
+  margin-top: 0;
+}
+
+.gap-items {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.gap-items li {
+  padding: 0.1rem 0;
+}
