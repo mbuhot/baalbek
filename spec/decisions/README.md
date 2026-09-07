@@ -32,8 +32,9 @@ decision confined to one component lives in that component's own
 | [0006](adr-0006-task-deps-on-output-declaring-tasks.md) | Cross-project edges are task deps on output-declaring tasks | Accepted. Amended by 0010 |
 | [0007](adr-0007-ci-runs-moon-ci-inside-the-sandbox-image.md) | CI runs `moon ci` inside the sandbox image, from the runner | Accepted |
 | [0008](adr-0008-the-sandbox-image-is-published-to-ghcr.md) | The sandbox image is published to GHCR, and one builder writes the cache | Accepted |
-| [0009](adr-0009-where-ci-runs-moon-ci.md) | Where CI runs `moon ci`, and what it may replay | Draft |
+| [0009](adr-0009-where-ci-runs-moon-ci.md) | Where CI runs `moon ci`, and what it may replay | Accepted |
 | [0010](adr-0010-third-party-deps-compile-in-their-own-task.md) | Third-party dependencies compile in their own task | Accepted |
+| [0011](adr-0011-what-ci-treats-as-affected.md) | CI runs a changed project's consumers, not just the project | Accepted |
 
 ## Where the other spec directories are
 

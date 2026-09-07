@@ -1,11 +1,13 @@
 # ADR-0009: Where CI runs `moon ci`, and what it may replay
 
-**Status:** Draft. The shape decision is pending a measurement; the cache rule below is in force.
+**Status:** Accepted. The measurement is in and the image shape stands; ADR-0007
+is not superseded.
 **Date:** 2026-09-07
 **Stage:** 12
 
-ADR-0007 stands. This ADR does not supersede it, and will only do so if the
-measurement named under "Pending" comes out one particular way.
+ADR-0007 stands. This ADR does not supersede it: the measurement came out the
+other way, and "Pending" below is kept as the question that was asked, with the
+answer recorded under "The numbers".
 
 ## Context
 
@@ -133,10 +135,37 @@ trade is genuinely open and worth paying for differently — for instance by
 masking `npx`, `npm` and `keytool` on the runner, which is drift-prone and was
 declined as speculative, but becomes worth its cost if the saving is large.
 
-Neither run has happened. Both cache keys are namespaced by shape, so the two
-sets of runs cannot contaminate each other, and the first run of each shape
-also has a cold downloads cache under its own key — so each shape needs two
-runs before its warm number means anything.
+Both cache keys are namespaced by shape, so the two sets of runs cannot
+contaminate each other, and the first run of each shape also has a cold
+downloads cache under its own key.
+
+## The numbers
+
+Both shapes were dispatched against commit `e0f763a` with `base=f3f0ebd`, so
+each ran the whole graph with no output cache.
+
+| shape  | run         | `moon ci` | actions | failed                        |
+|--------|-------------|-----------|---------|-------------------------------|
+| image  | 34133707464 | 24m 26s   | 51      | `pricing_native:test`         |
+| native | 34133723830 | 22m 6s    | 49      | `mobile:build-android` (6.6s) |
+
+Native saves 2m 20s, about 10% of a cold whole-graph run. That is "saves
+little", so the rule stated above rejects it.
+
+The failures decided it more firmly than the clock did. Each shape failed a
+task the other passed. `mobile:build-android` died in 6.6 seconds on the bare
+runner for want of the Android SDK the image carries — a third instance of the
+toolchain-leak class the ledger is about, found by the very measurement meant
+to price the shape away. The two shapes are not equivalent environments, which
+is the premise the native shape needed.
+
+The second number, per-pull-request warm wall clock, was never taken in the
+native shape and is not needed: the first number and the leak settle it.
+
+The work built for the native shape is kept, and the `shape` input still
+selects it, because a rejected option that can still be run is a measurement
+that can be repeated when the inputs change — a new runner size, or the
+Android SDK entering the runner image.
 
 ### What building the native shape cost, as evidence
 
