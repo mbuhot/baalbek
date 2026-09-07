@@ -12,7 +12,6 @@ tasks:
   deps:
     description: "Downloads the third-party Gleam packages into `build/packages`."
     command: "bash scripts/deps-download.sh"
-    toolchain: "system"
     inputs:
       - "gleam.toml"
       - "manifest.toml"
@@ -24,7 +23,6 @@ tasks:
   bootstrap:
     description: "Creates the timeline Postgres role, schema and tables (idempotent)."
     command: "bash scripts/bootstrap.sh"
-    toolchain: "system"
     options:
       # A warm Moon cache against a fresh database is a real combination, and a
       # cache hit here would skip the schema every timeline task needs.
@@ -36,7 +34,6 @@ tasks:
       - "~:deps"
       - "~:bootstrap"
     command: "bash scripts/moon-test.sh"
-    toolchain: "system"
     inputs:
       - "gleam.toml"
       - "manifest.toml"
@@ -52,7 +49,6 @@ tasks:
     deps:
       - "~:deps"
     command: "bash scripts/package-otp.sh"
-    toolchain: "system"
     inputs:
       - "gleam.toml"
       - "manifest.toml"
