@@ -105,8 +105,12 @@ jobs:
           case "$EVENT_NAME" in
             pull_request) base="origin/$PR_BASE" ;;
             workflow_dispatch) base="$DISPATCH_BASE" ;;
-            # The nightly probe runs the whole graph from a cold cache.
-            schedule) base="$(git rev-list --max-parents=0 HEAD | head -1)" ;;
+            # `main` and the nightly probe both run the whole graph from a
+            # cold cache. `main` is the only writer of the task cache, so a
+            # run that built only its own commit's targets would publish a
+            # cache sparser than the one before it, under a newer key that
+            # shadows it.
+            schedule|push) base="$(git rev-list --max-parents=0 HEAD | head -1)" ;;
             *) base="$PUSH_BEFORE" ;;
           esac
           # A new branch or a force-push reports an all-zero "before". Moon's
