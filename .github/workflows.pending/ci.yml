@@ -1,0 +1,150 @@
+# Runs `moon ci` inside this repository's own sandbox image.
+#
+# The job runs on the runner and invokes the image per step, rather than using
+# `container:` or a nested daemon. See
+# spec/decisions/adr-0007-ci-runs-moon-ci-inside-the-sandbox-image.md.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      base:
+        description: "Ref to diff affected tasks against. Empty uses moon's own default."
+        required: false
+        default: ""
+
+concurrency:
+  group: "ci-${{ github.ref }}"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  moon-ci:
+    runs-on: ubuntu-latest
+    # A cold run compiles Erlang/OTP from source: an ephemeral runner starts
+    # with an empty Docker layer cache, and nothing here restores one.
+    timeout-minutes: 180
+
+    # Postgres on the defaults every app's config.exs and `mix <app>.bootstrap`
+    # read — localhost:5432, postgres/postgres, database `baalbek` — the same
+    # service .devcontainer/docker-compose.yml provides. The port is published
+    # because the job runs on the runner; the sandbox container reaches it by
+    # sharing the runner's network namespace.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: baalbek
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # `moon ci` diffs against a base ref and `explorer:generate` reads git
+          # history for its change-frequency overlay. Neither survives a
+          # shallow clone.
+          fetch-depth: 0
+
+      - name: Free disk space
+        # The sandbox image is over 4 GB before it compiles anything, and the
+        # release image, the OTP build tree and node_modules land on top of it.
+        # The preinstalled Android, .NET and Haskell trees are the cheapest tens
+        # of gigabytes to give back.
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup
+          df -h /
+
+      - name: Resolve the affected base
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.base_ref }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          DISPATCH_BASE: ${{ inputs.base }}
+        run: |
+          case "$EVENT_NAME" in
+            pull_request) base="origin/$PR_BASE" ;;
+            workflow_dispatch) base="$DISPATCH_BASE" ;;
+            *) base="$PUSH_BEFORE" ;;
+          esac
+          # A new branch or a force-push reports an all-zero "before". Moon's
+          # own default is better than a ref that resolves to nothing.
+          if [ -n "$base" ] && ! git rev-parse --verify --quiet "${base}^{commit}" > /dev/null; then
+            echo "base '$base' is not a commit in this clone; using moon's default"
+            base=""
+          fi
+          echo "affected base: ${base:-<moon default>}"
+          [ -z "$base" ] || echo "MOON_BASE=$base" >> "$GITHUB_ENV"
+
+      - name: Restore toolchain downloads
+        # Downloads only, and each named rather than the cache root wholesale:
+        # Moon's own task cache must never be restored, because a fresh
+        # `.moon/cache` on every run is what makes an under-declared task input
+        # fail here rather than pass on a stale hit (PLAN.md "Sandbox"). None of
+        # these four is a task output.
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/baalbek-sandbox/cache
+            ~/.cache/baalbek-sandbox/android-sdk
+            ~/.cache/baalbek-sandbox/cargo-registry
+            ~/.cache/baalbek-sandbox/hex
+          key: "sandbox-downloads-${{ runner.os }}-${{ hashFiles('.prototools', 'pnpm-lock.yaml', 'e2e/package.json', 'mobile/scripts/setup-android-sdk.sh', '**/Cargo.lock', '**/mix.lock') }}"
+          restore-keys: "sandbox-downloads-${{ runner.os }}-"
+
+      - name: Build the sandbox image
+        # Plain `docker build`, not buildx: it leaves the daemon's own layer
+        # cache warm, so `moon ci` re-running `root:sandbox-image` from inside
+        # the container is a cache hit instead of a second OTP compile.
+        run: docker build --tag baalbek-sandbox:latest --file Dockerfile .
+
+      - name: Hand the workspace and the mounted caches to the image's user
+        # The image runs as `vscode`, uid 1000; a runner checkout is uid 1001.
+        # Every host path run-in-sandbox.sh mounts has to be created here, so
+        # that this one chown covers all of them.
+        run: |
+          mkdir -p \
+            ~/.cache/baalbek-sandbox/cache \
+            ~/.cache/baalbek-sandbox/android-sdk \
+            ~/.cache/baalbek-sandbox/cargo-registry \
+            ~/.cache/baalbek-sandbox/hex \
+            /tmp/baalbek-sandbox-moon-cache
+          sudo chown -R 1000:1000 \
+            "$GITHUB_WORKSPACE" \
+            ~/.cache/baalbek-sandbox \
+            /tmp/baalbek-sandbox-moon-cache
+
+      - name: Report the tasks this environment cannot run
+        run: .github/scripts/run-in-sandbox.sh bash .github/scripts/report-excluded-tasks.sh
+
+      - name: moon ci
+        run: .github/scripts/run-in-sandbox.sh moon ci --summary detailed
+
+      - name: Upload moon's CI report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: moon-ci-report
+          path: .moon/cache/ciReport.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload the Playwright report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
