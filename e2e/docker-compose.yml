@@ -36,7 +36,7 @@ services:
   # No volume and no published port: the data lives in tmpfs and dies with the
   # stack, and nothing outside this compose network can reach it.
   postgres:
-    image: postgres:17
+    image: postgres:${POSTGRES_VERSION:?set in .devcontainer/.env}
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres

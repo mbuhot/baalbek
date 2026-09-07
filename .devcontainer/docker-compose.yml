@@ -97,7 +97,7 @@ services:
   # (per-component roles/schemas are created by Stage 2+ migrations, not
   # here).
   postgres:
-    image: postgres:17
+    image: postgres:${POSTGRES_VERSION:?set in .devcontainer/.env}
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres

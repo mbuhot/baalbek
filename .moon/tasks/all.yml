@@ -9,7 +9,8 @@ implicitInputs:
   - "/Dockerfile"
   - "/.dockerignore"
   - "/scripts/install-os-deps.sh"
-  # Covers the pinned Postgres version.
+  # Covers the pinned Postgres version, which lives in the .env beside it.
   - "/.devcontainer/docker-compose.yml"
+  - "/.devcontainer/.env"
   # Moon's own default reaches `/.moon/*.yml`, one level above this file.
   - "/.moon/tasks/*.yml"

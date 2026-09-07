@@ -4,6 +4,8 @@ import { execFileSync } from "node:child_process";
 
 const composeFile = new URL("./docker-compose.yml", import.meta.url).pathname;
 const projectDir = new URL("./", import.meta.url).pathname;
+// Compose reads `.env` beside the compose file, so the shared pin has to be named.
+const envFile = new URL("../.devcontainer/.env", import.meta.url).pathname;
 
 /** The images the stack must run, one per tier, matching `moon run server:image` and `moon run web:image`. */
 export const STACK_IMAGES = {
@@ -18,7 +20,7 @@ export const BASE_URL = process.env.E2E_BASE_URL ?? `http://localhost:${process.
 export const USES_LOCAL_STACK = process.env.E2E_BASE_URL === undefined;
 
 export function compose(args: string[], options: { quiet?: boolean } = {}): string {
-  return execFileSync("docker", ["compose", "--file", composeFile, ...args], {
+  return execFileSync("docker", ["compose", "--env-file", envFile, "--file", composeFile, ...args], {
     cwd: projectDir,
     encoding: "utf8",
     stdio: options.quiet ? ["ignore", "pipe", "pipe"] : ["ignore", "pipe", "inherit"],
