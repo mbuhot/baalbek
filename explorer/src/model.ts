@@ -107,3 +107,4 @@ export interface ExplorerModel {
   coupling: CouplingPair[];
   gaps: Gap[];
 }
+// Exercise: an explorer TypeScript change, to measure what CI rebuilds.
