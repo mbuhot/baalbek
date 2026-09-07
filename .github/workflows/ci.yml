@@ -256,7 +256,11 @@ jobs:
         run: $RUN_PREFIX bash .github/scripts/report-excluded-tasks.sh
 
       - name: moon ci
-        run: $RUN_PREFIX moon ci --summary detailed
+        # `--downstream deep` because moon's default is `none`, which runs a
+        # changed project's own tasks and never its consumers'. Without it a
+        # Rust change to `pricing_native` does not run `server:test`, and an
+        # API change does not build `core-api-client`.
+        run: $RUN_PREFIX moon ci --summary detailed --downstream deep
 
       - name: Summarize what this run did
         if: always()
