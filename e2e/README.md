@@ -80,15 +80,15 @@ nothing down; it only waits for that URL to answer. `E2E_HOST_PORT` (default
 
 `moon run e2e:test` runs `playwright install chromium`, which downloads ~115 MB
 into `~/.cache/ms-playwright`. The **shared libraries** that browser links
-against (`libglib-2.0`, `libnss3`, …) are OS packages, and the sandbox/CI
-image (root `Dockerfile`) does not carry them yet. On a machine without them
-Chromium fails to launch with `error while loading shared libraries`. Install
-them with:
+against (`libglib-2.0`, `libnss3`, …) are OS packages, and the sandbox/CI image
+(root `Dockerfile`) carries them as of Stage 12 — in the apt layer appended
+after `proto install`, so adding them did not invalidate the layer that builds
+Erlang/OTP from source. The package list is playwright-core's own `debian12`
+chromium set, read out of its `nativeDeps` table for the pinned version.
+
+Outside that image, Chromium fails to launch with `error while loading shared
+libraries` until the same packages are installed:
 
 ```bash
 cd e2e && sudo -E env PATH="$PATH" pnpm exec playwright install-deps chromium
 ```
-
-Stage 12 (CI) has to add that package set to the sandbox image; it is left out
-here deliberately, because editing the root `Dockerfile` invalidates the
-sandbox image layer that builds Erlang/OTP from source.

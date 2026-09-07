@@ -42,3 +42,7 @@ lto = true
 opt-level = 2
 panic = "abort"
 strip = true
+# The profile's own `trim-paths` would belong here, but it is still unstable on
+# cargo 1.98.1 (the version .prototools pins). scripts/build.sh passes
+# `--remap-path-prefix` instead; the reason the artifact needs it at all is in
+# that file.

@@ -71,8 +71,8 @@ tasks:
       outputs (PLAN.md "Task graph: depend on output-declaring tasks").
 
       `playwright install` downloads the browser binaries (~115 MB, cached in
-      ~/.cache/ms-playwright). Their OS-level shared libraries are not part of
-      the sandbox image yet — see README.md.
+      ~/.cache/ms-playwright). Their OS-level shared libraries are in the
+      sandbox image, in the apt layer appended after `proto install`.
     deps:
       - "server:image"
       - "web:image"

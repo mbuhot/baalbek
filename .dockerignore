@@ -1,0 +1,13 @@
+# Build context for the root Dockerfile, which COPYs exactly one file.
+#
+# Deny everything, then allow that file back, as server/Dockerfile.dockerignore
+# does — an exclusion list would need extending for every new build tree. This
+# also keeps `.git` and `.moon/cache` out by construction; moon's Docker guide
+# requires the latter, and here it is a symlink the daemon would follow.
+#
+# Only a fallback: a Dockerfile with its own `<Dockerfile>.dockerignore` beside
+# it uses that instead, which is how `server:image` and `web:image` scope theirs.
+
+*
+
+!.prototools

@@ -37,14 +37,21 @@ tasks:
       while `docker image prune` has since removed it — a task reporting
       success and producing nothing. Docker's own layer cache makes the
       real rebuild cheap, which is what makes the flag nearly free.
+
+      `buildx build`, not `build`, in all three image tasks: without the
+      Buildx plugin `docker build` degrades to the legacy builder behind a
+      deprecation warning, and the legacy builder shares no cache with the
+      daemon's BuildKit — this task then recompiles Erlang/OTP from source.
+      Naming buildx turns that into an error instead.
     command: "bash"
     args:
       - "-lc"
       - >-
-        docker build -t "${SANDBOX_IMAGE:-baalbek-sandbox:latest}" -f Dockerfile .
+        docker buildx build -t "${SANDBOX_IMAGE:-baalbek-sandbox:latest}" -f Dockerfile .
     toolchain: "system"
     options:
       cache: false
     inputs:
       - "Dockerfile"
+      - ".dockerignore"
       - ".prototools"

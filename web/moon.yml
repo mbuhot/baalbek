@@ -78,13 +78,17 @@ tasks:
       has since removed it. Docker's own layer cache keeps the real rebuild
       short. `e2e`'s global setup checks for the image anyway, and says to run
       this with `--force`, rather than testing a stale or absent image.
+
+      `buildx build`, not `build`, for the reason root moon.yml gives: a
+      missing Buildx plugin should be an error, not a silent fall back to the
+      legacy builder.
     deps:
       - "build"
     command: "bash"
     args:
       - "-lc"
       - >-
-        docker build -f web/Dockerfile -t "${WEB_IMAGE:-baalbek-web:latest}" web
+        docker buildx build -f web/Dockerfile -t "${WEB_IMAGE:-baalbek-web:latest}" web
     toolchain: "system"
     options:
       runFromWorkspaceRoot: true

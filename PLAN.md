@@ -63,7 +63,7 @@ Same image runs CI, so an under-declared task input fails immediately.
 
 So new OS packages go in **their own layer, appended after `proto install`**, leaving the OTP layer's cache intact. That trades a tidy single package list for a build that stays cheap. Consolidating the layers is a deliberate cleanup step for later, done once the package set has settled — not something to do incrementally, since each consolidation pays the OTP rebuild.
 
-First case: Playwright's browser libraries (`libglib-2.0.so.0` and friends), needed because Stage 9's suite drives a browser *from the sandbox* against the composed release stack. Until they are in the image, `e2e:test` passes only where someone has run `npx playwright install-deps` by hand — the "green locally, red on a fresh machine" shape this repo keeps catching.
+First case, landed in Stage 12: Playwright's browser libraries (`libglib-2.0.so.0` and friends), needed because Stage 9's suite drives a browser *from the sandbox* against the composed release stack. Before that, `e2e:test` passed only where someone had run `npx playwright install-deps` by hand — the "green locally, red on a fresh machine" shape this repo keeps catching. The same layer carries the Docker CLI with its Buildx and Compose v2 plugins, Python 3, hex and rebar, and `$PROTO_HOME/shims` on `PATH`: five gaps that only appeared once CI ran a plain container of this image rather than the devcontainer, which had been supplying them (`spec/decisions/adr-0007-ci-runs-moon-ci-inside-the-sandbox-image.md`).
 
 ## Component inventory
 

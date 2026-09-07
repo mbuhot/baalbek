@@ -21,43 +21,28 @@ tasks:
 
       That artifact is committed, unlike every other project's build output.
       Moon reads the WASM file while it builds the project graph, so a
-      missing file fails every moon command — this one included. The new
-      artifact is written beside the old one and renamed over it, so a failed
-      compile leaves the loadable file in place rather than truncating it.
+      missing file fails every moon command — this one included.
 
-      The `git diff --exit-code -- plugin/` that follows is what makes a stale
-      commit impossible: neither `git status` nor moon's own output reveals
-      one on its own, because an artifact nobody rebuilt leaves a clean tree
-      and a rebuilt one does not change what moon reports until the
-      project-graph cache is invalidated by a manifest change. Failing this
-      task is the only place the divergence is visible.
+      The fresh build is compared against the *committed* bytes before it
+      replaces them, which is what makes a stale commit impossible: neither
+      `git status` nor moon's own output reveals one on its own, because an
+      artifact nobody rebuilt leaves a clean tree and a rebuilt one does not
+      change what moon reports until the project-graph cache is invalidated by
+      a manifest change. Failing this task is the only place the divergence is
+      visible. Comparing before the rename matters as much as the comparison:
+      writing first and checking afterwards left a tracked artifact modified by
+      a task that then failed.
 
-      CARGO_TARGET_DIR is redirected under $HOME for the virtiofs reason
-      ../pricing/moon.yml documents, spelled out twice because Moon
-      substitutes `$CARGO_TARGET_DIR` from its own environment and would
-      expand it to empty, and `cat` rather than `cp` for the reflink reason
-      that file documents too. The wasm32-wasip1 target comes from
-      the rustup that proto's rust plugin installs, added on demand rather
-      than baked into the sandbox image so the OTP layer stays cached
-      (PLAN.md "Adding OS packages after the fact").
-    command: "bash"
-    args:
-      - "-lc"
-      - >-
-        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/moon-elixir-plugin" &&
-        if ! rustup target list --installed | grep -qx wasm32-wasip1;
-        then rustup target add wasm32-wasip1; fi &&
-        cargo build --target wasm32-wasip1 --release &&
-        mkdir -p plugin &&
-        cat "$HOME/.cache/baalbek-cargo-target/moon-elixir-plugin/wasm32-wasip1/release/moon_elixir_plugin.wasm"
-        > plugin/moon_elixir_plugin.wasm.new &&
-        mv plugin/moon_elixir_plugin.wasm.new plugin/moon_elixir_plugin.wasm &&
-        git diff --exit-code -- plugin/
+      Byte-for-byte reproducibility across machines is what makes the
+      comparison meaningful at all, and it takes a `--remap-path-prefix`;
+      scripts/build.sh says why and holds the rest of the build.
+    command: "bash scripts/build.sh"
     toolchain: "rust"
     inputs:
       - "Cargo.toml"
       - "Cargo.lock"
       - "src/**/*"
+      - "scripts/**/*"
     outputs:
       - "plugin/moon_elixir_plugin.wasm"
 

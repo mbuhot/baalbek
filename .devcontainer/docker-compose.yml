@@ -3,10 +3,91 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
+    # Root only so the entrypoint can hand the named volumes below to `vscode`
+    # (Docker creates a fresh volume's mount point as root, and the image has
+    # no sudo). devcontainer.json's remoteUser puts every interactive session,
+    # terminal and postCreateCommand back on `vscode`.
+    #
+    # The devcontainer CLI generates an override that runs each feature's own
+    # entrypoint first and then `exec "$@"` with this entrypoint and command as
+    # its arguments, so docker-in-docker still starts its daemon.
+    user: root
+    entrypoint: ["bash", "/workspaces/baalbek/.devcontainer/entrypoint.sh"]
+    command: ["sleep", "infinity"]
     volumes:
-      - ../..:/workspaces:cached
+      # The repository itself, at a fixed container path. Mounting the *parent*
+      # at /workspaces would put the repository at /workspaces/<host directory
+      # name>, and `baalbek` is spelled out below and in devcontainer.json's
+      # workspaceFolder — so a clone into a differently-named directory would
+      # not start. This costs visibility of sibling repositories, which nothing
+      # here used.
+      - ..:/workspaces/baalbek:cached
+
+      # Every directory a build writes into gets a named volume, so no build
+      # artefact ever lands on the bind mount above. On macOS and Windows that
+      # mount is VirtioFS, and this repository has repeatedly seen it corrupt
+      # concurrent writes: a source file silently zeroed, `cp` producing a
+      # NUL-filled file of the correct length, and Moon's own lock files
+      # failing ENOENT immediately after being created. Speed is the lesser
+      # reason; correctness is the reason.
+      #
+      # The list is per-directory and grows with the workspace, which is the
+      # price of keeping the source itself on the host where the editor,
+      # ElixirLS, rust-analyzer and git all expect it. A devcontainer that
+      # clones the whole repository into a volume needs neither the list nor
+      # the redirections, at the cost of no working tree on the host at all.
+      - moon-cache:/workspaces/baalbek/.moon/cache
+      - pnpm-store:/workspaces/baalbek/.pnpm-store
+      - artifacts:/workspaces/baalbek/.artifacts
+
+      # Elixir: Mix's own tree, the fetched deps, and the separate Moon-owned
+      # build tree adr-0006 explains.
+      - billing-mix-build:/workspaces/baalbek/billing/_build
+      - billing-deps:/workspaces/baalbek/billing/deps
+      - billing-build:/workspaces/baalbek/billing/build
+      - core-mix-build:/workspaces/baalbek/core/_build
+      - core-deps:/workspaces/baalbek/core/deps
+      - core-build:/workspaces/baalbek/core/build
+      - identity-mix-build:/workspaces/baalbek/identity/_build
+      - identity-deps:/workspaces/baalbek/identity/deps
+      - identity-build:/workspaces/baalbek/identity/build
+      - pricing-native-mix-build:/workspaces/baalbek/pricing_native/_build
+      - pricing-native-deps:/workspaces/baalbek/pricing_native/deps
+      - pricing-native-build:/workspaces/baalbek/pricing_native/build
+      - server-mix-build:/workspaces/baalbek/server/_build
+      - server-deps:/workspaces/baalbek/server/deps
+      - timeline-facade-mix-build:/workspaces/baalbek/timeline_facade/_build
+      - timeline-facade-deps:/workspaces/baalbek/timeline_facade/deps
+      - timeline-facade-build:/workspaces/baalbek/timeline_facade/build
+
+      # Rust. The Moon tasks already redirect CARGO_TARGET_DIR off the mount;
+      # these cover a plain `cargo build` run by hand or by rust-analyzer.
+      - pricing-target:/workspaces/baalbek/pricing/target
+      - pricing-build:/workspaces/baalbek/pricing/build
+      - pricing-native-crate-target:/workspaces/baalbek/pricing_native/native/pricingnative/target
+      - moon-elixir-plugin-target:/workspaces/baalbek/moon-elixir-plugin/target
+
+      # Gleam.
+      - timeline-build:/workspaces/baalbek/timeline/build
+
+      # TypeScript: the pnpm workspace root plus each member's link farm.
+      - root-node-modules:/workspaces/baalbek/node_modules
+      - core-api-client-node-modules:/workspaces/baalbek/core-api-client/node_modules
+      - e2e-node-modules:/workspaces/baalbek/e2e/node_modules
+      - e2e-build:/workspaces/baalbek/e2e/build
+      - explorer-node-modules:/workspaces/baalbek/explorer/node_modules
+      - explorer-dist:/workspaces/baalbek/explorer/dist
+      - web-node-modules:/workspaces/baalbek/web/node_modules
+      - web-dist:/workspaces/baalbek/web/dist
+
+      # Capacitor. Gradle's build directories are also redirected by
+      # mobile/scripts/external-build-dir.init.gradle; these cover the paths
+      # `./gradlew` and Xcode use when invoked directly.
+      - mobile-node-modules:/workspaces/baalbek/mobile/node_modules
+      - mobile-android-build:/workspaces/baalbek/mobile/android/build
+      - mobile-android-app-build:/workspaces/baalbek/mobile/android/app/build
+      - mobile-ios-build:/workspaces/baalbek/mobile/ios/build
     working_dir: /workspaces/baalbek
-    command: sleep infinity
     depends_on:
       - postgres
 
@@ -34,3 +115,40 @@ services:
 
 volumes:
   postgres-data:
+  moon-cache:
+  pnpm-store:
+  artifacts:
+  billing-mix-build:
+  billing-deps:
+  billing-build:
+  core-mix-build:
+  core-deps:
+  core-build:
+  identity-mix-build:
+  identity-deps:
+  identity-build:
+  pricing-native-mix-build:
+  pricing-native-deps:
+  pricing-native-build:
+  server-mix-build:
+  server-deps:
+  timeline-facade-mix-build:
+  timeline-facade-deps:
+  timeline-facade-build:
+  pricing-target:
+  pricing-build:
+  pricing-native-crate-target:
+  moon-elixir-plugin-target:
+  timeline-build:
+  root-node-modules:
+  core-api-client-node-modules:
+  e2e-node-modules:
+  e2e-build:
+  explorer-node-modules:
+  explorer-dist:
+  web-node-modules:
+  web-dist:
+  mobile-node-modules:
+  mobile-android-build:
+  mobile-android-app-build:
+  mobile-ios-build:

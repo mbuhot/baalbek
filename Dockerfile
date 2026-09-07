@@ -135,4 +135,94 @@ WORKDIR /workspace
 COPY --chown=vscode:vscode .prototools .prototools
 RUN proto install
 
+# === Everything below is appended after the toolchain layer ================
+#
+# New packages and settings go here, never into the apt list or the ENV/RUN
+# steps above. Those are inputs to `proto install`'s from-source Erlang/OTP
+# build, so touching one forces a full OTP recompile, and the task chain
+# `e2e:test` -> `server:image` -> `root:sandbox-image` would drag that
+# recompile into the e2e gate. PLAN.md's "Adding OS packages after the fact"
+# states the rule and says when to consolidate.
+
+# --- OS packages for tasks that run in this image ---------------------------
+#
+#  * Python 3. `root:test` runs test-paths.py, every Elixir app's
+#    `mix test.changed` calls it to select tests, and two shell scripts parse
+#    `moon query` output with it. Debian's slim base carries no interpreter.
+#
+#  * Chromium's shared libraries, for `e2e:test`, which drives a real browser
+#    from this image against the composed release stack. The list is
+#    playwright-core 1.63.0's own `debian12` chromium set, read out of its
+#    nativeDeps table rather than guessed, plus fontconfig and one font family
+#    so text renders at all. Playwright downloads the browser binary itself
+#    into ~/.cache/ms-playwright; only these OS libraries have to be baked in.
+#
+#  * Docker CLI, the Buildx plugin and the Compose v2 plugin.
+#    `root:sandbox-image`, `server:image`, `web:image` and `e2e:test` all shell
+#    out to `docker`, and CI runs those tasks from inside this image against the
+#    host daemon's mounted socket
+#    (spec/decisions/adr-0007-ci-runs-moon-ci-inside-the-sandbox-image.md).
+#    Buildx is not optional: without it `docker build` falls back to the legacy
+#    builder, which shares no cache with the daemon's BuildKit, so
+#    `root:sandbox-image` rebuilds Erlang/OTP from source. The three image
+#    tasks name `docker buildx build` so a missing plugin errors instead.
+#    No daemon is installed here; the devcontainer gets one from its
+#    docker-in-docker feature.
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        python3 \
+        libasound2 \
+        libatk-bridge2.0-0 \
+        libatk1.0-0 \
+        libatspi2.0-0 \
+        libcairo2 \
+        libcups2 \
+        libdbus-1-3 \
+        libdrm2 \
+        libgbm1 \
+        libglib2.0-0 \
+        libnspr4 \
+        libnss3 \
+        libpango-1.0-0 \
+        libx11-6 \
+        libxcb1 \
+        libxcomposite1 \
+        libxdamage1 \
+        libxext6 \
+        libxfixes3 \
+        libxkbcommon0 \
+        libxrandr2 \
+        fontconfig \
+        fonts-liberation \
+    && install -d -m 0755 /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg \
+        -o /etc/apt/keyrings/docker.asc \
+    && chmod a+r /etc/apt/keyrings/docker.asc \
+    && echo "deb [signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable" \
+        > /etc/apt/sources.list.d/docker.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        docker-ce-cli \
+        docker-buildx-plugin \
+        docker-compose-plugin \
+    && rm -rf /var/lib/apt/lists/*
+
+# proto puts `pnpm` in $PROTO_HOME/shims only — $PROTO_HOME/bin has no entry
+# for it — so every `toolchain: "node"` task needs the shims directory too.
+# Appended to the existing script rather than folded into it, for the layer
+# reason above; $PROTO_HOME is already exported by its first line.
+RUN printf '%s\n' 'export PATH="$PATH:$PROTO_HOME/shims"' >> /etc/profile.d/proto.sh
+
+USER vscode
+ENV PATH="${PATH}:${PROTO_HOME}/shims"
+
+# Hex and rebar3 come from Mix, not apt or proto. Without them the first
+# `mix deps.get` in a fresh container prompts to install Hex, reads EOF from a
+# non-interactive stdin, and fails. MIX_HOME/HEX_HOME are pinned so they stay
+# found when a caller overrides HOME.
+ENV MIX_HOME="/home/vscode/.mix" \
+    HEX_HOME="/home/vscode/.hex"
+RUN mix local.hex --force && mix local.rebar --force
+
 CMD ["bash"]
