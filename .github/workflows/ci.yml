@@ -256,8 +256,10 @@ jobs:
         run: bash .github/scripts/summarize-ci-report.sh "$SANDBOX_MOON_CACHE/ciReport.json"
 
       - name: Save first-party build outputs
-        # `main` only, and the sole writer of this cache.
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        # `main` only, and the sole writer of this cache. `always()` because a
+        # run with one failing task still built every other output, and without
+        # it one red task leaves every pull request nothing to restore.
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v6
         with:
           path: ${{ env.SANDBOX_MOON_CACHE }}
