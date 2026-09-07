@@ -1,13 +1,10 @@
-# Stage 6 of PLAN.md: `server` release, OpenAPI generated from Ash, first real
-# Mix path deps on sibling apps (`boundary`'s cross-app check turns on — see
-# mix.exs). See server/README.md for why `server` bootstraps three schemas but
-# has no Ecto Repo of its own.
+# The Phoenix application: JSON:API over `core`, `identity` and `billing`, plus
+# the release and the OpenAPI document generated from it.
 #
-# `deps`, `build` and `test` come from ../.moon/tasks/elixir.yml, and their
-# `^:build` edge expands to the five Mix path deps moon-elixir-plugin infers
-# from mix.exs. No task here names a dependency: `pricing` and `timeline` are
-# reached through the facades that declare them, `pricing_native` and
-# `timeline_facade`.
+# No task here names a dependency. `deps`, `build` and `test` come from
+# ../.moon/tasks/elixir.yml, and their `^:build` edge expands to the five Mix
+# path deps moon-elixir-plugin infers from mix.exs. server/README.md says why
+# `server` bootstraps three schemas but owns no Ecto Repo.
 language: elixir
 layer: application
 
@@ -30,12 +27,10 @@ tags:
 
 tasks:
   bootstrap:
-    description: >-
-      Creates `core`'s, `identity`'s and `billing`'s Postgres roles and
-      schemas (idempotent — `server` boots all three as part of its dependency
-      tree), then creates and migrates `core`'s test database, the one
-      `server`'s own tests exercise. Requires a live Postgres (the `postgres`
-      service in .devcontainer/docker-compose.yml).
+    description: "Creates `core`'s, `identity`'s and `billing`'s Postgres roles and schemas, then creates and migrates `core`'s test database."
+    # Not `bootstrap-repo`: three schemas, and the repo is `core`'s.
+    # Requires a live Postgres (the `postgres` service in
+    # ../.devcontainer/docker-compose.yml).
     deps:
       - "~:deps"
     command: "bash"
@@ -57,28 +52,24 @@ tasks:
       cache: false
 
   test:
-    description: >-
-      Runs the ExUnit suite: real HTTP requests through `ServerWeb.Endpoint`
-      against `core`'s JSON:API routes, and writes to the `timeline` schema
-      from test/server_web/timeline_router_test.exs.
+    description: "Runs the ExUnit suite: real HTTP requests through `ServerWeb.Endpoint` against `core`'s JSON:API routes."
     deps:
       - "~:bootstrap"
+      # The suite writes to the `timeline` schema from
+      # test/server_web/timeline_router_test.exs.
       - "timeline:bootstrap"
 
   openapi:
-    description: >-
-      Generates `priv/static/openapi.json` from `Server.Api`'s
-      `AshJsonApi.Domain` definition, in `~:build`'s dev tree. Boots the full
-      `:server` application first, so it needs the same Postgres bootstrap as
-      the suite even though spec generation never queries the database.
+    description: "Generates `priv/static/openapi.json` from `Server.Api`'s `AshJsonApi.Domain` definition."
+    # `~:bootstrap` because spec generation boots the whole `:server`
+    # application, not because it queries the database.
     deps:
       - "~:build"
       - "~:bootstrap"
     command: "bash"
     args:
       - "-lc"
-      - >-
-        mix openapi.spec.json --spec ServerWeb.JsonApiRouter --pretty=true priv/static/openapi.json
+      - "mix openapi.spec.json --spec ServerWeb.JsonApiRouter --pretty=true priv/static/openapi.json"
     toolchain: "system"
     env:
       MIX_ENV: "dev"
@@ -92,13 +83,9 @@ tasks:
       - "priv/static/openapi.json"
 
   release:
-    description: >-
-      Assembles the `MIX_ENV=prod` release into /.artifacts/server-release
-      (PLAN.md Stage 6c), carrying its own ERTS and every application in
-      `server`'s dependency tree, the Gleam ones included. Needs no database.
-    # The one task that still fetches: the prod tree is its own, because the
-    # plugin reads the dependency list at the default MIX_ENV, so there is no
-    # prod list to compile and Mix has to check and build the tree itself.
+    description: "Assembles the `MIX_ENV=prod` release into /.artifacts/server-release, carrying its own ERTS."
+    # Fetches again: the plugin reads the dependency list at the default
+    # MIX_ENV, so there is no prod list for `deps` to have compiled.
     deps:
       - "~:deps"
       - "^:build"
@@ -118,12 +105,9 @@ tasks:
       - "lib/**/*"
 
   image:
-    description: >-
-      Builds the runnable release image Stage 9's e2e runs against
-      (`baalbek-server:latest` by default; override with SERVER_IMAGE).
-      Independent of `~:release`: server/Dockerfile compiles the release inside
-      the image so the artifact never carries host paths. The build context is
-      the workspace root, since the release assembles from sibling projects.
+    description: "Builds the runnable release image the e2e suite runs against (`baalbek-server:latest`, or `$SERVER_IMAGE`)."
+    # Independent of `~:release`: server/Dockerfile compiles the release inside
+    # the image, so the artifact never carries host paths.
     deps:
       - "root:sandbox-image"
       - "^:build"
@@ -136,6 +120,7 @@ tasks:
     toolchain: "system"
     # Uncached: an image in the local daemon is not a file output.
     # `--builder default` shares the BuildKit cache root:sandbox-image writes.
+    # The context is the workspace root: the release assembles from siblings.
     options:
       runFromWorkspaceRoot: true
       cache: false

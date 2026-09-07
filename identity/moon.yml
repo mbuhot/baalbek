@@ -1,8 +1,7 @@
-# Stage 3 of PLAN.md: Ash resources, schema `identity` + role `identity`,
-# boundary (via ash_boundary), ExUnit. Domain: technicians, dispatchers, auth.
+# Ash resources for accounts and authentication: technicians and dispatchers.
 #
-# `deps`, `build` and `test` come from ../.moon/tasks/elixir.yml; a declaration
-# here merges into that one.
+# Schema `identity` and role `identity`. `deps`, `build`, `test` and the
+# `bootstrap` this one extends come from ../.moon/tasks/elixir.yml.
 language: elixir
 layer: library
 
@@ -12,28 +11,10 @@ tags:
 
 tasks:
   bootstrap:
-    description: >-
-      Creates the `identity` Postgres role and schema (idempotent — see
-      priv/repo/bootstrap.sql), then creates and migrates the test database.
-      Requires a live Postgres (the `postgres` service in
-      .devcontainer/docker-compose.yml).
-    deps:
-      - "~:deps"
-    command: "bash"
-    args:
-      - "-lc"
-      # One BEAM start serves the whole chain.
-      - >-
-        mix do identity.bootstrap +
-        ecto.create --quiet +
-        ecto.migrate --quiet
-    toolchain: "system"
-    env:
-      MIX_ENV: "test"
-      MIX_BUILD_PATH: "build/test"
-    # Never cached: a warm cache against a fresh database would skip this.
+    extends: "bootstrap-repo"
+    # `extends` copies `internal: true` with the rest; this project opts back in.
     options:
-      cache: false
+      internal: false
 
   build:
     inputs:

@@ -2,26 +2,24 @@
 # https://moonrepo.dev/docs/config/tasks
 #
 # `inheritedBy` is required: moon 2.5.4 applies a conditionless
-# `.moon/tasks/*.yml` to every project. A project declaration merges into these.
+# `.moon/tasks/*.yml` to every project. A project declaration merges into these,
+# it does not replace them.
 # See ../../spec/decisions/adr-0010-third-party-deps-compile-in-their-own-task.md.
+#
+# Every `mix` task runs under `bash -lc`. Only a login shell puts
+# `$PROTO_HOME/bin` ahead of `$PROTO_HOME/shims`, and the shim for an
+# asdf-backed Erlang cannot locate its executable (../../spec/decisions/adr-0009-*).
 inheritedBy:
   language: "elixir"
 
 tasks:
   deps-list:
-    description: >-
-      Carries `$MIX_THIRD_PARTY_DEPS`, the locked dependency names
-      moon-elixir-plugin reads by asking Mix.
+    description: "Carries `$MIX_THIRD_PARTY_DEPS`, the locked dependency names moon-elixir-plugin reads from Mix."
     # Declared so `extends` resolves when the plugin delivers nothing.
     command: "noop"
 
   deps:
-    description: >-
-      Fetches and compiles the third-party dependency tree — every package
-      `mix.lock` locks, transitive ones included, and no path dependency —
-      into `deps/`, `build/dev` and `build/test`. Keyed on `mix.exs` and
-      `mix.lock` alone, so no first-party change invalidates it. The only
-      task that fetches.
+    description: "Fetches and compiles the third-party dependency tree into `deps/`, `build/dev` and `build/test`."
     extends: "deps-list"
     command: "bash"
     args:
@@ -49,9 +47,7 @@ tasks:
       - "!build/test/lib/$project/**/*"
 
   build:
-    description: >-
-      Compiles this app's own code into `build/dev`, the Moon-owned tree
-      declared as this project's artefact. Needs no database.
+    description: "Compiles this app's own code into `build/dev`, this project's declared artefact."
     # `^:build` is every depended-on project, skipping in silence any whose
     # artefact task is not named `build`.
     deps:
@@ -94,3 +90,23 @@ tasks:
       - "lib/**/*"
       - "spec/**/*"
       - "test/**/*"
+
+  bootstrap-repo:
+    description: "Creates this app's Postgres role and schema, then creates and migrates its test database."
+    # Internal: `mix $project.bootstrap` exists only where priv/repo/bootstrap.sql
+    # does, so such a project opts in by extending this as `bootstrap`.
+    # Requires a live Postgres (../../.devcontainer/docker-compose.yml).
+    deps:
+      - "~:deps"
+    command: "bash"
+    args:
+      - "-lc"
+      - "mix do $project.bootstrap + ecto.create --quiet + ecto.migrate --quiet"
+    toolchain: "system"
+    env:
+      MIX_ENV: "test"
+      MIX_BUILD_PATH: "build/test"
+    # Never cached: a warm cache against a fresh database would skip this.
+    options:
+      cache: false
+      internal: true
