@@ -68,12 +68,14 @@ once.
 
 GitHub Actions runs `moon ci` inside this repository's own sandbox image. A
 hosted runner ships Node, Python, a JDK and gcc, so a task with an undeclared
-input would pass there. Moon's task cache is not restored between runs, for the
-same reason.
+input would pass there. `main` runs cold and writes Moon's task cache; a pull
+request restores it and never writes it, so a pull request can only replay what
+a cold `main` run built.
 
 | Measure | Value |
 |---|---|
-| A full-graph `moon ci` run | About 36 minutes |
+| A full-graph `moon ci` run, in the image | 24 minutes 26 seconds |
+| The same run, on a bare runner | 22 minutes 6 seconds |
 | The image step, against the GHCR layer cache | 62 seconds |
 | The image step, with no cache | 2 minutes 48 seconds |
 | `e2e:test` in CI | About 53 seconds |
