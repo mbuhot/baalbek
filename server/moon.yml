@@ -178,7 +178,9 @@ tasks:
       `buildx build`, not `build`: only BuildKit reads
       Dockerfile.dockerignore, and without the Buildx plugin `docker build`
       degrades to the legacy builder behind a deprecation warning. Naming
-      buildx makes a missing plugin an error. See root moon.yml.
+      buildx makes a missing plugin an error. `--builder default` pins the
+      daemon's own BuildKit, which shares its cache with `root:sandbox-image`
+      below. See root moon.yml.
     deps:
       - "root:sandbox-image"
       - "core:build"
@@ -190,7 +192,8 @@ tasks:
     args:
       - "-lc"
       - >-
-        docker buildx build -f server/Dockerfile -t "${SERVER_IMAGE:-baalbek-server:latest}" .
+        docker buildx build --builder default --load
+        -f server/Dockerfile -t "${SERVER_IMAGE:-baalbek-server:latest}" .
     toolchain: "system"
     options:
       runFromWorkspaceRoot: true

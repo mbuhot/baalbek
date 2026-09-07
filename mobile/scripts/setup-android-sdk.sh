@@ -12,12 +12,29 @@ CMDLINE_TOOLS_BUILD="9862592" # pinned: Android cmdline-tools, checked 2026-09-0
 PLATFORM="android-36"
 BUILD_TOOLS="36.0.0"
 
+# Runs a command with its output held back, and prints all of it when the
+# command fails. Nothing here may discard output outright: a step that exits
+# non-zero and says nothing is worse than one that is merely noisy.
+run_logged() {
+  local log
+  log="$(mktemp)"
+  if ! "$@" > "$log" 2>&1; then
+    echo "error: failed: $*" >&2
+    cat "$log" >&2
+    rm -f "$log"
+    return 1
+  fi
+  rm -f "$log"
+}
+
 echo "==> Android SDK root: $ANDROID_SDK_ROOT"
 
 if [ ! -x "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
   echo "==> Downloading Android cmdline-tools (build $CMDLINE_TOOLS_BUILD)"
   tmp_zip="$(mktemp -d)/cmdline-tools.zip"
-  curl -sL -o "$tmp_zip" \
+  # `-f` so an HTTP error is an error: without it curl writes the error page
+  # into the file and exits 0, and the failure surfaces later as a corrupt zip.
+  curl -fsSL --retry 3 --retry-delay 2 -o "$tmp_zip" \
     "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_BUILD}_latest.zip"
   tmp_extract="$(mktemp -d)"
   unzip -q "$tmp_zip" -d "$tmp_extract"
@@ -30,12 +47,18 @@ SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
 
 if [ ! -d "$ANDROID_SDK_ROOT/licenses" ]; then
   echo "==> Accepting Android SDK licenses"
-  yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null
+  # A here-string, not `yes |`: sdkmanager closes stdin once it has every
+  # answer, so `yes` dies of SIGPIPE (141) and `pipefail` reports that as a
+  # failed step even though sdkmanager succeeded. 100 answers covers the 7
+  # licenses asked about today; `timeout` turns a longer list into an error
+  # rather than a wait on a prompt nothing will answer.
+  run_logged timeout 600 "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" --licenses \
+    <<< "$(printf 'y\n%.0s' $(seq 100))"
 fi
 
 echo "==> Installing platforms;$PLATFORM, build-tools;$BUILD_TOOLS"
-"$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" \
-  "platforms;$PLATFORM" "build-tools;$BUILD_TOOLS" >/dev/null
+run_logged "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" \
+  "platforms;$PLATFORM" "build-tools;$BUILD_TOOLS"
 
 # aapt2 (bundled in build-tools) has no linux-aarch64 native build — Google
 # publishes "linux" (x86_64), "osx", and "windows" classifiers only, verified
@@ -95,9 +118,9 @@ if [ -f "$PROXY_CA" ]; then
   if ! keytool -list -keystore "$CACERTS" -storepass changeit \
        -alias docker-sandboxes-proxy-ca >/dev/null 2>&1; then
     echo "==> Importing sandbox proxy CA into $CACERTS"
-    sudo "$JAVA_HOME_RESOLVED/bin/keytool" -importcert -noprompt -trustcacerts \
-      -alias docker-sandboxes-proxy-ca -file "$PROXY_CA" \
-      -keystore "$CACERTS" -storepass changeit >/dev/null
+    run_logged sudo "$JAVA_HOME_RESOLVED/bin/keytool" -importcert -noprompt \
+      -trustcacerts -alias docker-sandboxes-proxy-ca -file "$PROXY_CA" \
+      -keystore "$CACERTS" -storepass changeit
   fi
 fi
 

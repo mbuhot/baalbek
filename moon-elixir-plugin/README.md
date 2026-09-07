@@ -76,10 +76,19 @@ declares no input outside its own directory and depends on no other project.
 
 `plugin/moon_elixir_plugin.wasm` is committed, unlike ordinary build output:
 moon loads it while building the project graph, so a missing file fails every
-moon command — including the one that would rebuild it. After editing `src/`,
-run the task and commit the artifact it writes; the task ends in
-`git diff --exit-code -- plugin/` and fails until you do. That guard is the
-only thing that catches it, because an artifact nobody rebuilt leaves a clean
-`git status`, and a rebuilt one does not change what moon reports until the
-project-graph cache is invalidated by a manifest change. Both measured, in
-`spec/decisions/adr-0001-mix-path-dep-inference.md`.
+moon command — including the one that would rebuild it. It is committed with
+`plugin/moon_elixir_plugin.provenance`, a record of the source it was built
+from, and `moon run moon-elixir-plugin:build` fails whenever the two disagree.
+After editing `Cargo.toml`, `Cargo.lock`, `src/` or `scripts/`:
+
+```sh
+bash scripts/build.sh --accept   # rebuild, re-record, then commit both files
+```
+
+That gate is the only thing that catches a stale artifact, because one nobody
+rebuilt leaves a clean `git status`, and a rebuilt one does not change what
+moon reports until the project-graph cache is invalidated by a manifest
+change. It asserts provenance rather than byte-identity, because rustc emits
+different wasm from an x86_64 host than from an aarch64 one. All measured, in
+`spec/decisions/adr-0001-mix-path-dep-inference.md` and
+`spec/decisions/adr-0002-the-committed-wasm-gate-asserts-provenance.md`.

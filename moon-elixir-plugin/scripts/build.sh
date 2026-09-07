@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # `moon-elixir-plugin:build`: compiles the WASM artifact ../.moon/toolchains.yml
-# loads, and refuses to replace the committed one with different bytes.
+# loads, and checks the committed one was built from this source.
+#
+# `--accept` records a rebuilt artifact as the committed one. Nothing else
+# writes the tracked files, so a failing check never leaves them modified.
 #
 # In a script rather than inline moon.yml `args` because moon pre-substitutes
 # `$IDENTIFIER` from its own environment, which mangles the `${VAR:-default}`
@@ -10,17 +13,21 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 ARTIFACT="plugin/moon_elixir_plugin.wasm"
 
+case "${1:-}" in
+  "") MODE="check" ;;
+  --accept) MODE="accept" ;;
+  *) echo "usage: build.sh [--accept]" >&2; exit 2 ;;
+esac
+
 # Redirected under $HOME for the virtiofs reason ../pricing/moon.yml documents.
 export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/moon-elixir-plugin"
 
 # A release build bakes every `panic!` location into the artifact as data, and
 # for a registry dependency that location is an absolute path under
 # $CARGO_HOME — which follows $HOME, so it differs for every user and on every
-# CI runner. `strip` does not remove them. Without this remap the same source
-# and the same rustc produce different bytes on each machine, and the
-# comparison below fails everywhere except where the artifact was last built.
-# rustc's own standard-library paths are already virtualised as /rustc/<hash>,
-# so the registry is the only prefix that needs remapping.
+# CI runner. `strip` does not remove them. rustc's own standard-library paths
+# are already virtualised as /rustc/<hash>, so the registry is the only prefix
+# that needs remapping.
 export CARGO_ENCODED_RUSTFLAGS="--remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}=/cargo"
 
 # The wasm32-wasip1 target comes from the rustup that proto's rust plugin
@@ -30,19 +37,19 @@ if ! rustup target list --installed | grep -qx wasm32-wasip1; then
   rustup target add wasm32-wasip1
 fi
 
-cargo build --target wasm32-wasip1 --release
+# `--locked` because the provenance record names the committed dependency
+# versions. Without it a Cargo.lock that no longer satisfies Cargo.toml is
+# re-resolved silently, and a machine with a fresher crates.io index then
+# builds different code from the same commit.
+cargo build --locked --target wasm32-wasip1 --release
 
 # `cat` rather than `cp` for the reflink reason ../pricing/moon.yml documents.
 mkdir -p plugin
 cat "${CARGO_TARGET_DIR}/wasm32-wasip1/release/moon_elixir_plugin.wasm" > "${ARTIFACT}.new"
 
-# Compared against the *committed* bytes, and compared before the rename. The
-# comparison is what makes a stale commit impossible; doing it first is what
-# keeps a failing task from leaving a tracked artifact modified.
-if ! git show ":./${ARTIFACT}" | cmp - "${ARTIFACT}.new"; then
-  echo "moon-elixir-plugin: the committed ${ARTIFACT} is not what this source builds." >&2
-  echo "The fresh bytes are in ${ARTIFACT}.new; commit them if the change is intended." >&2
-  exit 1
-fi
+# The gate asserts provenance, not byte-equality: the same source does not
+# produce the same bytes on a different host architecture, which
+# spec/decisions/adr-0002 records along with the rest of this rule.
+python3 scripts/provenance.py "${MODE}"
 
-mv "${ARTIFACT}.new" "${ARTIFACT}"
+rm -f "${ARTIFACT}.new"

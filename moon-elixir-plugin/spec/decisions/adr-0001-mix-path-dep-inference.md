@@ -1,6 +1,7 @@
 # ADR-0001: `dependsOn` between Elixir projects is inferred by asking Mix
 
-**Status:** Accepted.
+**Status:** Accepted. The committed-artifact consequence is superseded by
+[adr-0002](adr-0002-the-committed-wasm-gate-asserts-provenance.md).
 **Date:** 2026-09-07
 **Stage:** 11
 

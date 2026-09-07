@@ -28,6 +28,7 @@ decision confined to one component lives in that component's own
 | [0005](adr-0005-within-app-test-selection-by-path.md) | Within-app test selection is by path convention | Accepted |
 | [0006](adr-0006-task-deps-on-output-declaring-tasks.md) | Cross-project edges are task deps on output-declaring tasks | Accepted |
 | [0007](adr-0007-ci-runs-moon-ci-inside-the-sandbox-image.md) | CI runs `moon ci` inside the sandbox image, from the runner | Accepted |
+| [0008](adr-0008-the-sandbox-image-is-published-to-ghcr.md) | The sandbox image is published to GHCR, and one builder writes the cache | Accepted |
 
 ## Where the other spec directories are
 
@@ -39,5 +40,5 @@ decision confined to one component lives in that component's own
 | `timeline_facade/spec/decisions/` | The Gleam ↔ Elixir interop decision (superseded) |
 | `web/spec/mocks/`, `web/spec/decisions/` | Dated UI mock snapshots, and the PWA's own decisions |
 | `e2e/spec/decisions/` | How the dockerized e2e stack is composed and bootstrapped |
-| `moon-elixir-plugin/spec/decisions/` | How `dependsOn` between Elixir projects is inferred from `mix.exs`, and what that does not cover |
+| `moon-elixir-plugin/spec/decisions/` | How `dependsOn` between Elixir projects is inferred from `mix.exs`, what that does not cover, and what the committed WASM artifact's gate asserts |
 | `explorer/spec/decisions/` | How the architecture explorer is generated, how it shows its own blind spots, and how capabilities are claimed. 0001 and 0002 are superseded by 0004 and 0005 |

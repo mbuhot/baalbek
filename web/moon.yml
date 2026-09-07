@@ -81,14 +81,16 @@ tasks:
 
       `buildx build`, not `build`, for the reason root moon.yml gives: a
       missing Buildx plugin should be an error, not a silent fall back to the
-      legacy builder.
+      legacy builder. `--builder default` pins the daemon's own BuildKit, the
+      cache the other image tasks share.
     deps:
       - "build"
     command: "bash"
     args:
       - "-lc"
       - >-
-        docker buildx build -f web/Dockerfile -t "${WEB_IMAGE:-baalbek-web:latest}" web
+        docker buildx build --builder default --load
+        -f web/Dockerfile -t "${WEB_IMAGE:-baalbek-web:latest}" web
     toolchain: "system"
     options:
       runFromWorkspaceRoot: true

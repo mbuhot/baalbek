@@ -34,7 +34,7 @@ fi
 # a registry authentication failure instead.
 if ! docker image inspect "${IMAGE}" > /dev/null 2>&1; then
   echo "${IMAGE} is not in the local docker daemon." >&2
-  echo "Build it with: docker build -t ${IMAGE} -f Dockerfile ." >&2
+  echo "Get it with: .github/scripts/resolve-sandbox-image.sh" >&2
   exit 1
 fi
 

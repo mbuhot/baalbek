@@ -210,6 +210,7 @@ Consequence for the Moon graph: `e2e:test` depends on the release image build (a
 | Moon Elixir WASM plugin is unproven work | Drift-check script (stage 1) holds the property until stage 11 lands. |
 | openapi-generator Elixir output quality | Only the TypeScript client is generated. |
 | iOS builds need macOS | `mobile:build-ios` is a system task, excluded from container CI. |
+| The committed WASM plugin cannot be gated on byte-equality | rustc emits different wasm from an x86_64 host than from an aarch64 one, on identical source, lock and flags, so the gate asserts provenance instead: `moon-elixir-plugin/spec/decisions/adr-0002-the-committed-wasm-gate-asserts-provenance.md`. Open, and deliberately not decided there: `.prototools` pins `rust = "stable"`, so the artifact's bytes still move with the next stable release even on one architecture, and nothing records which rustc built the committed one. Pinning an exact version would change every Rust task's hash across the workspace. |
 
 ## Deferred
 

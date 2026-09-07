@@ -23,21 +23,26 @@ tasks:
       Moon reads the WASM file while it builds the project graph, so a
       missing file fails every moon command — this one included.
 
-      The fresh build is compared against the *committed* bytes before it
-      replaces them, which is what makes a stale commit impossible: neither
-      `git status` nor moon's own output reveals one on its own, because an
-      artifact nobody rebuilt leaves a clean tree and a rebuilt one does not
-      change what moon reports until the project-graph cache is invalidated by
-      a manifest change. Failing this task is the only place the divergence is
-      visible. Comparing before the rename matters as much as the comparison:
-      writing first and checking afterwards left a tracked artifact modified by
-      a task that then failed.
+      This task is what makes a stale commit impossible: neither `git status`
+      nor moon's own output reveals one on its own, because an artifact nobody
+      rebuilt leaves a clean tree and a rebuilt one does not change what moon
+      reports until the project-graph cache is invalidated by a manifest
+      change. Failing this task is the only place the divergence is visible.
 
-      Byte-for-byte reproducibility across machines is what makes the
-      comparison meaningful at all, and it takes a `--remap-path-prefix`;
-      scripts/build.sh says why and holds the rest of the build.
+      What it asserts is provenance, not byte-equality: the committed artifact
+      carries a `plugin/moon_elixir_plugin.provenance` record of the source it
+      was built from, and the task fails when the source moved, when the record
+      is missing or unreadable, or when the artifact is not the one recorded.
+      Byte-equality was tried first and cannot hold — rustc 1.98.1 emits a
+      different function section from an x86_64 host than from an aarch64 one,
+      on identical source and flags (spec/decisions/adr-0002). `--accept` is
+      the only thing that writes the tracked files, so a failing check never
+      leaves them modified. scripts/provenance.py holds the rule and
+      scripts/build.sh the build.
     command: "bash scripts/build.sh"
     toolchain: "rust"
+    # Equal to SOURCE_PATHS in scripts/provenance.py, which fingerprints them:
+    # an input listed here and not there lets a stale artifact pass.
     inputs:
       - "Cargo.toml"
       - "Cargo.lock"

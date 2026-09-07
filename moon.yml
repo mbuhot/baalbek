@@ -43,11 +43,18 @@ tasks:
       deprecation warning, and the legacy builder shares no cache with the
       daemon's BuildKit — this task then recompiles Erlang/OTP from source.
       Naming buildx turns that into an error instead.
+
+      `--builder default` pins the daemon's own BuildKit, the one cache
+      .github/workflows/ci.yml's image step also writes. A `docker-container`
+      builder shares no cache with it, so this task would recompile OTP; and
+      `setup-buildx-action` makes such a builder current without renaming
+      `default`, so the flag is the enforcement rather than a check.
     command: "bash"
     args:
       - "-lc"
       - >-
-        docker buildx build -t "${SANDBOX_IMAGE:-baalbek-sandbox:latest}" -f Dockerfile .
+        docker buildx build --builder default --load
+        -t "${SANDBOX_IMAGE:-baalbek-sandbox:latest}" -f Dockerfile .
     toolchain: "system"
     options:
       cache: false

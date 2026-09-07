@@ -171,6 +171,29 @@ recompiles Erlang every run. The reasoning, and the runner internals it rests
 on, are in
 `spec/decisions/adr-0007-ci-runs-moon-ci-inside-the-sandbox-image.md`.
 
+The image itself is a published artifact. `.github/workflows/sandbox-image.yml`
+pushes `ghcr.io/<owner>/baalbek-sandbox` whenever `Dockerfile`, `.dockerignore`
+or `.prototools` changes on `main`, tagged `:latest` and
+`:toolchain-<arch>-<digest of those three files>`. Anyone who needs the image
+runs:
+
+```bash
+.github/scripts/resolve-sandbox-image.sh
+```
+
+That builds the current `Dockerfile` using the published image as a layer cache,
+so it takes seconds when a published image matches the tree and compiles
+Erlang/OTP from source when none does — and says which it did, loudly, either
+way. It never runs a pulled image, so the toolchain under test cannot be older
+than the tree.
+
+The architecture is in the tag because it has to be: an amd64 image supplies no
+layer to an arm64 build, and without the arch the probe would report a hit and
+then recompile everything. The practical consequence is that **the publish is
+amd64 only, so on an arm64 machine this always builds locally** and says so.
+`spec/decisions/adr-0008-the-sandbox-image-is-published-to-ghcr.md` records why
+a layer cache rather than a pull, and what a wrong digest can and cannot break.
+
 The same script reproduces a CI failure locally, on Linux:
 
 ```bash

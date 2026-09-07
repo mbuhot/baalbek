@@ -12,7 +12,13 @@ set -euo pipefail
 # Parsed defensively: under concurrent load (a workspace-wide sweep) moon has
 # been seen writing more than the one JSON document to stdout, which a plain
 # json.load reports as an unreadable traceback.
-query_output="$(moon query tasks --project mobile 'taskTag=requires-macos' 2>/dev/null)"
+query_stderr="$(mktemp)"
+if ! query_output="$(moon query tasks --project mobile 'taskTag=requires-macos' 2> "$query_stderr")"; then
+  echo "mobile:build: \`moon query tasks\` failed:" >&2
+  cat "$query_stderr" >&2
+  exit 1
+fi
+rm -f "$query_stderr"
 
 macos_tasks="$(python3 - "$query_output" <<'PY'
 import json
