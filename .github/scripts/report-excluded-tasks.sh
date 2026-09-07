@@ -9,15 +9,20 @@ set -euo pipefail
 
 # stderr is deliberately not swallowed: a workspace moon cannot load should say
 # so here, not exit 1 with nothing.
-query_output="$(moon query tasks)"
+query_file="$(mktemp)"
+trap 'rm -f "$query_file"' EXIT
+moon query tasks > "$query_file"
+echo "moon query tasks: $(wc -c < "$query_file") bytes"
 
+# Read from a file, not argv: this JSON exceeds the 128 KiB one-argument limit
+# on a 4 KiB-page runner.
 # Parsed defensively for the reason mobile/scripts/build.sh documents: under
 # load, moon's stdout has been seen carrying more than the one JSON document.
-python3 - "$query_output" <<'PY'
+python3 - "$query_file" <<'PY'
 import json
 import sys
 
-raw = sys.argv[1]
+raw = open(sys.argv[1], encoding="utf-8").read()
 start = raw.find("{")
 if start == -1:
     sys.exit(f"report-excluded-tasks: `moon query tasks` printed no JSON object:\n{raw[:500]}")
