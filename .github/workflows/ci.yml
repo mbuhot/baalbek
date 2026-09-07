@@ -82,7 +82,8 @@ jobs:
         # The sandbox image is over 4 GB before it compiles anything, and the
         # release image, the OTP build tree and node_modules land on top of it.
         # The preinstalled Android, .NET and Haskell trees are the cheapest tens
-        # of gigabytes to give back.
+        # of gigabytes to give back. Removing this step was measured and was
+        # not faster: 21m 49s against 16m 47s over the same 54 targets.
         run: |
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup
           df -h /
