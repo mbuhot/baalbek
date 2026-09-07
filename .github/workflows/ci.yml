@@ -259,7 +259,10 @@ jobs:
         # `main` only, and the sole writer of this cache. `always()` because a
         # run with one failing task still built every other output, and without
         # it one red task leaves every pull request nothing to restore.
-        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        # A dispatch on `main` writes too, so the cache can be seeded from a
+        # whole-graph run instead of waiting for a commit that touches
+        # everything.
+        if: always() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: actions/cache/save@v6
         with:
           path: ${{ env.SANDBOX_MOON_CACHE }}
