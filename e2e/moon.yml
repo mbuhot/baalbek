@@ -18,82 +18,43 @@ toolchains:
   typescript:
     syncProjectReferences: false
 
+fileGroups:
+  suite:
+    - "package.json"
+    - "tsconfig.json"
+    - "playwright.config.ts"
+    - "stack.ts"
+    - "tests/**/*"
+
 tasks:
   list:
-    description: >-
-      Writes the resolved test list, with each test's `@capability/<id>`
-      tags, to build/test-list.json. Declared as this project's artefact so
-      `explorer:generate` expresses its edge as a `deps` entry that
-      contributes to its hash — see
-      ../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md.
-
-      The JSON goes to a file through PLAYWRIGHT_JSON_OUTPUT_NAME, not
-      through stdout: pnpm prepends its own NDJSON banner in an agent
-      environment, and anything else sharing that stream can do the same.
-
-      Listing resolves the specs without running them, so this starts no
-      container and needs no browser binary.
-    command: "bash"
-    args:
-      - "-lc"
-      - >-
-        pnpm install --frozen-lockfile &&
-        mkdir -p build &&
-        pnpm exec playwright test --list --reporter=json
+    description: "Writes the resolved test list, with each test's `@capability/<id>` tags, to build/test-list.json."
+    # The JSON goes to a file through PLAYWRIGHT_JSON_OUTPUT_NAME, not through
+    # stdout: pnpm prepends its own NDJSON banner in an agent environment.
+    script: "pnpm exec playwright test --list --reporter=json"
+    deps:
+      - "~:install"
     env:
       PLAYWRIGHT_JSON_OUTPUT_NAME: "build/test-list.json"
-    toolchain: "node"
     inputs:
-      - "package.json"
-      - "tsconfig.json"
-      - "playwright.config.ts"
-      - "stack.ts"
-      - "tests/**/*"
+      - "@group(suite)"
     outputs:
       - "build/test-list.json"
 
   test:
-    description: >-
-      Runs the Playwright suite against the stack in docker-compose.yml: the
-      `baalbek-server:latest` release image, the `baalbek-web:latest` PWA
-      image, and their own Postgres. global-setup.ts owns the stack's
-      lifecycle and fails the run if either container is not the image its
-      project built.
-
-      Both `deps` are image builds, and Moon can hash neither: an image in the
-      local docker daemon is not a file output, so neither task declares one.
-      Caching is therefore off — with the whole stack outside this task's hash,
-      a cache hit would replay a pass against images that have since changed,
-      which is the one result this gate must never give. Affected-detection is
-      unaffected: `moon ci` propagates it along `deps` regardless of outputs,
-      and reaches source through `web:image` -> `web:build` ->
-      `core-api-client:build` -> `server:openapi`, each of which does declare
-      outputs (PLAN.md "Task graph: depend on output-declaring tasks").
-
-      `playwright install` downloads the browser binaries (~115 MB, cached in
-      ~/.cache/ms-playwright). Their OS-level shared libraries are in the
-      sandbox image, in the apt layer appended after `proto install`.
+    description: "Runs the Playwright suite against docker-compose.yml's stack: the `baalbek-server` and `baalbek-web` images and their own Postgres."
+    script: "pnpm run typecheck && pnpm run browsers && pnpm run test"
     deps:
+      - "~:install"
       - "server:image"
       - "web:image"
-    command: "bash"
-    args:
-      - "-lc"
-      - >-
-        pnpm install --frozen-lockfile &&
-        pnpm exec tsc --noEmit &&
-        pnpm exec playwright install chromium &&
-        pnpm exec playwright test
-    toolchain: "node"
+    # Uncached: both image `deps` declare no outputs, so the stack under test
+    # is outside this task's hash and a cache hit would replay a stale pass.
     options:
       cache: false
     inputs:
-      - "package.json"
-      - "tsconfig.json"
-      - "playwright.config.ts"
+      - "@group(suite)"
       - "global-setup.ts"
       - "global-teardown.ts"
-      - "stack.ts"
       - "docker-compose.yml"
       - "bootstrap.exs"
-      - "tests/**/*"

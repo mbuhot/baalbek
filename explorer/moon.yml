@@ -20,36 +20,22 @@ toolchains:
 tags:
   - "platform"
 
+fileGroups:
+  site:
+    - "package.json"
+    - "tsconfig.json"
+    - "vite.config.ts"
+    - "src/**/*"
+
 tasks:
   generate:
-    description: >-
-      Rebuilds src/generated/model.json from `moon project-graph --json`,
-      `moon task-graph --json`, `e2e:list`'s test list, `git log`, and
-      capabilities.yml. Fails when a project or an e2e spec claims a
-      capability the vocabulary does not define, and when a project claims
-      nothing at all.
-
-      The capability coverage comes through a `deps` entry on `e2e:list`,
-      which declares its JSON as an output — so the edge is hashed the way
-      every other cross-project edge in this workspace is, and nothing here
-      reaches into e2e's tree (../spec/decisions/adr-0006-*).
-
-      The moon.yml and spec/ globs are the exception, and they are named
-      files this task genuinely reads: the project graph is nothing but the
-      moon.yml files, and the spec links are the tracked files under each
-      spec/. No directory is walked, no build tree is reachable, no task
-      writes any of them, and there is no artefact to depend on instead.
-
-      Uncached deliberately. Git history is a real input, and Moon can hash
-      only files; a cached run would serve change-frequency data from
-      whenever the cache was filled. See spec/decisions/adr-0004-*.
-    command: "bash"
-    args:
-      - "-lc"
-      - "pnpm install --frozen-lockfile && pnpm run generate"
+    description: "Rebuilds src/generated/model.json from the moon graph, `e2e:list`'s test list, git history, and capabilities.yml."
+    script: "pnpm run generate"
     deps:
+      - "~:install"
       - "e2e:list"
-    toolchain: "node"
+    # Uncached: git history is a real input, and moon can hash only files
+    # (spec/decisions/adr-0004-*).
     options:
       cache: false
     inputs:
@@ -66,51 +52,29 @@ tasks:
       - "src/generated/model.json"
 
   build:
-    description: >-
-      Type-checks the generator and the site, then bundles the static site
-      into dist. The model is bundled rather than fetched, so serving dist
-      needs a static file server and nothing else.
-
-      Uncached for the same reason `generate` is: it consumes `generate`'s
-      output, which is gitignored and so is not hashable as an input, and
-      whose content moves with git history. seed.md §9 asks for a site
-      regenerated on every build so it cannot drift; this is that, literally.
-    command: "bash"
-    args:
-      - "-lc"
-      - "pnpm install --frozen-lockfile && pnpm run build"
+    description: "Type-checks the generator and the site, then bundles the site and its model into dist."
+    script: "pnpm run build"
     deps:
+      - "~:install"
       - "generate"
-    toolchain: "node"
+    # Uncached: it consumes `generate`'s gitignored output, which is not
+    # hashable as an input.
     options:
       cache: false
     inputs:
-      - "package.json"
-      - "tsconfig.json"
-      - "vite.config.ts"
+      - "@group(site)"
       - "index.html"
-      - "src/**/*"
     outputs:
       - "dist"
 
   test:
-    description: >-
-      Runs the vitest suite. `deps` on `build` makes this gate type-check as
-      well: vitest transforms TypeScript with esbuild, which strips types
-      and never checks them — the same reason web:test depends on web:build,
-      recorded in web/spec/decisions/adr-0001-vitest-does-not-type-check.md.
-      `build` also produces src/generated/model.json, which
-      src/generated-model.test.ts asserts against.
-    command: "bash"
-    args:
-      - "-lc"
-      - "pnpm install --frozen-lockfile && pnpm run test"
+    description: "Runs the vitest suite."
+    # `deps` on `build` is what type-checks this gate, and what writes the
+    # model src/generated-model.test.ts asserts against.
+    script: "pnpm run test"
     deps:
+      - "~:install"
       - "build"
-    toolchain: "node"
     inputs:
-      - "package.json"
-      - "tsconfig.json"
-      - "vite.config.ts"
+      - "@group(site)"
       - "capabilities.yml"
-      - "src/**/*"

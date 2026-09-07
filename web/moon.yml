@@ -13,76 +13,52 @@ tags:
 dependsOn:
   - "core-api-client"
 
+fileGroups:
+  app:
+    - "package.json"
+    - "tsconfig.json"
+    - "vite.config.ts"
+    - "index.html"
+    - "src/**/*"
+    - "public/**/*"
+
 tasks:
   lint:
-    description: >-
-      ESLint's `no-restricted-imports` rule blocks reaching past
-      core-api-client's package root into its internals (seed.md §3,
-      "module-boundary enforcement is lint-level ... CI blocks it") — see
-      web/eslint.config.js. A separate task, not folded into `test`'s
-      command, so it's independently runnable; `test` depends on it below
-      so the Stage 6 gate (`moon run web:test`) still enforces it.
-    command: "bash"
-    args:
-      - "-lc"
-      - "pnpm install --frozen-lockfile && pnpm run lint"
-    toolchain: "node"
+    description: "Runs ESLint, whose `no-restricted-imports` rule blocks imports past core-api-client's package root (seed.md §3)."
+    script: "pnpm run lint"
+    deps:
+      - "~:install"
     inputs:
       - "package.json"
       - "eslint.config.js"
       - "src/**/*"
 
-  test:
-    description: >-
-      Runs the vitest suite (component tests against a stubbed
-      `globalThis.fetch` — see web/README.md's testing-scope note). `deps`
-      on core-api-client:build both sequences generation before this task
-      and, since that task declares `outputs`, folds its hash — and through
-      it `server:openapi`'s and the Elixir apps' — into this one. `deps`
-      on `lint` makes this gate also enforce the module-boundary rule.
-      `deps` on `build` makes this gate also enforce real type-checking:
-      vitest's esbuild transform strips types and never type-checks, so
-      without this, `moon run web:test` alone would pass against a breaking
-      API change even though `tsc -b` (run by `build`) genuinely fails on
-      it — seed.md §6's guarantee has to hold for this exact gate command,
-      not just for `moon check --all`.
-    command: "bash"
-    args:
-      - "-lc"
-      - "pnpm install --frozen-lockfile && pnpm run test"
+  build:
+    description: "Type-checks (via project references) and produces the production Vite build."
+    script: "pnpm run build"
     deps:
+      - "~:install"
+      - "core-api-client:build"
+    inputs:
+      - "@group(app)"
+    outputs:
+      - "dist"
+
+  test:
+    description: "Runs the vitest suite against a stubbed `globalThis.fetch`."
+    script: "pnpm run test"
+    # `deps` on `build` is what type-checks this gate: vitest's esbuild
+    # transform strips types and never runs `tsc` (spec/decisions/adr-0001-*).
+    deps:
+      - "~:install"
       - "core-api-client:build"
       - "lint"
       - "build"
-    toolchain: "node"
     inputs:
-      - "package.json"
-      - "tsconfig.json"
-      - "vite.config.ts"
-      - "index.html"
-      - "src/**/*"
-      - "public/**/*"
+      - "@group(app)"
 
   image:
-    description: >-
-      Builds the servable PWA image Stage 9's e2e stack runs (`baalbek-web:latest`
-      by default; override with WEB_IMAGE). nginx serving `build`'s `dist` with
-      `server`'s API proxied onto the same origin — the deployment topology
-      src/api.ts's same-origin default assumes, owned here rather than in the
-      test harness. The `deps` entry on `build` both orders the two and, since
-      `build` declares `outputs`, folds the bundle into this task's hash.
-
-      Uncached deliberately, like `server:image` and `root:sandbox-image`: an
-      image in the local docker daemon is not a file output, so a Moon cache hit
-      replays a log claiming the image was built while a `docker image prune`
-      has since removed it. Docker's own layer cache keeps the real rebuild
-      short. `e2e`'s global setup checks for the image anyway, and says to run
-      this with `--force`, rather than testing a stale or absent image.
-
-      `buildx build`, not `build`, for the reason root moon.yml gives: a
-      missing Buildx plugin should be an error, not a silent fall back to the
-      legacy builder. `--builder default` pins the daemon's own BuildKit, the
-      cache the other image tasks share.
+    description: "Builds the servable PWA image e2e's stack runs: nginx serving `build`'s dist, with `server`'s API on the same origin."
     deps:
       - "build"
     command: "bash"
@@ -92,6 +68,8 @@ tasks:
         docker buildx build --builder default --load
         -f web/Dockerfile -t "${WEB_IMAGE:-baalbek-web:latest}" web
     toolchain: "system"
+    # Uncached, like `server:image` and `root:sandbox-image`: an image in the
+    # local docker daemon is not a file output.
     options:
       runFromWorkspaceRoot: true
       cache: false
@@ -99,22 +77,3 @@ tasks:
       - "Dockerfile"
       - "Dockerfile.dockerignore"
       - "nginx.conf.template"
-
-  build:
-    description: Type-checks (via project references) and produces the production Vite build.
-    command: "bash"
-    args:
-      - "-lc"
-      - "pnpm install --frozen-lockfile && pnpm run build"
-    deps:
-      - "core-api-client:build"
-    toolchain: "node"
-    inputs:
-      - "package.json"
-      - "tsconfig.json"
-      - "vite.config.ts"
-      - "index.html"
-      - "src/**/*"
-      - "public/**/*"
-    outputs:
-      - "dist"

@@ -1,0 +1,26 @@
+# Tasks inherited by every TypeScript project that has a `package.json`.
+# https://moonrepo.dev/docs/config/tasks
+#
+# `inheritedBy` is required: moon 2.5.4 applies a conditionless
+# `.moon/tasks/*.yml` to every project, and the `file` condition keeps these
+# tasks off `config`, the typescript project with no package.json. A node task
+# declares no toolchain, because moon infers `node` and `pnpm` from
+# `language: typescript`. It needs no `bash -lc` wrapper either, because moon
+# puts proto's shims on its PATH — unlike a `toolchain: "system"` task, where
+# the login shell is load-bearing (../../spec/decisions/adr-0009-*).
+inheritedBy:
+  language: "typescript"
+  file: "package.json"
+
+tasks:
+  install:
+    description: "Installs the pnpm workspace into `node_modules`, and is the only task that installs."
+    script: "pnpm install --frozen-lockfile"
+    # Uncached: `<project>/node_modules` is symlinks into the root pnpm store,
+    # so it is not an output that survives an archive round-trip.
+    options:
+      cache: false
+    inputs:
+      - "package.json"
+      - "/pnpm-lock.yaml"
+      - "/pnpm-workspace.yaml"

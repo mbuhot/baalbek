@@ -21,23 +21,11 @@ dependsOn:
 
 tasks:
   build:
-    description: >-
-      Regenerates src/generated/schema.d.ts from server's published OpenAPI
-      spec, then type-checks the hand-written client against it. `server:openapi`
-      declares `outputs`, so the `deps` entry both orders the two and folds
-      that task's hash — and, transitively, every Elixir app it is built
-      from — into this one. See
-      ../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md.
-    command: "bash"
-    args:
-      - "-lc"
-      - >-
-        pnpm install --frozen-lockfile &&
-        pnpm run generate &&
-        pnpm exec tsc --noEmit
+    description: "Regenerates src/generated/schema.d.ts from server's published OpenAPI spec, then type-checks the client against it."
+    script: "pnpm run generate && pnpm exec tsc --noEmit"
     deps:
+      - "~:install"
       - "server:openapi"
-    toolchain: "node"
     inputs:
       - "package.json"
       - "tsconfig.json"
