@@ -9,23 +9,6 @@ tags:
   - "capability/technician-availability"
 
 tasks:
-  deps:
-    description: >-
-      Downloads the third-party Gleam packages into `build/packages`. Keyed on
-      `gleam.toml` and `manifest.toml` alone, so no change under `src/`
-      invalidates it.
-    command: "bash"
-    args:
-      - "scripts/deps-download.sh"
-    toolchain: "system"
-    inputs:
-      - "gleam.toml"
-      - "manifest.toml"
-      - "scripts/deps-download.sh"
-      - "scripts/toolchain-path.sh"
-    outputs:
-      - "build/packages/**/*"
-
   bootstrap:
     description: >-
       Creates the timeline Postgres role, schema and tables (idempotent).
@@ -48,7 +31,6 @@ tasks:
       a live Postgres (the postgres service in
       .devcontainer/docker-compose.yml).
     deps:
-      - "~:deps"
       - "~:bootstrap"
     command: "bash"
     args:
@@ -62,7 +44,7 @@ tasks:
       - "scripts/moon-test.sh"
       - "scripts/toolchain-path.sh"
 
-  build:
+  package:
     description: >-
       Builds build/otp/ — this project and its runtime dependencies as
       ordinary OTP application directories, with real {modules, ...} lists.
@@ -70,8 +52,6 @@ tasks:
       directory, which is what puts the Gleam code inside `server`'s
       release. See ../server/spec/decisions/adr-0001-release-assembly-and-gleam-packaging.md.
       No database needed: this compiles and copies only.
-    deps:
-      - "~:deps"
     command: "bash"
     args:
       - "scripts/package-otp.sh"

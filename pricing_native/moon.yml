@@ -1,9 +1,13 @@
 # Stage 4 of PLAN.md: Elixir Rustler NIF facade for the `pricing` crate.
 # `boundary` enforces that PricingNative.Native (the raw NIF module) is
-# reachable only from PricingNative itself.
+# reachable only from PricingNative itself; PricingNative.quote/3 is the
+# sole sanctioned entry point.
 #
-# `deps`, `build` and `test` come from ../.moon/tasks/elixir.yml. No database,
-# so no `bootstrap` task.
+# `pricing` compiles outside Mix's dependency graph (native/pricingnative's
+# Cargo.toml has a Cargo *path* dependency on ../../../pricing, which Mix
+# never sees and moon-elixir-plugin therefore cannot infer), so this dependsOn
+# is hand-declared per seed.md §3 ("Rust: NIF behind a facade app") and
+# PLAN.md's "Two facades, one pattern".
 language: elixir
 layer: library
 
@@ -11,29 +15,75 @@ layer: library
 tags:
   - "capability/quote-pricing"
 
-# Hand-declared: the crate edge is a Cargo path dependency in
-# native/pricingnative/Cargo.toml, which Mix never sees. It is also what the
-# inherited `^:build` edge resolves to.
 dependsOn:
   - "pricing"
-
-# One cargo target directory for the workspace, out of the repo for the
-# virtiofs reason pricing/moon.yml gives. Cargo namespaces it by package.
-env:
-  CARGO_TARGET_DIR: "$HOME/.cache/baalbek-cargo-target"
 
 tasks:
   build:
     description: >-
-      Compiles this app and its Rustler NIF into `build/dev`.
-    # priv/native/pricingnative.so is neither an input nor an output: three
-    # tasks write that path in the source tree.
+      Compiles this app and its Rustler NIF, following core/moon.yml's
+      `build` shape. Declared so a task that needs a `pricing_native` (or,
+      through `pricing:build`, a `pricing`) source change to invalidate it
+      can just depend on this task. See
+      ../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md.
+
+      `priv/native/pricingnative.so` is deliberately NOT an output, even
+      though it is the artefact the release loads: Rustler writes it into
+      the source tree, where `pricing_native:test` and `server`'s own
+      compiles rewrite the same path. Moon restores a declared output from
+      its cache archive, and these tasks run concurrently under `moon ci`.
+    deps:
+      - "pricing:build"
+    command: "bash"
+    args:
+      - "-lc"
+      - >-
+        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/pricing_native-native-pricingnative" &&
+        mix deps.get &&
+        mix compile
+    toolchain: "system"
+    env:
+      MIX_ENV: "dev"
+      MIX_BUILD_PATH: "build"
     inputs:
+      - "mix.exs"
+      - "mix.lock"
+      - "lib/**/*"
       - "native/**/*"
+    outputs:
+      - "build/lib/pricing_native/ebin"
 
   test:
     description: >-
-      Compiles the pricingnative NIF crate from source, then runs the ExUnit
-      suite, which calls PricingNative.quote/3 through the real compiled NIF.
+      Fetch Mix deps (pulling in :rustler), compile the pricingnative NIF
+      crate from source (no precompiled binary — PLAN.md is explicit that a
+      binary artefact has no source dependency edge, which would defeat the
+      point of this stage), then run the ExUnit suite, which calls
+      PricingNative.quote/3 through the real compiled NIF.
+      moon-elixir-plugin (Stage 11) reads this project's mix.exs to infer
+      `dependsOn`; it runs no commands, so this stays a `system` task that
+      shells out to `mix`, resolved via proto's PATH activation.
+      CARGO_TARGET_DIR is redirected under $HOME
+      for the same virtiofs reason documented in pricing/moon.yml's test
+      task — the Rustler-invoked `cargo rustc` subprocess inherits it same
+      as a direct `cargo test` would.
+    # `pricing:build` carries the crate edge: it declares `outputs`, so its
+    # hash folds into this one. `pricing:test` declares none and would be
+    # recorded as "ignored".
+    deps:
+      - "pricing:build"
+    command: "bash"
+    args:
+      - "-lc"
+      - >-
+        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/pricing_native-native-pricingnative" &&
+        mix deps.get &&
+        mix test
+    toolchain: "system"
     inputs:
+      - "mix.exs"
+      - "mix.lock"
+      - ".formatter.exs"
+      - "lib/**/*"
       - "native/**/*"
+      - "test/**/*"

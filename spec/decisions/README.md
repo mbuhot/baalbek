@@ -13,9 +13,6 @@ decision confined to one component lives in that component's own
 - ADRs are **immutable**. A decision that no longer holds is superseded by a
   new ADR that says so, and the old one is marked `Superseded by adr-NNNN`.
   Neither the reasoning nor the date is edited after the fact.
-- A decision that still holds but whose detail a later ADR changes is marked
-  `Amended by adr-NNNN`, naming in one sentence which part moved. The two
-  markers are the only permitted edits to a published ADR.
 - An ADR records *why*, not *what*. The code shows what. Capture the
   alternatives that were rejected and the consequences accepted, because
   those are the parts a reader cannot recover from the code.
@@ -29,11 +26,9 @@ decision confined to one component lives in that component's own
 | [0003](adr-0003-pnpm-workspace-without-a-root-package-json.md) | The pnpm workspace has no root `package.json` | Accepted |
 | [0004](adr-0004-gherkin-acceptance-specs-run-on-cucumber.md) | Gherkin acceptance specs run on `cucumber` | Accepted |
 | [0005](adr-0005-within-app-test-selection-by-path.md) | Within-app test selection is by path convention | Accepted |
-| [0006](adr-0006-task-deps-on-output-declaring-tasks.md) | Cross-project edges are task deps on output-declaring tasks | Accepted. Amended by 0010 |
+| [0006](adr-0006-task-deps-on-output-declaring-tasks.md) | Cross-project edges are task deps on output-declaring tasks | Accepted |
 | [0007](adr-0007-ci-runs-moon-ci-inside-the-sandbox-image.md) | CI runs `moon ci` inside the sandbox image, from the runner | Accepted |
 | [0008](adr-0008-the-sandbox-image-is-published-to-ghcr.md) | The sandbox image is published to GHCR, and one builder writes the cache | Accepted |
-| [0009](adr-0009-where-ci-runs-moon-ci.md) | Where CI runs `moon ci`, and what it may replay | Draft |
-| [0010](adr-0010-third-party-deps-compile-in-their-own-task.md) | Third-party dependencies compile in their own task | Accepted |
 
 ## Where the other spec directories are
 
@@ -45,5 +40,5 @@ decision confined to one component lives in that component's own
 | `timeline_facade/spec/decisions/` | The Gleam ↔ Elixir interop decision (superseded) |
 | `web/spec/mocks/`, `web/spec/decisions/` | Dated UI mock snapshots, and the PWA's own decisions |
 | `e2e/spec/decisions/` | How the dockerized e2e stack is composed and bootstrapped |
-| `moon-elixir-plugin/spec/decisions/` | How `dependsOn` and the third-party dependency list are read out of `mix.exs` and `mix.lock`, what that does not cover, and what the committed WASM artifact's gate asserts |
+| `moon-elixir-plugin/spec/decisions/` | How `dependsOn` between Elixir projects is inferred from `mix.exs`, what that does not cover, and what the committed WASM artifact's gate asserts |
 | `explorer/spec/decisions/` | How the architecture explorer is generated, how it shows its own blind spots, and how capabilities are claimed. 0001 and 0002 are superseded by 0004 and 0005 |

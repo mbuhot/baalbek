@@ -17,9 +17,7 @@ cd ../timeline_facade && mix deps.get && mix test
 Or via Moon: `moon run timeline:test timeline_facade:test`.
 
 `mix.exs` declares one Mix path dependency per OTP application in
-`../timeline/build/otp`. Before `timeline:build` has written that directory it
-lists the single `timeline` application instead, and never raises: an
-unevaluable manifest infers no `dependsOn`.
+`../timeline/build/otp`, so `mix.exs` raises if `timeline:package` has not run.
 See `../server/spec/decisions/adr-0001-release-assembly-and-gleam-packaging.md`
 for why that shape, and `spec/decisions/adr-0001-gleam-elixir-interop.md` (now
 superseded) for the Stage 5 mechanism it replaced.

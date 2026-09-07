@@ -1,8 +1,7 @@
 # moon-elixir-plugin
 
-A moon toolchain plugin that reads each Elixir project's `mix.exs`: it infers
-`dependsOn` from the path dependencies, and hands the third-party dependency
-list to the project's tasks.
+A moon toolchain plugin that infers `dependsOn` between Elixir projects from
+the path dependencies in their `mix.exs` files.
 
 Rust compiled to `wasm32-wasip1`. It reads the dependency lists by asking Mix,
 not by parsing `mix.exs`, so a list that is computed at evaluation time is
@@ -31,50 +30,12 @@ edge a development dependency.
 Self-edges, duplicates, absolute paths, and paths that climb out of the
 workspace are dropped: none is an edge moon can express.
 
-The same process attaches two dependency lists to a `deps-list` task, each
-space-separated, sorted and deduplicated:
-
-| variable | contents |
-|---|---|
-| `$MIX_THIRD_PARTY_DEPS` | every name in `mix.lock`, read through `Mix.Dep.Lock.read/1` |
-| `$MIX_PATH_DEPS` | every `path:` dependency's app name, as Mix resolved it |
-
-```yaml
-tasks:
-  deps:
-    extends: "deps-list"
-    command: "mix"
-    args: ["deps.compile", "$MIX_THIRD_PARTY_DEPS"]
-    inputs: ["mix.exs", "mix.lock"]
-```
-
-The lock names the whole third-party tree, transitive entries included, and
-never a `path:` dependency — which is what lets a task compile the
-third-party half of a build without touching the first-party half. The path
-list is the other half, for a task that has to name them instead: `mix
-compile --no-deps-check` skips the step that compiles a path dependency into
-the build path, so a consumer that skips the check has to run
-`mix deps.compile $MIX_PATH_DEPS` itself. It is Mix's list, not the project
-graph's — a path dependency resolving to no moon project is still named.
-
-`extends` is how a consuming task reads either: a task a project's own
-`moon.yml` declares replaces the plugin's version of that task, and it takes
-only a `deps:` edge to do it, so the lists arrive on a task nothing else has
-a reason to declare.
-
-A lockfile Mix cannot read — missing, conflicted, not a map — is an empty list
-rather than an error. A manifest that raises delivers no list at all.
-
 ## What it does not do
 
 - **It orders, it does not invalidate.** `dependsOn` decides what runs first
   and what `moon ci` considers affected. A source change reaching a
   dependent task's hash is a separate mechanism — see moon's task `deps` and
-  declared `outputs`. moon's `^:build` scope turns the inferred edges into
-  hash edges, which is how a consumer gets both from one declaration.
-- **It defines no task.** `deps-list` carries the list and runs `noop`. What
-  compiles the dependencies, where it writes, and what it declares as
-  `outputs` are the workspace's decisions, not this plugin's.
+  declared `outputs`.
 - **It runs no build and manages no versions.** It evaluates `project/0` and
   nothing else. Installing Elixir, fetching dependencies and compiling stay
   with whatever already does them.

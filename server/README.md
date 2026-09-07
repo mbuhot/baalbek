@@ -61,7 +61,7 @@
   `moon run server:release` assembles `../.artifacts/server-release`, which embeds
   ERTS and every application in `server`'s dependency tree.
 - **The Gleam code is genuinely in the release.** `timeline` and its runtime
-  dependencies are packaged as OTP applications by `moon run timeline:build`
+  dependencies are packaged as OTP applications by `moon run timeline:package`
   and taken as Mix path dependencies by `timeline_facade`, so `mix release`
   bundles them like any Hex dependency. See
   `spec/decisions/adr-0001-release-assembly-and-gleam-packaging.md` — the ADR

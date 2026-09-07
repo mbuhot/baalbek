@@ -1,8 +1,6 @@
 # ADR-0006: Cross-project edges are task deps on output-declaring tasks
 
-**Status:** Accepted. Supersedes adr-0002. Amended by adr-0010: the `build/`
-output paths gained an environment segment, and an Elixir artefact is no
-longer only a marker.
+**Status:** Accepted. Supersedes adr-0002.
 **Date:** 2026-09-07
 **Stage:** mid-build, after Stage 9
 

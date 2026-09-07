@@ -1,19 +1,10 @@
-# Stage 6 of PLAN.md: `server` release, OpenAPI generated from Ash, first real
-# Mix path deps on sibling apps (`boundary`'s cross-app check turns on — see
-# mix.exs). See server/README.md for why `server` bootstraps three schemas but
-# has no Ecto Repo of its own.
-#
-# `deps`, `build` and `test` come from ../.moon/tasks/elixir.yml, and their
-# `^:build` edge expands to the five Mix path deps moon-elixir-plugin infers
-# from mix.exs. No task here names a dependency: `pricing` and `timeline` are
-# reached through the facades that declare them, `pricing_native` and
-# `timeline_facade`.
+# Stage 6 of PLAN.md: `server` release, OpenAPI generated from Ash, first
+# real Mix path deps on sibling apps (`boundary`'s cross-app check turns
+# on — see mix.exs). Task shape mirrors core/moon.yml's Postgres-bootstrap
+# pattern; see server/README.md for why `server` bootstraps three schemas
+# but has no Ecto Repo of its own.
 language: elixir
 layer: application
-
-# The shared cargo target directory pricing_native/moon.yml documents.
-env:
-  CARGO_TARGET_DIR: "$HOME/.cache/baalbek-cargo-target"
 
 # Capabilities this component serves, in explorer/capabilities.yml's vocabulary.
 tags:
@@ -28,65 +19,103 @@ tags:
   - "capability/api-contract"
   - "capability/release-assurance"
 
+# The five Elixir edges (`core`, `identity`, `billing`, `pricing_native`,
+# `timeline_facade`) are NOT declared here: moon-elixir-plugin reads them from
+# this project's mix.exs path deps. See
+# ../moon-elixir-plugin/spec/decisions/adr-0001-mix-path-dep-inference.md.
+#
+# `pricing` (Rust) and `timeline` (Gleam) are not Mix path deps of this
+# project, so nothing infers them. They are kept as the explicit statement
+# seed.md §3 asks every cross-language edge to carry, NOT because affected
+# detection needs them: removing both leaves `moon query tasks --affected
+# --downstream deep` byte-identical for a `pricing` or a `timeline` change,
+# because `pricing` is reached through `pricing_native` and `timeline`
+# through this project's `deps` on `timeline:package`.
+dependsOn:
+  - "pricing"
+  - "timeline"
+
 tasks:
-  bootstrap:
+  test:
     description: >-
-      Creates `core`'s, `identity`'s and `billing`'s Postgres roles and
-      schemas (idempotent — `server` boots all three as part of its dependency
-      tree), then creates and migrates `core`'s test database, the one
-      `server`'s own tests exercise. Requires a live Postgres (the `postgres`
-      service in .devcontainer/docker-compose.yml).
+      Fetch Mix deps (pulling in all five domain apps as real path deps),
+      bootstrap `core`'s, `identity`'s, and `billing`'s Postgres
+      roles/schemas (idempotent — `server` boots all three as part of its
+      dependency tree, per each app's own `Application.start/2`), create +
+      migrate only `core`'s test database (the one `server`'s own tests
+      exercise), then run the ExUnit suite: real HTTP requests through
+      `ServerWeb.Endpoint` against `core`'s JSON:API routes. `CARGO_TARGET_DIR`
+      is redirected for the same virtiofs reason documented in
+      pricing_native/moon.yml — compiling `pricing_native` as a path dep of
+      `server` hits the same rustc/virtiofs directory-creation race
+      otherwise. Requires a live Postgres (the `postgres` service in
+      .devcontainer/docker-compose.yml), including the `timeline` schema —
+      test/server_web/timeline_router_test.exs writes to it, so
+      `timeline:bootstrap` (uncached, like the three `mix *.bootstrap`
+      calls below) is a dependency.
+    # Every `*:build` entry declares `outputs`, so each one folds its own
+    # hash — and, transitively, its own dependencies' — into this task's.
+    # That is what makes a `pricing` crate or `timeline` Gleam change
+    # invalidate this suite, through two levels of facade. See
+    # ../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md.
     deps:
-      - "~:deps"
-    extends: "deps-list"
+      - "core:build"
+      - "identity:build"
+      - "billing:build"
+      - "pricing_native:build"
+      - "timeline_facade:build"
+      - "timeline:bootstrap"
+      - "timeline:package"
     command: "bash"
     args:
       - "-lc"
-      # One `loadpaths --no-deps-check` covers every task after it.
       - >-
-        { test -z "$MIX_PATH_DEPS" || mix deps.compile $MIX_PATH_DEPS; } &&
-        mix do loadpaths --no-deps-check +
-        core.bootstrap +
-        identity.bootstrap +
-        billing.bootstrap +
-        ecto.create -r Core.Data.Repo --quiet +
-        ecto.migrate -r Core.Data.Repo --quiet
+        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/pricing_native-native-pricingnative" &&
+        mix deps.get &&
+        mix core.bootstrap &&
+        mix identity.bootstrap &&
+        mix billing.bootstrap &&
+        MIX_ENV=test mix ecto.create -r Core.Data.Repo --quiet &&
+        MIX_ENV=test mix ecto.migrate -r Core.Data.Repo --quiet &&
+        MIX_ENV=test mix test
     toolchain: "system"
-    env:
-      MIX_ENV: "test"
-      MIX_BUILD_PATH: "build/test"
-    # Never cached: a warm cache against a fresh database would skip this.
-    options:
-      cache: false
-
-  test:
-    description: >-
-      Runs the ExUnit suite: real HTTP requests through `ServerWeb.Endpoint`
-      against `core`'s JSON:API routes, and writes to the `timeline` schema
-      from test/server_web/timeline_router_test.exs.
-    deps:
-      - "~:bootstrap"
-      - "timeline:bootstrap"
+    inputs:
+      - "mix.exs"
+      - "mix.lock"
+      - ".formatter.exs"
+      - "config/**/*"
+      - "lib/**/*"
+      - "spec/**/*"
+      - "test/**/*"
 
   openapi:
     description: >-
       Generates `priv/static/openapi.json` from `Server.Api`'s
-      `AshJsonApi.Domain` definition, in `~:build`'s dev tree. Boots the full
-      `:server` application first, so it needs the same Postgres bootstrap as
-      the suite even though spec generation never queries the database.
+      `AshJsonApi.Domain` definition (PLAN.md "OpenAPI generated from
+      Ash" / seed.md §6 "Runtime edges become build-time edges") — a
+      build output a later `core-api-client` Moon task can declare as an
+      input. Boots the full `:server` application first (so
+      `ServerWeb.JsonApiRouter.spec/0` can introspect the compiled routes),
+      hence the same Postgres bootstrap as the `test` task, even though
+      spec generation itself never queries the database.
     deps:
-      - "~:build"
-      - "~:bootstrap"
+      - "core:build"
+      - "identity:build"
+      - "billing:build"
+      - "pricing_native:build"
+      - "timeline_facade:build"
+      - "timeline:package"
     command: "bash"
     args:
       - "-lc"
       - >-
-        mix do loadpaths --no-deps-check +
-        openapi.spec.json --spec ServerWeb.JsonApiRouter --pretty=true priv/static/openapi.json
+        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/pricing_native-native-pricingnative" &&
+        mix deps.get &&
+        mix core.bootstrap &&
+        mix identity.bootstrap &&
+        mix billing.bootstrap &&
+        mix openapi.spec.json --spec ServerWeb.JsonApiRouter --pretty=true priv/static/openapi.json
     toolchain: "system"
-    env:
-      MIX_ENV: "dev"
-      MIX_BUILD_PATH: "build/dev"
     inputs:
       - "mix.exs"
       - "mix.lock"
@@ -97,24 +126,35 @@ tasks:
 
   release:
     description: >-
-      Assembles the `MIX_ENV=prod` release into /.artifacts/server-release
-      (PLAN.md Stage 6c), carrying its own ERTS and every application in
-      `server`'s dependency tree, the Gleam ones included. Needs no database.
-    # The one task that still fetches: the prod tree is its own, because the
-    # plugin reads the dependency list at the default MIX_ENV, so there is no
-    # prod list to compile and Mix has to check and build the tree itself.
+      Assembles the `MIX_ENV=prod` release (PLAN.md Stage 6c). The release
+      carries its own ERTS and every application in `server`'s dependency
+      tree, the Gleam ones included — `timeline` and its runtime
+      dependencies reach it as Mix path deps of `timeline_facade`, which is
+      why `timeline:package` runs first. No database needed: `mix release`
+      compiles and assembles, it never boots the app. Configuration is read
+      from the environment at boot by config/runtime.exs.
+
+      The release is written to /.artifacts/server-release and declares no
+      `outputs`. Nothing consumes the artifact — `server:image` compiles
+      its own release inside the Docker build stage — so there is no edge
+      for outputs to carry, and a 101 MB tree is not worth archiving into
+      the Moon cache on every miss.
     deps:
-      - "~:deps"
-      - "^:build"
+      - "core:build"
+      - "identity:build"
+      - "billing:build"
+      - "pricing_native:build"
+      - "timeline_facade:build"
+      - "timeline:package"
     command: "bash"
     args:
       - "-lc"
       - >-
+        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/pricing_native-native-pricingnative-prod" &&
         export MIX_ENV=prod &&
         mix deps.get --only prod &&
         mix release --overwrite --path ../.artifacts/server-release
     toolchain: "system"
-    # No `outputs`: nothing reads the tree, and it is 101 MB.
     inputs:
       - "mix.exs"
       - "mix.lock"
@@ -125,12 +165,29 @@ tasks:
     description: >-
       Builds the runnable release image Stage 9's e2e runs against
       (`baalbek-server:latest` by default; override with SERVER_IMAGE).
-      Independent of `~:release`: server/Dockerfile compiles the release inside
-      the image so the artifact never carries host paths. The build context is
-      the workspace root, since the release assembles from sibling projects.
+      Independent of the `release` task: Dockerfile compiles the release
+      inside the image so the artifact never carries host paths. Build
+      context is the workspace root, since the release assembles from
+      sibling projects.
+
+      Uncached deliberately: an image in the local daemon is not a file
+      output, so a Moon cache hit replays a log claiming the image was
+      built while a `docker image prune` has since removed it. Docker's own
+      layer cache keeps the real rebuild to a couple of seconds.
+
+      `buildx build`, not `build`: only BuildKit reads
+      Dockerfile.dockerignore, and without the Buildx plugin `docker build`
+      degrades to the legacy builder behind a deprecation warning. Naming
+      buildx makes a missing plugin an error. `--builder default` pins the
+      daemon's own BuildKit, which shares its cache with `root:sandbox-image`
+      below. See root moon.yml.
     deps:
       - "root:sandbox-image"
-      - "^:build"
+      - "core:build"
+      - "identity:build"
+      - "billing:build"
+      - "pricing_native:build"
+      - "timeline_facade:build"
     command: "bash"
     args:
       - "-lc"
@@ -138,8 +195,6 @@ tasks:
         docker buildx build --builder default --load
         -f server/Dockerfile -t "${SERVER_IMAGE:-baalbek-server:latest}" .
     toolchain: "system"
-    # Uncached: an image in the local daemon is not a file output.
-    # `--builder default` shares the BuildKit cache root:sandbox-image writes.
     options:
       runFromWorkspaceRoot: true
       cache: false
