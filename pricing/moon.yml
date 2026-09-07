@@ -36,10 +36,10 @@ tasks:
     args:
       - "-lc"
       - >-
-        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/pricing" &&
+        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target" &&
         cargo build &&
         mkdir -p build &&
-        cat "$HOME/.cache/baalbek-cargo-target/pricing/debug/libpricing.rlib" > build/libpricing.rlib
+        cat "$HOME/.cache/baalbek-cargo-target/debug/libpricing.rlib" > build/libpricing.rlib
     toolchain: "rust"
     inputs:
       - "Cargo.toml"
@@ -62,7 +62,7 @@ tasks:
     args:
       - "-lc"
       - >-
-        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/pricing" &&
+        export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target" &&
         cargo test
     toolchain: "rust"
     inputs:

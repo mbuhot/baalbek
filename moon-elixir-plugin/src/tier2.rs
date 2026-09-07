@@ -1,15 +1,17 @@
-//! Project-graph extension: the `dependsOn` edges read out of every `mix.exs`.
+//! Project-graph extension: what every `mix.exs` says about its project.
 
 use crate::config::ElixirToolchainConfig;
+use crate::deps_task::{DEPS_TASK, dependency_env};
 use crate::inference::{InferredScope, ProjectSources, infer_dependencies};
 use crate::mix::{READ_MANIFESTS_EXS, manifest_arg, parse_manifests};
 use extism_pdk::*;
-use moon_config::DependencyScope;
+use moon_config::{DependencyScope, PartialTaskConfig};
 use moon_pdk::{
     ExecCommandInput, HostLogInput, command_exists, exec, get_host_environment, host_log,
     parse_toolchain_config,
 };
 use moon_pdk_api::*;
+use std::collections::BTreeMap;
 
 #[host_fn]
 extern "ExtismHost" {
@@ -96,15 +98,31 @@ pub fn extend_project_graph(
             })
             .collect::<AnyResult<Vec<_>>>()?;
 
-        if !dependencies.is_empty() {
-            output.extended_projects.insert(
-                Id::new(manifest.id)?,
-                ExtendProjectOutput {
-                    dependencies,
-                    ..Default::default()
-                },
-            );
-        }
+        // The task carries the list even for a project with no path deps, and
+        // the dependencies exist even for one with no third-party tree, so
+        // either alone is worth an entry.
+        let path_deps: Vec<String> = manifest
+            .deps
+            .iter()
+            .map(|dep| dep.app.clone())
+            .collect();
+
+        let tasks = BTreeMap::from([(
+            Id::new(DEPS_TASK)?,
+            PartialTaskConfig {
+                env: Some(dependency_env(&manifest.third_party, &path_deps)),
+                ..Default::default()
+            },
+        )]);
+
+        output.extended_projects.insert(
+            Id::new(manifest.id)?,
+            ExtendProjectOutput {
+                dependencies,
+                tasks,
+                ..Default::default()
+            },
+        );
     }
 
     Ok(Json(output))

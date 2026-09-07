@@ -52,12 +52,17 @@ defmodule MoonElixirPlugin do
     dir = Path.expand(source, root)
 
     try do
-      deps =
+      {deps, third_party} =
         Mix.Project.in_project(:"moon_elixir_plugin_#{id}", dir, fn _module ->
-          Mix.Project.config()[:deps] || []
+          {Mix.Project.config()[:deps] || [], third_party()}
         end)
 
-      %{"id" => id, "error" => nil, "deps" => Enum.flat_map(deps, &path_dep(&1, dir, root))}
+      %{
+        "id" => id,
+        "error" => nil,
+        "deps" => Enum.flat_map(deps, &path_dep(&1, dir, root)),
+        "third_party" => third_party
+      }
     rescue
       error -> failed(id, Exception.message(error))
     catch
@@ -65,7 +70,15 @@ defmodule MoonElixirPlugin do
     end
   end
 
-  defp failed(id, message), do: %{"id" => id, "error" => message, "deps" => []}
+  # Every dependency Mix resolves from a registry or a git ref, transitive ones
+  # included: a `path:` dependency is never written to the lock. A lockfile Mix
+  # cannot read is an empty map, which is what `Mix.Dep.Lock.read/1` returns.
+  defp third_party do
+    Mix.Dep.Lock.read() |> Map.keys() |> Enum.map(&to_string/1) |> Enum.sort()
+  end
+
+  defp failed(id, message),
+    do: %{"id" => id, "error" => message, "deps" => [], "third_party" => []}
 
   defp path_dep({app, opts}, dir, root) when is_list(opts), do: path_dep(app, opts, dir, root)
   defp path_dep({app, _req, opts}, dir, root) when is_list(opts), do: path_dep(app, opts, dir, root)
@@ -116,10 +129,13 @@ pub struct PathDep {
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 pub struct ProjectManifest {
     pub id: String,
-    /// Mix's own message when the manifest could not be evaluated. The
-    /// dependency list is then empty and nothing is inferred for the project.
+    /// Mix's own message when the manifest could not be evaluated. Both lists
+    /// are then empty and nothing is inferred for the project.
     pub error: Option<String>,
     pub deps: Vec<PathDep>,
+    /// Every locked dependency name, sorted: the third-party tree, transitive
+    /// entries included, and never a `path:` dependency.
+    pub third_party: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -173,7 +189,7 @@ mod tests {
     #[test]
     fn reads_the_projects_out_of_the_marked_line() {
         let manifests = parse_manifests(&output(
-            r#"{"projects":[{"id":"server","error":null,"deps":[{"app":"core","path":"core","dev_only":false}]}]}"#,
+            r#"{"projects":[{"id":"server","error":null,"deps":[{"app":"core","path":"core","dev_only":false}],"third_party":["jason","phoenix"]}]}"#,
         ))
         .unwrap();
 
@@ -187,6 +203,7 @@ mod tests {
                     path: "core".into(),
                     dev_only: false
                 }],
+                third_party: vec!["jason".into(), "phoenix".into()],
             }]
         );
     }
@@ -195,7 +212,7 @@ mod tests {
     /// the result, whether or not its output ends in a newline.
     #[test]
     fn ignores_anything_a_manifest_printed_before_the_result() {
-        let json = r#"{"projects":[{"id":"a","error":null,"deps":[]}]}"#;
+        let json = r#"{"projects":[{"id":"a","error":null,"deps":[],"third_party":[]}]}"#;
 
         for noise in ["compiling something\n", "no trailing newline", ""] {
             let manifests = parse_manifests(&format!("{noise}{}", output(json)))

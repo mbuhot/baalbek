@@ -22,7 +22,7 @@ gleam test
 
 Or via Moon: `moon run timeline:test`.
 
-## Packaging for the BEAM (`moon run timeline:package`)
+## Packaging for the BEAM (`moon run timeline:build`)
 
 `scripts/package-otp.sh` writes `build/otp/<app>/ebin/...` — this project and
 its runtime dependencies as ordinary OTP application directories, exported
