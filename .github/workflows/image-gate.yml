@@ -33,6 +33,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 180
 
+    env:
+      # `.moon/cache` is a symlink to this, so the container writes through
+      # the mount and every step that reads the cache names one host path.
+      SANDBOX_MOON_CACHE: /tmp/baalbek-sandbox-moon-cache
+
     steps:
       - uses: actions/checkout@v7
         with:
@@ -59,6 +64,14 @@ jobs:
           SANDBOX_IMAGE_REPO: ${{ vars.SANDBOX_IMAGE_REPO }}
         run: .github/scripts/resolve-sandbox-image.sh
 
+      - name: Point moon's cache at the shared host directory
+        # run-in-sandbox.sh resolves this symlink and mounts its target at the
+        # same absolute path inside the container.
+        run: |
+          mkdir -p "$SANDBOX_MOON_CACHE" .moon
+          ln -sfn "$SANDBOX_MOON_CACHE" .moon/cache
+          ls -l .moon/cache
+
       - name: Hand the workspace and the mounted caches to the image's user
         # The image runs as uid 1000; a runner checkout is uid 1001.
         run: |
@@ -67,11 +80,11 @@ jobs:
             ~/.cache/baalbek-sandbox/android-sdk \
             ~/.cache/baalbek-sandbox/cargo-registry \
             ~/.cache/baalbek-sandbox/hex \
-            /tmp/baalbek-sandbox-moon-cache
+            "$SANDBOX_MOON_CACHE"
           sudo chown -R 1000:1000 \
             "$GITHUB_WORKSPACE" \
             ~/.cache/baalbek-sandbox \
-            /tmp/baalbek-sandbox-moon-cache
+            "$SANDBOX_MOON_CACHE"
 
       - name: Report the tasks this environment cannot run
         run: .github/scripts/run-in-sandbox.sh bash .github/scripts/report-excluded-tasks.sh
@@ -82,16 +95,16 @@ jobs:
 
       - name: Summarize what this run did
         if: always()
-        run: bash .github/scripts/summarize-ci-report.sh
+        run: bash .github/scripts/summarize-ci-report.sh "$SANDBOX_MOON_CACHE/ciReport.json"
 
       - name: Upload moon's CI report
-        # `include-hidden-files`, or upload-artifact drops `.moon` silently.
+        # From the mount's host path: the container writes through the mount,
+        # which leaves the in-workspace mountpoint empty on the runner.
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: image-gate-ci-report
-          path: .moon/cache/ciReport.json
-          include-hidden-files: true
+          path: ${{ env.SANDBOX_MOON_CACHE }}/ciReport.json
           if-no-files-found: error
           retention-days: 14
 
