@@ -44,6 +44,15 @@ snapshots), `decisions/` (ADRs). Never create an empty one to complete the patte
 On macOS and Windows the working tree is case-insensitive, so use each path's canonical spelling
 exactly and never delete an apparent case-duplicate — both spellings are the one file.
 
+## Build directories are not on the working tree
+
+Everything the build writes lives on local storage, off the bind mount that carries the
+source: Moon needs a task's outputs inside its project, so the paths stay put and the storage
+moves under them. The devcontainer mounts a named volume over each one; anywhere else, run
+`scripts/mount-build-dirs.sh setup`, which bind-mounts them and does not survive a reboot.
+`check` says whether they are in place, and `root:test` fails when the devcontainer's
+hand-written volume list stops matching the derived one.
+
 ## Reviewing
 
 A review checks the work against the spec, not only against the brief that produced it. A brief is

@@ -53,6 +53,7 @@ services:
       - pricing-native-build:/workspaces/baalbek/pricing_native/build
       - server-mix-build:/workspaces/baalbek/server/_build
       - server-deps:/workspaces/baalbek/server/deps
+      - server-build:/workspaces/baalbek/server/build
       - timeline-facade-mix-build:/workspaces/baalbek/timeline_facade/_build
       - timeline-facade-deps:/workspaces/baalbek/timeline_facade/deps
       - timeline-facade-build:/workspaces/baalbek/timeline_facade/build
@@ -129,6 +130,7 @@ volumes:
   pricing-native-build:
   server-mix-build:
   server-deps:
+  server-build:
   timeline-facade-mix-build:
   timeline-facade-deps:
   timeline-facade-build:

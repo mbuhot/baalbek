@@ -8,6 +8,20 @@ tags:
   - "platform"
 
 tasks:
+  # Named `test`, not `check-build-dirs`, so `moon run :test` sweeps it up.
+  test:
+    description: "Checks the devcontainer mounts a volume over every directory the build writes into."
+    command: "bash scripts/mount-build-dirs.sh check-devcontainer"
+    toolchain: "system"
+    inputs:
+      - "scripts/mount-build-dirs.sh"
+      - ".devcontainer/docker-compose.yml"
+      # The derived list follows these, so a new project changes the answer.
+      - "*/mix.exs"
+      - "*/gleam.toml"
+      - "*/Cargo.toml"
+      - "*/package.json"
+
   sandbox-image:
     description: "Builds the sandbox/CI image, which is also server/Dockerfile's build stage."
     # `buildx build`, not `build`: without the Buildx plugin `docker build` falls

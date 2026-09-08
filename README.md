@@ -90,6 +90,13 @@ elsewhere.
 
 ## Working-tree hazards
 
+The working tree carries source and nothing else. Every directory the build
+writes into sits on local storage at its usual in-tree path — a named volume in
+the devcontainer, and `scripts/mount-build-dirs.sh setup` anywhere else, which
+bind-mounts them and needs running again after a reboot.
+`spec/decisions/adr-0013-build-output-lives-off-the-working-tree.md` says why
+the paths cannot simply move.
+
 On macOS and Windows the working tree usually sits on a case-insensitive
 filesystem. `Foo` and `foo` are then one file, and a listing can still show two
 entries. Never delete an apparent case-duplicate. `CLAUDE.md` holds the working
