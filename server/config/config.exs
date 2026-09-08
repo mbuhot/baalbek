@@ -7,27 +7,20 @@ config :mime,
   types: %{"application/vnd.api+json" => ["json"]}
 
 # `server` has no Ecto Repo or Postgres role/schema of its own: it is a pure
-# HTTP and assembly layer that only ever reaches data through the domain
-# apps' own
-# exported functions (`Core.create_customer/1` etc.), never via a direct
+# HTTP and assembly layer that only ever reaches data through the domain apps'
+# own exported functions (`Core.create_customer/1` etc.), never via a direct
 # database connection. See server/README.md for the full reasoning.
 #
-# It DOES, however, take a real Mix path dependency on `core`, `identity`,
-# and `billing`, and each of those
-# apps' `Application` callback starts its own `Ecto.Repo` as part of its
-# supervision tree. Mix path dependencies don't load the dependency's own
-# `config/config.exs` — only the top-level project's config is evaluated —
-# so `server` must declare what those apps' own config files declare. The
-# compile-time half is here; every connection setting is in runtime.exs,
-# which a release re-evaluates at boot.
+# It does take a real Mix path dependency on `core`, `identity` and `billing`,
+# and each of those apps' `Application` callback starts its own `Ecto.Repo` as
+# part of its supervision tree. A Mix path dependency does not load its own
+# config/config.exs — only the top-level project's config is evaluated — so
+# `server` declares what those apps need in order to run here, which is their
+# repos. Every connection setting is in runtime.exs, which a release
+# re-evaluates at boot.
 config :core, ecto_repos: [Core.Data.Repo]
-config :core, ash_domains: [Core]
-
 config :identity, ecto_repos: [Identity.Repo]
-config :identity, ash_domains: [Identity.Accounts]
-
 config :billing, ecto_repos: [Billing.Repo]
-config :billing, ash_domains: [Billing.Invoicing]
 
 config :ash, allow_forbidden_field_for_relationships_by_default?: true
 config :ash, default_string_length_count: :codepoints
