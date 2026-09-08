@@ -1,0 +1,9 @@
+{
+  // moon regenerates these on every run; SchemaStore's moon.yml schema predates moon 2.
+  "yaml.schemas": {
+    ".moon/cache/schemas/project.json": ["moon.yml", "*/moon.yml"],
+    ".moon/cache/schemas/tasks.json": [".moon/tasks/*.yml"],
+    ".moon/cache/schemas/workspace.json": [".moon/workspace.yml"],
+    ".moon/cache/schemas/toolchains.json": [".moon/toolchains.yml"]
+  }
+}

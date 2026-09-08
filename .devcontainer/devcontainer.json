@@ -6,8 +6,7 @@
   "shutdownAction": "stopCompose",
 
   // Same image (Dockerfile at repo root) is used here and in CI, so an
-  // under-declared task input fails immediately in both places, per
-  // PLAN.md's "Sandbox" section.
+  // under-declared task input fails immediately in both places.
   "remoteUser": "vscode",
 
   "features": {
@@ -21,6 +20,7 @@
         "jakebecker.elixir-ls",
         "gleam.gleam",
         "dbaeumer.vscode-eslint",
+      "redhat.vscode-yaml",
         "esbenp.prettier-vscode"
       ]
     }
