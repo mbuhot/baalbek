@@ -46,13 +46,15 @@ recorded() {
   awk -v key="$1" '$1 == key && length($2) == 64 { print $2 }' "$RECORD"
 }
 
-# Where two artifacts diverge, and which toolchain built the fresh one.
+# Where two artifacts diverge, and which toolchain built the fresh one. Reports
+# only, and always succeeds: `cmp` exits 1 on a difference, which `pipefail`
+# would turn into the caller's own exit status.
 divergence() {
   cmp -s "$ARTIFACT" "$FRESH" && return 0
   rustc -vV | grep -E '^(release|host):' | sed 's/^/  rustc /'
   echo "  committed: $(wc -c < "$ARTIFACT") bytes, freshly built: $(wc -c < "$FRESH") bytes"
   # cmp reports either a differing byte or an EOF; print whichever it found.
-  cmp "$ARTIFACT" "$FRESH" 2>&1 | sed -e 's/^cmp: //' -e 's/^/  /'
+  cmp "$ARTIFACT" "$FRESH" 2>&1 | sed -e 's/^cmp: //' -e 's/^/  /' || true
 }
 
 source_now="$(source_digest)"
