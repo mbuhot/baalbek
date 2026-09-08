@@ -1,5 +1,4 @@
-# Repo-wide tooling for the root pseudo-project (source "."), not a component
-# from PLAN.md's inventory.
+# Repo-wide tooling for the root pseudo-project (source ".").
 #
 # Both tasks declare `toolchain: "system"`, and it is not redundant here as it
 # was for timeline: dropped, both become `node, pnpm` tasks.

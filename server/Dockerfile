@@ -1,6 +1,5 @@
-# Runnable `MIX_ENV=prod` release image for `server` — the artifact Stage 9's
-# e2e suite runs against (PLAN.md "Stage 9: e2e runs against the dockerized
-# release, not a dev server").
+# Runnable `MIX_ENV=prod` release image for `server`, the artifact the e2e
+# suite runs against rather than a dev server.
 #
 # Build from the repository root, not from server/: the release assembles all
 # five domain apps plus the Gleam `timeline` package, which live in sibling

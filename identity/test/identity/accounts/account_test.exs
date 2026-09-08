@@ -2,9 +2,8 @@ defmodule Identity.Accounts.AccountTest do
   @moduledoc """
   Exercises `Identity.Accounts.Account`'s Ash actions — registration,
   authentication, password change, and validation — against the real
-  `identity` schema/role. Per seed.md §7's governing principle, this suite
-  must be a real proof, runnable alone, never stubbed against a fake data
-  layer or a fake password check.
+  `identity` schema and role, never a stubbed data layer or a stubbed
+  password check.
   """
 
   use ExUnit.Case, async: true

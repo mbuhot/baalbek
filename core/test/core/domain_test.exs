@@ -1,9 +1,8 @@
 defmodule Core.DomainTest do
   @moduledoc """
   Exercises the relationships spanning `core`'s resources — customer, site,
-  job, work order — against the real `core` schema/role. Per seed.md §7's
-  governing principle, this suite must be a real proof, runnable alone,
-  never stubbed against a fake data layer.
+  job, work order — against the real `core` schema and role, never a stubbed
+  data layer.
   """
 
   use ExUnit.Case, async: true

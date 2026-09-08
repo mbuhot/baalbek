@@ -7,13 +7,13 @@ config :mime,
   types: %{"application/vnd.api+json" => ["json"]}
 
 # `server` has no Ecto Repo or Postgres role/schema of its own: it is a pure
-# HTTP/assembly layer (PLAN.md component inventory: "Release assembly; HTTP
-# surface") that only ever reaches data through the domain apps' own
+# HTTP and assembly layer that only ever reaches data through the domain
+# apps' own
 # exported functions (`Core.create_customer/1` etc.), never via a direct
 # database connection. See server/README.md for the full reasoning.
 #
 # It DOES, however, take a real Mix path dependency on `core`, `identity`,
-# and `billing` (PLAN.md "depends on all domain apps"), and each of those
+# and `billing`, and each of those
 # apps' `Application` callback starts its own `Ecto.Repo` as part of its
 # supervision tree. Mix path dependencies don't load the dependency's own
 # `config/config.exs` — only the top-level project's config is evaluated —

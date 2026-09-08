@@ -2,9 +2,8 @@
 .moon/cache
 .moon/docker
 
-# Elixir (poncho-style: one set of patterns here covers every Mix project
-# added under the repo root, per-project mix.exs directories included —
-# no per-app .gitignore duplication needed, see Stage 2 report).
+# Elixir. One set of patterns here covers every Mix project under the repo
+# root, so no project needs its own .gitignore.
 _build/
 deps/
 *.ez
@@ -33,26 +32,25 @@ target/
 # restore can never write over the tree Mix and ElixirLS share.
 /*/build/
 
-# `server`'s generated OpenAPI spec (Stage 6, `server:openapi` Moon task).
-# Reproducible from the Ash/AshJsonApi resource declarations it's
-# introspected from, same rationale as pricing_native's gitignored
-# priv/native/*.so — the source of truth is the DSL, not this artefact.
+# `server`'s generated OpenAPI spec, written by `server:openapi`. The source
+# of truth is the Ash/AshJsonApi resource declarations it is introspected
+# from, not this artefact.
 server/priv/static/
 
-# Assembled releases (Stage 6c, `server:release`). Kept out of every
+# Assembled releases, written by `server:release`. Kept out of every
 # project's own directory so no `project://` input walks a 101 MB tree
 # while `mix release --overwrite` is rewriting it; dot-prefixed so
 # .moon/workspace.yml's `globs: ["*"]` doesn't turn it into a project.
 .artifacts/
 
-# TypeScript (Stage 6): pnpm workspace (web, core-api-client). pnpm-lock.yaml
-# is NOT ignored, same hermeticity reason mix.lock/Cargo.lock aren't.
+# TypeScript. pnpm-lock.yaml is NOT ignored, for the same hermeticity reason
+# mix.lock and Cargo.lock are not.
 node_modules/
 .pnpm-store/
 dist/
 *.tsbuildinfo
 
-# Playwright's HTML report, written by the CI reporter (Stage 9). Traces and
+# Playwright's HTML report, written by the CI reporter. Traces and
 # the browser binaries both live under ~/.cache, outside the repo — see
 # e2e/playwright.config.ts's outputDir.
 e2e/playwright-report/
@@ -63,10 +61,9 @@ e2e/playwright-report/
 # resources, not this file.
 core-api-client/src/generated/
 
-# The explorer's model (Stage 10, `explorer:generate`). Derived from the moon
-# graph, git history, and capabilities.yml; committing it would let the site
-# drift from the workspace it describes, which is the one thing seed.md §9
-# says it must not do.
+# The explorer's model, written by `explorer:generate` from the moon graph,
+# git history and capabilities.yml. Committing it would let the site drift
+# from the workspace it describes.
 explorer/src/generated/
 
 # moon-elixir-plugin writes its WASM artifact beside the committed one and

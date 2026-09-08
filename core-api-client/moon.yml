@@ -1,8 +1,5 @@
-# Stage 6 of PLAN.md: TypeScript client generated from `core`'s OpenAPI
-# spec (seed.md §6, "Runtime edges become build-time edges"). The only
-# generated artifact is src/generated/schema.d.ts (via openapi-typescript);
-# src/index.ts is a thin hand-written wrapper (openapi-fetch) around those
-# types, so a breaking API change fails `tsc`, not just a runtime request.
+# Typed TypeScript client for `core`'s JSON:API, generated from `server`'s
+# OpenAPI spec, so a breaking API change fails `tsc` rather than a request.
 language: typescript
 
 # Capabilities this component serves, in explorer/capabilities.yml's vocabulary.
@@ -11,11 +8,9 @@ tags:
   - "capability/technician-work-queue"
   - "capability/api-contract"
 
-# No `layer:` (stays `unknown`) — moon's `enforceLayerRelationships`
-# constraint (on by default) ignores unknown-layer projects, so this
-# scopes the exemption to core-api-client's edges only, instead of
-# disabling the constraint workspace-wide, for the deliberate library →
-# application edge onto `server` (seed.md §6).
+# No `layer:`: `enforceLayerRelationships` ignores an unknown-layer project,
+# which exempts this deliberate edge onto `server` without disabling the
+# constraint workspace-wide.
 dependsOn:
   - "server"
 

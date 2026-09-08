@@ -1,5 +1,5 @@
-# Stage 6 of PLAN.md: the PWA, consuming `core-api-client`'s generated
-# client (seed.md §6, "Runtime edges become build-time edges").
+# The PWA, consuming `core-api-client`'s generated client, so a runtime
+# edge onto `server`'s API is a build-time edge here.
 language: typescript
 layer: application
 
@@ -24,7 +24,7 @@ fileGroups:
 
 tasks:
   lint:
-    description: "Runs ESLint, whose `no-restricted-imports` rule blocks imports past core-api-client's package root (seed.md §3)."
+    description: "Runs ESLint, whose `no-restricted-imports` rule blocks imports past core-api-client's package root."
     script: "pnpm run lint"
     deps:
       - "~:install"

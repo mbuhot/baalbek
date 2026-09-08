@@ -4,7 +4,7 @@
 
 **Purpose:** PWA: dispatch board + technician view.
 
-## Stage 6 (this stage)
+## What is here
 
 A [Preact](https://preactjs.com) + [Vite](https://vite.dev) PWA, chosen over
 React/Solid for a small dependency footprint in a reference project. All
@@ -31,7 +31,7 @@ data comes from `server`'s core JSON:API through the generated
 
 ### Testing scope
 
-Stage 9 (`e2e`, Playwright) is the end-to-end layer against a live
+The Playwright suite in `e2e` is the end-to-end layer against a live
 `server`. This package's tests (`vitest` + `@testing-library/preact`)
 stay one level down: they render real components against **fixture data
 typed from the generated client** (`src/test/fixtures.ts` imports
@@ -51,15 +51,15 @@ exists.
 
 ### Module-boundary lint
 
-seed.md §3 requires module-boundary enforcement to be lint-level with CI
-blocking it, not merely advisory. `eslint.config.js`'s `no-restricted-imports`
+Module-boundary enforcement here is lint-level, with CI blocking it rather
+than merely advising. `eslint.config.js`'s `no-restricted-imports`
 rule blocks any import reaching past `core-api-client`'s package root into
 its internals (e.g. `core-api-client/src/generated/*`) — this package may
 only import the public `core-api-client` entry point. `lint` is its own
-Moon task (independently runnable), and `test` depends on it, so the Stage 6
-gate (`moon run web:test`) enforces it too.
+Moon task (independently runnable), and `test` depends on it, so
+`moon run web:test` enforces it too.
 
-## Stage 8
+## Mocks and decisions
 
 `spec/mocks/` holds dated snapshots of what the dispatch board and technician
 view were meant to be when they were built, and `spec/mocks/README.md`
@@ -67,7 +67,7 @@ explains why they are never updated. `spec/decisions/` records why `web:test`
 depends on `web:build`.
 
 No `spec/features/` here: Gherkin in this repo is wired to ExUnit, and the
-UI's acceptance layer is the Playwright suite in `e2e` (Stage 9).
+UI's acceptance layer is the Playwright suite in `e2e`.
 
 ## Local setup
 
@@ -116,7 +116,7 @@ builds `baalbek-web:latest`, nginx serving `dist` with `/api` reverse-proxied to
 `SERVER_ORIGIN` (default `http://server:4004`, substituted into the config by
 nginx's own entrypoint at container start). It copies the `dist` that `build`
 produces rather than re-building it, so the bundle it serves is the same one
-`mobile` embeds. The Stage 9 e2e stack composes that image and defines no
+`mobile` embeds. The e2e stack composes that image and defines no
 serving configuration of its own; the dev server proxies `/api` to `:4004` for
 the same reason. See
 `../e2e/spec/decisions/adr-0001-dockerized-e2e-stack.md`.

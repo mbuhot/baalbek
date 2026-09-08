@@ -10,7 +10,7 @@ an invoice references its job by `job_id` alone, with no relationship to
 `core`. Its status moves `:draft` -> `:issued` -> `:paid`, with `:void`
 reachable from `:draft` or `:issued`.
 
-## Stage 8
+## Acceptance criteria and test selection
 
 - **`spec/features/invoice_lifecycle.feature`** — the acceptance criteria for
   raising, issuing, and paying an invoice, executed by ExUnit through

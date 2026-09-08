@@ -15,10 +15,9 @@ defmodule Core.MixProject do
       # stage's development, confirmed by a deliberate boundary-violating
       # call that :boundary silently failed to flag until the order was
       # fixed) means :app has already finished by the time :boundary
-      # registers its callback, so the check never runs. See seed.md §3,
-      # "Within-app boundaries: boundary". It only sees compiled lib code,
-      # never test/ (ExUnit files are scripts evaluated at runtime, not
-      # traced) — see seed.md §3's "Known limitation, accepted".
+      # registers its callback, so the check never runs. It only sees
+      # compiled lib code, never test/, because ExUnit files are scripts
+      # evaluated at runtime rather than traced.
       compilers: [:boundary] ++ Mix.compilers(),
       aliases: aliases(),
       deps: deps()

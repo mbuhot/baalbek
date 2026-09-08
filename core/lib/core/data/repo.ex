@@ -1,9 +1,9 @@
 defmodule Core.Data.Repo do
   @moduledoc """
-  `core`'s Ecto Repo (PLAN.md "Data layer": one Ecto Repo per Elixir
-  component, connecting as that component's Postgres role, small pool —
-  see config/config.exs for the connection details and
-  priv/repo/bootstrap.sql for how the `core` role/schema are provisioned).
+  `core`'s Ecto Repo, connecting as the `core` Postgres role.
+
+  config/config.exs has the connection details, and priv/repo/bootstrap.sql
+  provisions the role and schema it connects to.
   """
 
   use AshPostgres.Repo,

@@ -1,8 +1,7 @@
 defmodule Core.JobTest do
   @moduledoc """
-  Exercises `Core.Job`'s status lifecycle against the real `core`
-  schema/role — per seed.md §7's governing principle, this suite must be a
-  real proof, runnable alone, never stubbed against a fake data layer.
+  Exercises `Core.Job`'s status lifecycle against the real `core` schema and
+  role, never a stubbed data layer.
   """
 
   use ExUnit.Case, async: true

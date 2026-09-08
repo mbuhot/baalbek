@@ -4,7 +4,7 @@
 
 **Purpose:** Quote computation: travel + labour + parts.
 
-## Stage 4 (this stage)
+## The API
 
 - Plain-struct public API (`TravelParams`, `LabourParams`, `PartLineItem`,
   `Quote`) built from primitives (`f64`, `i64`, `u32`) that Rustler can pass
@@ -19,15 +19,12 @@
 - `quote/3`: combines all three into a `Quote{travel_cents, labour_cents,
   parts_cents, total_cents}`.
 - `apply_percent_discount_cents/2`, `round_up_to_dollar_cents/1`,
-  `is_discount_applicable/1`: small extra helpers added to exercise Stage
-  4's Moon cache-invalidation proof with a genuine behavioural change
-  (see the Stage 4 report for the before/after hashes).
+  `is_discount_applicable/1`: small extra helpers.
 
 Compiles outside Mix's dependency graph; the crate → `pricing_native` facade
 edge is declared on the `pricing_native` side as a project `dependsOn` plus a
 task `deps` on `pricing:build`, whose declared output is the compiled rlib
-(per PLAN.md's "Two facades, one pattern" and
-`../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md`).
+(`../spec/decisions/adr-0006-task-deps-on-output-declaring-tasks.md`).
 
 ## Local setup
 

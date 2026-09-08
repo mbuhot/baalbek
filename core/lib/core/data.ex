@@ -1,6 +1,6 @@
 defmodule Core.Data do
   @moduledoc """
-  Internal data-access boundary exporting only `Core.Data.Repo` (seed.md §3, "Within-app boundaries: boundary").
+  Internal data-access boundary exporting only `Core.Data.Repo`.
 
   Everything that needs to reach Postgres must go through `Core.Data.Repo`;
   nothing outside this boundary may define its own `Ecto.Repo` or otherwise

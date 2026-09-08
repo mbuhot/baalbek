@@ -1,9 +1,9 @@
 name = "timeline"
 version = "0.1.0"
 
-# Stage 5 of PLAN.md: event-sourced technician shift / travel / on-site
-# events; availability projections. Owns Postgres schema `timeline`,
-# connecting via `pog` as the `timeline` role (PLAN.md "Data layer").
+# Event-sourced technician shift, travel and on-site events, plus the
+# availability projections over them. Owns Postgres schema `timeline`,
+# connecting via `pog` as the `timeline` role.
 #
 # `timeline_facade` (Elixir) is this project's sole caller — see that
 # project's mix.exs and ../timeline_facade/spec/decisions/adr-0001-gleam-elixir-interop.md for exactly

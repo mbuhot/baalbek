@@ -1,6 +1,6 @@
 import Config
 
-# `billing` owns Postgres schema `billing` (PLAN.md "Data layer") and
+# `billing` owns Postgres schema `billing` and
 # connects as the dedicated `billing` Postgres role, never as a superuser —
 # see priv/repo/bootstrap.sql for how that role/schema pair is created. The
 # role's `search_path` is set to `billing` at the role level by that
@@ -13,7 +13,7 @@ config :billing, Billing.Repo,
   hostname: System.get_env("BILLING_PG_HOST", "localhost"),
   port: String.to_integer(System.get_env("BILLING_PG_PORT", "5432")),
   database: System.get_env("BILLING_PG_DATABASE", "baalbek"),
-  # Small pool per PLAN.md "Data layer" ("Size each pool small.") — billing
+  # Small pool: billing
   # is an in-process library at this stage, not a service fielding
   # concurrent HTTP requests, so it doesn't need a large pool yet.
   pool_size: String.to_integer(System.get_env("BILLING_PG_POOL_SIZE", "5"))

@@ -1,7 +1,7 @@
 # UI mock snapshots
 
-Dated snapshots of what each view was *meant* to be when it was built
-(seed.md §8). Read them as history, never as a specification.
+Dated snapshots of what each view was *meant* to be when it was built.
+Read them as history, never as a specification.
 
 ## The lifecycle these files are part of
 

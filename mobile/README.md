@@ -35,7 +35,7 @@ there is no second copy of the web assets in this project.
 `moon run mobile:build-android` runs a real `./gradlew assembleDebug`,
 producing an installable unsigned debug APK at
 `android/app/build/outputs/apk/debug/app-debug.apk` from the actual `web`
-PWA content. `moon run mobile:build` (PLAN.md's Stage 7 gate) reaches it
+PWA content. `moon run mobile:build` reaches it
 through an unconditional `deps` edge — Android has no accepted exception
 and runs in every environment.
 
@@ -58,8 +58,8 @@ pin (gradlew prefers `$JAVA_HOME/bin/java` over `PATH`).
 ### The Android SDK is not proto-managed
 
 No first-party or asdf proto plugin covers the Android SDK. It is pinned
-and installed directly instead — the same category as the apt packages
-the Stage 0 `Dockerfile` installs for OTP/Rustler builds.
+and installed directly instead, the same category as the apt packages the
+root `Dockerfile` installs for OTP and Rustler builds.
 `scripts/setup-android-sdk.sh` is the setup script `mobile:build-android`
 runs first; it is idempotent, and installs to `~/.android-sdk`, outside
 the repo:
@@ -97,8 +97,8 @@ it as a declared output.
 `xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration
 Debug -sdk iphonesimulator … build` — the command a Mac developer would
 run, not a stub. It carries `tags: ["requires-macos"]` and
-`options.runInCI: false`: PLAN.md's one accepted exception to this
-project's toolchain-purity rule ("iOS builds need macOS"). `xcodebuild`
+`options.runInCI: false`, the one accepted exception to this project's
+toolchain-purity rule, because iOS builds need macOS. `xcodebuild`
 exists only on macOS, so the task cannot run in this Linux sandbox or in
 container CI.
 
@@ -118,7 +118,7 @@ which weakens the real Mac build:
    `xcodebuild` on `PATH`, it logs a skip and exits 0 before doing any
    work. This is what keeps `moon check --all` green, since that command
    has no tag filtering and sweeps every build-shaped task id.
-3. `runInCI: false`, for the Stage 12 `moon ci` gate.
+3. `runInCI: false`, for the `moon ci` gate.
 
 The skip is always logged, never silent:
 
@@ -140,5 +140,5 @@ pnpm exec cap sync android     # or: pnpm exec cap sync ios
 ```
 
 Or via Moon from the repo root: `moon run mobile:build-android`,
-`moon run mobile:build-ios`, or `moon run mobile:build` (the Stage 7
-gate). Each depends on `web:build`.
+`moon run mobile:build-ios`, or `moon run mobile:build`. Each depends on
+`web:build`.

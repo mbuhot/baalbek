@@ -9,7 +9,7 @@ Postgres role. `Identity.Accounts` (`lib/identity/accounts.ex`) is the domain;
 `Identity.Accounts.Account` registers accounts, authenticates them, and
 changes passwords, storing only a hash.
 
-## Stage 8
+## Acceptance criteria and test selection
 
 - **`spec/features/account_access.feature`** — the acceptance criteria for
   technician and dispatcher sign-in, executed by ExUnit through `cucumber`.

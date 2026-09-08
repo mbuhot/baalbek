@@ -1,4 +1,4 @@
-/** Assembles the `ExplorerModel` from the four inputs seed.md §9 and PLAN.md name. */
+/** Assembles the `ExplorerModel` from its four inputs. */
 
 import type { Capability, ExplorerModel, ProjectNode, ProjectSpec } from "../model.ts";
 import type { CapabilityFile, ResolvedClaims } from "./capabilities.ts";

@@ -6,8 +6,7 @@ defmodule Server.Api do
   `Ash.DataLayer.Simple` (Ash's default for resources whose actions are all
   manual — see `Ash.DataLayer.Simple`'s docs). Every action delegates to
   `core`'s own exported domain functions (`Core.create_customer/1`, etc.),
-  never to `Core`'s internals — see each resource's `Manual` module and
-  PLAN.md's "Boundary enforcement, in-app and cross-app".
+  never to `Core`'s internals — see each resource's `Manual` module.
   """
 
   use Ash.Domain, extensions: [AshJsonApi.Domain]

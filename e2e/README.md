@@ -7,10 +7,10 @@
 Full run on main and nightly as the backstop; selection is a fast pre-merge
 gate, never the final word. No deploy without the full e2e suite green.
 
-## Stage 9 (this stage)
+## The stack under test
 
 The suite drives a **containerised stack running the `MIX_ENV=prod` release**
-— never `mix phx.server` (PLAN.md Stage 9). `docker-compose.yml` composes four
+— never `mix phx.server`. `docker-compose.yml` composes four
 containers:
 
 | Service | Image | Role |
@@ -81,8 +81,8 @@ nothing down; it only waits for that URL to answer. `E2E_HOST_PORT` (default
 `moon run e2e:test` runs `playwright install chromium`, which downloads ~115 MB
 into `~/.cache/ms-playwright`. The **shared libraries** that browser links
 against (`libglib-2.0`, `libnss3`, …) are OS packages, and the sandbox/CI image
-(root `Dockerfile`) carries them as of Stage 12 — in the apt layer appended
-after `proto install`, so adding them did not invalidate the layer that builds
+(root `Dockerfile`) carries them in the apt layer appended after
+`proto install`, so adding them did not invalidate the layer that builds
 Erlang/OTP from source. The package list is playwright-core's own `debian12`
 chromium set, read out of its `nativeDeps` table for the pinned version.
 

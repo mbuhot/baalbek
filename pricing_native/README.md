@@ -4,7 +4,7 @@
 
 **Purpose:** Rustler NIF facade; sole referencer of the NIF module.
 
-## Stage 4 (this stage)
+## The facade
 
 - **`PricingNative.quote/3`** (`lib/pricing_native.ex`) is the only
   sanctioned entry point: takes plain maps for travel/labour params and a
@@ -20,10 +20,9 @@
   failed with `forbidden reference to PricingNative.Native`, as expected.
   The probe was deleted afterward; compilation is clean again.
 - **`native/pricingnative/`** is the actual Rustler NIF crate: a Cargo
-  *path* dependency on `../../../pricing` (real source compilation, no
-  precompiled binary, per PLAN.md's explicit instruction that a precompiled
-  binary defeats the point of this stage), wrapping `pricing::quote` behind
-  primitive-typed `#[rustler::nif]` functions.
+  *path* dependency on `../../../pricing`, so the NIF compiles from that
+  crate's real source rather than a precompiled binary, wrapping
+  `pricing::quote` behind primitive-typed `#[rustler::nif]` functions.
 - **Declared cross-language edge**: `moon.yml` has a project-level
   `dependsOn: [pricing]` (ownership/graph-structure) and a task `deps` on
   `pricing:build`. That task declares the compiled rlib as its `outputs`,

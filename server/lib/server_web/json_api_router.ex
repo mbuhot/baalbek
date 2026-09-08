@@ -1,6 +1,6 @@
 defmodule ServerWeb.JsonApiRouter do
   @moduledoc """
-  The generated JSON:API router for `Server.Api` (PLAN.md "Runtime edges become build-time edges").
+  The generated JSON:API router for `Server.Api`.
 
   Also serves the OpenAPI spec at `/open_api`, and exposes `spec/0` (used by
   `mix openapi.spec.json` — see moon.yml's `openapi` task) since

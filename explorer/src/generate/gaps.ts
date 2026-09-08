@@ -129,8 +129,8 @@ export function deriveGaps(inputs: GapInputs): Gap[] {
       explanation:
         "Read from `playwright test --list --reporter=json`, so it tracks the suite rather than a second list of " +
         "it. A capability with no tagged journey is not proven end to end. This is reported and not failed on " +
-        "purpose: failing would buy a hollow spec, and this is the `where to invest next` signal seed.md §9 asks " +
-        "the zoomed-out view to carry. Run one capability's journeys with " +
+        "purpose: failing would buy a hollow spec, and this is the `where to invest next` signal the " +
+        "zoomed-out view exists to carry. Run one capability's journeys with " +
         "`moon run e2e:test -- --grep @capability/<id>`.",
       items: untested,
     },
@@ -148,9 +148,9 @@ export function deriveGaps(inputs: GapInputs): Gap[] {
       id: "split-capabilities",
       title: "Capabilities whose components are not connected by build edges",
       explanation:
-        "A capability delivered by components with no declared edge between them is the pre-consolidation shape " +
-        "seed.md §9 describes: the components genuinely talk, over HTTP, and the graph cannot see it. " +
-        "An empty list here is the result seed.md §6 is after, not an absence of evidence.",
+        "A capability delivered by components with no declared edge between them is the pre-consolidation " +
+        "shape: the components genuinely talk, over HTTP, and the graph cannot see it. An empty list here " +
+        "is the result this repo is after, not an absence of evidence.",
       items: split.map((entry) => `${entry.capability.id}: ${entry.groups.map((g) => g.join("+")).join(" | ")}`),
     },
   ];

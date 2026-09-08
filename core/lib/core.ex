@@ -1,10 +1,8 @@
 defmodule Core do
   @moduledoc """
-  The core domain: customers, sites, jobs, and work orders (PLAN.md's
-  Component inventory: "Jobs, customers, sites, work orders.").
+  The core domain: customers, sites, jobs, and work orders.
 
-  Uses `ash_boundary` (PLAN.md's "Boundary enforcement, in-app and
-  cross-app" section) instead of a hand-rolled `use Boundary`, so `exports`
+  Uses `ash_boundary` instead of a hand-rolled `use Boundary`, so `exports`
   derives from the domain DSL: `Core.Customer`, `Core.Site`, `Core.Job`,
   and `Core.WorkOrder` are each public because they get a domain-level
   `define` below. `Core.Data` (a nested Ecto-Repo sub-boundary) stays

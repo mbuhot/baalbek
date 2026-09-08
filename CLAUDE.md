@@ -4,9 +4,11 @@ Guidance for coding agents working in this repository.
 
 ## What this repo is
 
-`baalbek` is Alembic's consolidation-demo reference project — see `seed.md` for the full spec
-(a decision record) and `PLAN.md` for the concrete stage-by-stage build plan and session
-decisions. Both are the source of truth; this file covers conventions PLAN.md/seed.md don't.
+`baalbek` is Alembic's consolidation-demo reference project: fifteen components in five
+languages, in one Moon workspace, with the dependency graph the build tool sees made to match the
+one the system actually has. Each component's `spec/` states what that component must do, and
+`spec/decisions/` records why it is built the way it is. Those are the source of truth; this file
+covers the conventions they do not.
 
 ## Documentation & comments
 
@@ -28,7 +30,7 @@ sentence. A comment longer than the code it describes is a defect.
 
 ## Specification directories
 
-A component's `spec/` directory holds its specification (seed.md §8), and only what it genuinely
+A component's `spec/` directory holds its specification, and only what it genuinely
 has: `features/` (Gherkin acceptance criteria, executed by ExUnit), `mocks/` (dated UI mock
 snapshots), `decisions/` (ADRs). Never create an empty one to complete the pattern.
 
@@ -57,29 +59,31 @@ hand-written volume list stops matching the derived one.
 
 A review checks the work against the spec, not only against the brief that produced it. A brief is
 its own artefact and can be wrong: it can under-apply a principle, or apply one to a component and
-silently drop it for the neighbouring one. Read `seed.md` and `PLAN.md` and say when the brief
-itself is the defect.
+silently drop it for the neighbouring one. Read the component's `spec/` and the ADRs its change
+touches, and say when the brief itself is the defect.
 
-This is not hypothetical. Stage 9 required the server tier to run its real release artifact, then
-let the web tier be served by a config that existed only in the test directory — because the brief
-listed that as acceptable, so the implementation conformed and the review passed it.
+This is not hypothetical. One change required the server tier to run its real release artifact,
+then let the web tier be served by a config that existed only in the test directory — because the
+brief listed that as acceptable, so the implementation conformed and the review passed it.
 
 Answer two questions in every review, before anything else.
 
 **What is measurably different now?** Name the observable change. If a measurement shows no
-difference, that is a finding, not a footnote. Stage 11 built a plugin to infer the Elixir
-dependency graph. Its review measured that affected-task queries were byte-identical with
-inference on and off, reported it as "honest scoping", and passed the stage. The measurement was
-the disproof.
+difference, that is a finding, not a footnote. A plugin was built to infer the Elixir dependency
+graph. Its review measured that affected-task queries were byte-identical with inference on and
+off, reported it as "honest scoping", and passed. The measurement was the disproof.
 
-**Does the outcome satisfy the purpose clause in `seed.md`?** Quote the clause and answer against
-it. `seed.md` §2 asks for the plugin "so the Mix dependency graph is not duplicated by hand in
-YAML". After Stage 11 the graph was still duplicated by hand, as task `deps`. Nobody re-read the
-clause against the result.
+**Does the outcome do what it was built to do?** State the goal in one sentence and answer against
+it. That plugin existed so the Mix dependency graph would not be duplicated by hand in YAML.
+Afterwards it was still duplicated by hand, as task `deps`, and nobody re-read the goal against
+the result.
 
 A brief may state facts and constraints. It may not state verdicts. "`dependsOn` does not
 invalidate" is a fact to verify. "Therefore this stage is a maintenance win and that is fine" is a
 conclusion the review exists to reach. Treat a verdict in a brief as the first thing to attack.
+
+An ADR is where a decision's reasoning lives, and `spec/decisions/README.md` has the conventions.
+Cite one when it answers a question the code cannot; cite nothing else.
 
 ## Test tree layout (Elixir)
 

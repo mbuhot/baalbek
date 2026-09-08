@@ -1,8 +1,6 @@
-//// Append-only event log for a technician timeline (PLAN.md "Data layer":
-//// "Event sourcing in `timeline`: append-only event table plus projection
-//// tables rebuilt from the log."). Nothing here ever updates or deletes a
-//// row — `timeline/availability.gleam` is the only thing that rebuilds
-//// derived state from what's appended here.
+//// Append-only event log for a technician timeline. Nothing here ever
+//// updates or deletes a row; `timeline/availability.gleam` is the only
+//// thing that rebuilds derived state from what is appended.
 
 import gleam/dynamic/decode
 import gleam/option.{type Option, None}

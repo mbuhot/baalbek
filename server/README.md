@@ -4,14 +4,13 @@
 
 **Purpose:** Release assembly; HTTP surface; depends on all domain apps.
 
-## Stage 6 (this stage)
+## The HTTP surface
 
 - **Real Mix path deps on all five domain apps** (`core`, `identity`,
-  `billing`, `pricing_native`, `timeline_facade`) — the first app in this
-  repo to do so (PLAN.md "depends on all domain apps"). Only `core` gets a
-  wired HTTP surface this stage; the others are real build-time
-  dependencies regardless (a documented future extension can expose
-  `identity`/`billing` too).
+  `billing`, `pricing_native`, `timeline_facade`), and the only app in this
+  repo that takes them. Only `core` has a wired HTTP surface; the others are
+  real build-time dependencies regardless, and a future extension can expose
+  `identity` and `billing` too.
 - **`core`'s JSON:API**, via `ash_json_api` 1.7: `Server.Api` (an
   `Ash.Domain` with the `AshJsonApi.Domain` extension) declares four thin
   resources — `Server.Api.Customer`, `.Site`, `.Job`, `.WorkOrder` — one
@@ -36,14 +35,13 @@
   development: a deliberate `Core.Data.Repo.config()` call injected into
   `lib/server/api/customer/manual.ex`, `mix compile --warnings-as-errors`
   failing with `forbidden reference to Core.Data.Repo (references from
-  Server to Core.Data are not allowed)`, then removed — see the Stage 6
-  build report for the exact transcript.
+  Server to Core.Data are not allowed)`, then removed.
 - **ExUnit** (`test/server_web/*_json_api_test.exs`): real HTTP requests
   through `ServerWeb.Endpoint` via `Phoenix.ConnTest`, asserting on actual
   JSON:API response status/body — list/get/create/update/destroy for
   `Customer`, lighter coverage for `Site`/`Job`/`WorkOrder`.
 
-## Stage 8
+## Acceptance criteria and test selection
 
 - **`spec/features/core_json_api.feature`** — the acceptance criteria for the
   HTTP contract `core-api-client` is generated from, executed by ExUnit
@@ -53,7 +51,7 @@
   dependencies changed since the last run. See
   `../spec/decisions/adr-0012-within-app-test-selection-is-mix-test-stale.md`.
 
-## Stage 6c
+## The release
 
 - **A real `mix release`.** `mix.exs` declares `releases: [server: ...]`;
   `moon run server:release` assembles `../.artifacts/server-release`, which embeds
@@ -91,8 +89,7 @@ app's own bootstrap/migration task owns that.
 
 ### Why `server` has no Ecto Repo or Postgres role/schema of its own
 
-`server` is a pure HTTP/assembly layer (PLAN.md's component inventory:
-"Release assembly; HTTP surface"). It never queries Postgres directly —
+`server` is a pure HTTP and assembly layer. It never queries Postgres —
 every read/write goes through a domain app's own exported functions, which
 run against *that app's own* Repo (owned and started by that app's own
 `Application.start/2`, e.g. `Core.Data.Repo` under `Core.Application`).

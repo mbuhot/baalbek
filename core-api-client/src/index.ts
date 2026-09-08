@@ -1,4 +1,4 @@
-/** Typed fetch client for `core`'s JSON:API, generated from `server`'s OpenAPI spec (seed.md §6). */
+/** Typed fetch client for `core`'s JSON:API, generated from `server`'s OpenAPI spec. */
 import createClient from "openapi-fetch";
 import type { paths, components } from "./generated/schema";
 

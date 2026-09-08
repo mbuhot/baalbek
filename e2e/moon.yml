@@ -1,5 +1,5 @@
-# Stage 9 of PLAN.md: Playwright against the containerised `MIX_ENV=prod`
-# release, never a dev server. See spec/decisions/adr-0001-dockerized-e2e-stack.md.
+# Playwright against the containerised `MIX_ENV=prod` release, never a dev
+# server. See spec/decisions/adr-0001-dockerized-e2e-stack.md.
 language: typescript
 layer: automation
 

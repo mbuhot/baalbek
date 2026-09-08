@@ -31,8 +31,8 @@ export CARGO_TARGET_DIR="$HOME/.cache/baalbek-cargo-target/moon-elixir-plugin"
 export CARGO_ENCODED_RUSTFLAGS="--remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}=/cargo"
 
 # The wasm32-wasip1 target comes from the rustup that proto's rust plugin
-# installs, added on demand rather than baked into the sandbox image so the OTP
-# layer stays cached (PLAN.md "Adding OS packages after the fact").
+# installs, added on demand rather than baked into the sandbox image so the
+# OTP layer stays cached.
 if ! rustup target list --installed | grep -qx wasm32-wasip1; then
   rustup target add wasm32-wasip1
 fi

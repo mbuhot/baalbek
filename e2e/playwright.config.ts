@@ -4,7 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
 import { BASE_URL } from "./stack";
 
 /**
- * Playwright against the containerised `MIX_ENV=prod` release (PLAN.md Stage 9).
+ * Playwright against the containerised `MIX_ENV=prod` release.
  *
  * `globalSetup` owns the stack; nothing here starts an application from source,
  * and no test may stub the API. Setting `E2E_BASE_URL` runs the same suite

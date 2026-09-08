@@ -2,9 +2,9 @@
 # list and infers `dependsOn` from its path deps; ../.moon/toolchains.yml loads
 # it as the `elixir` toolchain.
 #
-# This project declares no input, dependsOn, or test expectation outside its own
-# directory: seed.md:161 says it may live in its own repo, so copying the
-# directory into an empty repository must lose nothing.
+# This project declares no input, dependsOn, or test expectation outside its
+# own directory, so copying the directory into an empty repository loses
+# nothing.
 language: rust
 layer: tool
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# `mobile:build`'s own command (PLAN.md Stage 7 gate). `build-android` is
+# `mobile:build`'s own command. `build-android` is
 # a real `deps` edge in moon.yml, so moon runs it; this script's only job
 # is every OTHER mobile task tagged `requires-macos` — run on macOS,
 # explicitly logged as skipped elsewhere.

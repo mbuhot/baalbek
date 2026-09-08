@@ -4,7 +4,7 @@
 
 **Purpose:** Generated from `core`'s OpenAPI spec. Build-time edge.
 
-## Stage 6 (this stage)
+## What is generated
 
 The only generated artifact is `src/generated/schema.d.ts` — produced by
 [`openapi-typescript`](https://openapi-ts.dev) from `server/priv/static/openapi.json`
@@ -14,7 +14,7 @@ client typed against those generated types, and re-exports the JSON:API
 resource-object types (`Customer`, `Site`, `Job`, `WorkOrder`) that `web`
 renders. Nothing here hand-declares the API shape — a breaking change to
 `server`'s JSON:API surface changes the generated types, and `web`'s
-`tsc` build fails instead of drifting silently (seed.md §6).
+`tsc` build fails instead of drifting silently.
 
 `moon.yml`'s `build` task regenerates the schema from `server`'s published
 spec and type-checks this package against it; `dependsOn: [server]` plus a

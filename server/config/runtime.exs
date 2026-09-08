@@ -22,7 +22,7 @@ pg = fn prefix, role, pool_size ->
     hostname: System.get_env("#{prefix}_PG_HOST", "localhost"),
     port: String.to_integer(System.get_env("#{prefix}_PG_PORT", "5432")),
     database: System.get_env("#{prefix}_PG_DATABASE", "baalbek"),
-    # Small pools per PLAN.md "Data layer" ("Size each pool small.").
+    # Small pools: nothing here is throughput-bound.
     pool_size: String.to_integer(System.get_env("#{prefix}_PG_POOL_SIZE", pool_size))
   ]
 end

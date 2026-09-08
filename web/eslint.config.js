@@ -1,7 +1,6 @@
-// ESLint flat config. TypeScript's recommended rules, plus one module-boundary
-// rule: `web` may only import `core-api-client`'s package root, never a path
-// into its internals (seed.md §3, "module-boundary enforcement is lint-level
-// ... CI blocks it").
+// ESLint flat config. TypeScript's recommended rules, plus one
+// module-boundary rule: `web` may only import `core-api-client`'s package
+// root, never a path into its internals.
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 

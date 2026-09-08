@@ -1,5 +1,5 @@
-# Stage 10 of PLAN.md: the architecture explorer (seed.md §9). A static site
-# generated from the moon graph, git history, the e2e suite, and capabilities.yml.
+# The architecture explorer: a static site generated from the moon graph, git
+# history, the e2e suite, and capabilities.yml.
 language: typescript
 
 # No `layer:` (stays `unknown`) — this project reads `e2e:list`, and moon's

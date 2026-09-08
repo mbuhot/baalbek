@@ -44,7 +44,7 @@ describe("ownerOf", () => {
   });
 
   it("falls back to the root pseudo-project for a top-level file", () => {
-    expect(ownerOf("PLAN.md", SOURCES)).toBe("root");
+    expect(ownerOf("README.md", SOURCES)).toBe("root");
   });
 });
 
@@ -91,7 +91,7 @@ describe("summarise", () => {
   });
 
   it("keeps the root pseudo-project out of co-change, since its source owns every top-level file", () => {
-    const withRoot = parseGitLog(log([["c3", "2026-09-03T00:00:00+00:00", ["PLAN.md", "core/lib/a.ex"]]]));
+    const withRoot = parseGitLog(log([["c3", "2026-09-03T00:00:00+00:00", ["README.md", "core/lib/a.ex"]]]));
     expect(summarise(withRoot, SOURCES, COUPLE).coupling).toEqual([]);
     expect(summarise(withRoot, SOURCES, COUPLE).change.get("root")?.commits).toBe(1);
   });

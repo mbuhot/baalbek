@@ -1,6 +1,6 @@
 # The containerised stack the Playwright suite runs against: the `MIX_ENV=prod`
 # release image from `server:image`, its own Postgres, and the PWA image from
-# `web:image` (PLAN.md Stage 9). Both tiers are the images that ship; the only
+# `web:image`. Both tiers are the images that ship; the only
 # thing this file adds is a database and a mounted bootstrap script.
 #
 # Brought up and torn down by global-setup.ts / global-teardown.ts, never by

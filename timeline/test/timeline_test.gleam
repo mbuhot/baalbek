@@ -15,9 +15,8 @@ pub fn main() -> Nil {
 
 // --- Pure fold tests (no Postgres) -----------------------------------------
 //
-// PLAN.md "Data layer": "projection tables rebuilt from the log" — this is
-// the rebuild logic itself, with no I/O involved, exercising
-// `availability.project/1` directly over a hand-built event sequence.
+// The rebuild logic itself, with no I/O: `availability.project/1` over a
+// hand-built event sequence.
 
 pub fn project_full_shift_returns_to_off_shift_test() {
   let technician_id = "pure-fold-full-shift"

@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 import { unique } from "./seed";
 
 /**
- * The standing check that the release still contains the Gleam code (PLAN.md
- * Stage 9), plus the input validation guarding it.
+ * The standing check that the release still contains the Gleam code, plus
+ * the input validation guarding it.
  *
  * The first test is the standing check: `/api/timeline/...` reaches
  * `timeline_facade`, which calls `timeline`'s compiled Gleam modules, and a

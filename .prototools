@@ -1,18 +1,6 @@
-# NOTE (Stage 0 deviation from PLAN.md, flagged for review): PLAN.md pins
-# "asdf:erlang" = "28.5". OTP 28.5 exists upstream (git tag OTP-28.5 on
-# erlang/otp) but was released as a bare two-component tag with only
-# four-component hotfix follow-ups (28.5.0.1 .. 28.5.0.6) and no plain
-# "28.5.0" three-component release. proto v0.62.0's asdf-erlang version
-# resolution requires a strict x.y.z semver match, so every "28.5"-family
-# version gets filtered out of the resolvable list and `proto install` fails
-# with "Failed to resolve ~28.5 to a valid supported version for
-# asdf:erlang." (verified: ~/.proto/backends/asdf/erlang/kerl-home/otp_releases
-# actually contains "28.5" and the 28.5.0.1-6 hotfixes, but proto's own
-# resolve_version/load_versions plugin call omits all of them). This is an
-# upstream proto/asdf-erlang limitation, not a network block and not
-# something we substituted for convenience: erlang is still resolved,
-# downloaded/built, and managed end-to-end by proto's asdf backend, just
-# pinned to the newest version proto can actually resolve today.
+# Erlang is held at 28.4.3, one release behind: proto's asdf backend resolves
+# only strict x.y.z versions, and the 28.5 family ships a bare "28.5" tag with
+# four-component hotfixes and no "28.5.0", so none of it resolves.
 moon           = "2"
 node           = "26.7.0"
 pnpm           = "11.9.0"
@@ -21,14 +9,7 @@ rust           = "stable"
 "asdf:elixir"  = "1.20.2"
 "asdf:gleam"   = "1.13"
 
-# Stage 7 (PLAN.md): JDK for Gradle, running `mobile:build-android`.
-# Eclipse Temurin 21 — Capacitor 8's Android library
-# (mobile/node_modules/@capacitor/android/capacitor/build.gradle) compiles
-# with sourceCompatibility/targetCompatibility JavaVersion.VERSION_21,
-# which needs a JDK >= 21 to run javac's `--release 21`; AGP 8.13 (the
-# Gradle plugin this project's `android/build.gradle` pins) also supports
-# JDK 21 for running Gradle itself. The Android SDK/build-tools stay
-# OS-level (not proto-managed, no first-party or asdf plugin covers them —
-# see mobile/README.md), same pattern as the apt packages the Stage 0
-# Dockerfile installs for OTP/Rustler builds.
+# JDK 21 for Gradle: Capacitor's Android library compiles at
+# JavaVersion.VERSION_21, so javac needs at least that. The Android
+# SDK and build-tools stay OS-level, because no proto plugin covers them.
 java           = "temurin-21.0.12+8"

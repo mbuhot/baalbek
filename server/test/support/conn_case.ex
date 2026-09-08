@@ -7,7 +7,7 @@ defmodule ServerWeb.ConnCase do
   `core/test/core/domain_test.exs` uses) — kept out of this shared,
   normally-compiled support module so it stays boundary-clean: `server`'s
   own code never references `Core.Data.Repo`, only `Core`'s exported
-  functions (PLAN.md "Boundary enforcement, in-app and cross-app").
+  functions.
   """
 
   use ExUnit.CaseTemplate

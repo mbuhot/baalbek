@@ -26,4 +26,4 @@ disagree. See
 `../spec/decisions/adr-0010-third-party-deps-compile-in-their-own-task.md`.
 See `../server/spec/decisions/adr-0001-release-assembly-and-gleam-packaging.md`
 for why that shape, and `spec/decisions/adr-0001-gleam-elixir-interop.md` (now
-superseded) for the Stage 5 mechanism it replaced.
+superseded) for the mechanism it replaced.

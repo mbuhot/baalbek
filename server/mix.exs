@@ -11,11 +11,9 @@ defmodule Server.MixProject do
       # `boundary` must precede Mix.compilers() — see core/mix.exs's header
       # comment for the full story (this project mirrors it verbatim).
       compilers: [:boundary] ++ Mix.compilers(),
-      # PLAN.md "Boundary enforcement, in-app and cross-app": `server` is the
-      # first app with real Mix path deps on sibling apps, so this is where
-      # cross-app checking turns on. Only these five apps are checked (not
-      # every transitive Hex dependency) — boundary's own docs call this
-      # "Restricting usage of external apps".
+      # `server` is the only app with Mix path deps on siblings, so this is
+      # where cross-app checking turns on. Only these five are checked, not
+      # every transitive Hex dependency.
       boundary: [
         default: [
           check: [
@@ -76,9 +74,8 @@ defmodule Server.MixProject do
 
   defp deps do
     [
-      # Path deps on all five domain apps (PLAN.md Component inventory:
-      # "depends on all domain apps"). Only `core` gets a wired HTTP surface
-      # this stage; the others are real build-time deps regardless.
+      # Path deps on all five domain apps. Only `core` has a wired HTTP
+      # surface; the others are real build-time deps regardless.
       {:core, path: "../core"},
       {:identity, path: "../identity"},
       {:billing, path: "../billing"},

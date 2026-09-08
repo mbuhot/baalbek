@@ -20,9 +20,8 @@ CACHE_ROOT="${SANDBOX_CACHE_ROOT:-${HOME}/.cache/baalbek-sandbox}"
 # it between runs. Moon's hashes are environment-independent — the same task
 # hashes identically inside and outside this image — so a shared cache lets the
 # container replay hits the host produced, and the run proves nothing about
-# whether the image can actually do the work. That is the stale-hit failure
-# PLAN.md's hermeticity posture exists to prevent, and it is what hid a broken
-# task from this script's first outing.
+# whether the image can actually do the work. That stale hit is what hid a
+# broken task from this script's first outing.
 MOON_CACHE_DIR="${SANDBOX_MOON_CACHE:-/tmp/baalbek-sandbox-moon-cache}"
 
 if [ "$#" -eq 0 ]; then

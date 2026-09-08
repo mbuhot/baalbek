@@ -1,6 +1,6 @@
 # Dispatch board — 2026-09-06
 
-Snapshot of intent at build time (Stage 6). See `README.md`: not maintained,
+Snapshot of intent at build time. See `README.md`: not maintained,
 not authoritative.
 
 ## Layout

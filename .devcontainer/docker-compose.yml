@@ -89,11 +89,9 @@ services:
     depends_on:
       - postgres
 
-  # Postgres server is a compose service only — it is deliberately NOT baked
-  # into the sandbox/CI image (see PLAN.md "Sandbox" and "Data layer"). One
-  # database, one schema per owning component, one role per component
-  # (per-component roles/schemas are created by Stage 2+ migrations, not
-  # here).
+  # Postgres server is a compose service only, deliberately not baked into
+  # the sandbox/CI image. One database, with a schema and a role per owning
+  # component, both created by that component's own `bootstrap` task.
   postgres:
     image: postgres:${POSTGRES_VERSION:?set in .devcontainer/.env}
     restart: unless-stopped

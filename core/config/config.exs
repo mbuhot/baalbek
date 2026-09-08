@@ -1,6 +1,6 @@
 import Config
 
-# `core` owns Postgres schema `core` (PLAN.md "Data layer") and connects as
+# `core` owns Postgres schema `core` and connects as
 # the dedicated `core` Postgres role, never as a superuser — see
 # priv/repo/bootstrap.sql for how that role/schema pair is created. The
 # role's `search_path` is set to `core` at the role level by that script, so
@@ -13,7 +13,7 @@ config :core, Core.Data.Repo,
   hostname: System.get_env("CORE_PG_HOST", "localhost"),
   port: String.to_integer(System.get_env("CORE_PG_PORT", "5432")),
   database: System.get_env("CORE_PG_DATABASE", "baalbek"),
-  # Small pool per PLAN.md "Data layer" ("Size each pool small.") — core is
+  # Small pool: core is
   # an in-process library at this stage, not a service fielding concurrent
   # HTTP requests, so it doesn't need a large pool yet.
   pool_size: String.to_integer(System.get_env("CORE_PG_POOL_SIZE", "5"))

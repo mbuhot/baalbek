@@ -6,9 +6,9 @@ description = "Elixir toolchain plugin for moon: infers project dependencies fro
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/mbuhot/baalbek"
-# Not published yet: seed.md:161 allows this plugin its own repository, and the
-# crate is written so a copy of this directory builds and tests on its own, but
-# it has no release process and no version policy while it lives here.
+# Not published yet: the crate is written so a copy of this directory builds
+# and tests on its own, but it has no release process and no version policy
+# while it lives here.
 publish = false
 
 [lib]

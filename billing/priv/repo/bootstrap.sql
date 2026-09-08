@@ -1,8 +1,7 @@
--- Bootstrap for `billing`'s Postgres role + schema (PLAN.md "Data layer":
--- "One database role per component, granted only on its own schema" /
--- seed.md §5: "Enforcement is role-based... a cross-boundary query is a
--- hard error, not a convention."). Verbatim copy of core's pattern
--- (core/priv/repo/bootstrap.sql), just renamed core -> billing throughout.
+-- Bootstrap for `billing`'s Postgres role and schema: one role per component,
+-- granted only on its own schema, so a cross-boundary query is a hard error
+-- rather than a convention. core/priv/repo/bootstrap.sql is the same script
+-- with core in place of billing.
 --
 -- This is a *structural* setup step, distinct from Ecto migrations: it
 -- must run once per Postgres cluster/database as a superuser (the
@@ -88,7 +87,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA billing GRANT ALL ON TABLES TO billing
 ALTER DEFAULT PRIVILEGES IN SCHEMA billing GRANT ALL ON SEQUENCES TO billing
 ;
 
--- Structural isolation, not convention (seed.md §5): `billing` cannot
+-- Structural isolation, not convention: `billing` cannot
 -- resolve unqualified objects in `public`, so a query that leaks past
 -- this component's own schema is a hard error rather than something that
 -- happens to work today.

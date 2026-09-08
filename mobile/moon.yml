@@ -1,5 +1,5 @@
 # Capacitor wrapper over `web`'s built PWA, built by Gradle and xcodebuild as
-# tier-0 `system` tasks (seed.md §3, "Optional extension: mobile").
+# `system` tasks.
 #
 # Every task declares `toolchain: "system"`, and it is not redundant here as it
 # was for timeline: dropped, all three become `node, pnpm` tasks.
@@ -36,7 +36,7 @@ tasks:
 
   build-ios:
     description: "xcodebuild of the Capacitor iOS project (Debug, iphonesimulator SDK, unsigned)."
-    # `requires-macos` is PLAN.md's one accepted toolchain-purity exception.
+    # `requires-macos` is the one accepted toolchain-purity exception.
     # Three mechanisms keep it out of Linux runs, none weakening the Mac build:
     # this tag (read by scripts/build.sh), `runInCI: false`, and
     # scripts/build-ios.sh's own Darwin guard, which is what keeps the
@@ -59,7 +59,7 @@ tasks:
         optional: true
 
   build:
-    description: "PLAN.md Stage 7 gate: runs `build-android`, then every `requires-macos` task by tag."
+    description: "Runs `build-android`, then every `requires-macos` task by tag."
     command: "bash scripts/build.sh"
     toolchain: "system"
     # Android has no accepted exception and runs everywhere, so this edge is

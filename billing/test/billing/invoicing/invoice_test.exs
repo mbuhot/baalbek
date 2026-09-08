@@ -2,9 +2,7 @@ defmodule Billing.Invoicing.InvoiceTest do
   @moduledoc """
   Exercises `Billing.Invoicing.Invoice`'s lifecycle (draft -> issued ->
   paid, plus void) and `Billing.Invoicing.InvoiceLineItem` against the
-  real `billing` schema/role. Per seed.md §7's governing principle, this
-  suite must be a real proof, runnable alone, never stubbed against a fake
-  data layer.
+  real `billing` schema and role, never a stubbed data layer.
   """
 
   use ExUnit.Case, async: true

@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-# Idempotent Android SDK bootstrap for `mobile:build-android` (PLAN.md Stage 7).
-# Installs OS-level SDK components Gradle needs to build the Capacitor
-# Android project — not proto-managed (no first-party or asdf plugin
-# covers the Android SDK; see mobile/README.md), same category as the apt
-# packages the Stage 0 Dockerfile installs for OTP/Rustler builds. Safe
-# to re-run: every step checks for its own prior effect first.
+# Idempotent Android SDK bootstrap for `mobile:build-android`. Installs the
+# OS-level SDK components Gradle needs, which no proto plugin covers, so they
+# sit in the same category as the apt packages the root Dockerfile installs.
+# Safe to re-run: every step checks for its own prior effect first.
 set -euo pipefail
 
 ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$HOME/.android-sdk}"

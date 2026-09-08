@@ -1,8 +1,7 @@
 defmodule PricingNativeTest do
   @moduledoc """
   Exercises `PricingNative.quote/3` end to end through the real compiled
-  NIF (no stubbing — per seed.md §7's governing principle, this suite must
-  be a real proof that the `pricing` crate is actually being called).
+  NIF, never a stub, so it proves the `pricing` crate is actually called.
   """
 
   use ExUnit.Case, async: true

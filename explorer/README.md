@@ -4,7 +4,7 @@
 
 **Purpose:** Static site from project-graph JSON + git stats + `capabilities.yml`.
 
-The self-built architecture explorer (seed.md §9). Regenerated on every
+The self-built architecture explorer. Regenerated on every
 build from moon's own graph, so it cannot drift from the workspace it
 describes.
 

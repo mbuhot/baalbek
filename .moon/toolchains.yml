@@ -1,26 +1,18 @@
 # Moon toolchain configuration.
 # https://moonrepo.dev/docs/config/toolchain
 #
-# Stage 1 of PLAN.md ("Toolchain: proto owns everything"): enable node,
-# pnpm, typescript, rust, and system. versionFromPrototools: true on every
-# toolchain that supports it, so Moon reads versions from the root
-# .prototools instead of duplicating them here.
-#
-# Stage 11 adds the custom `elixir` toolchain at the bottom of this file.
-# Gleam and Capacitor projects still fall back to `system`.
+# proto owns every toolchain version: `versionFromPrototools` on each
+# toolchain that supports it reads the root .prototools rather than repeating
+# it here. Gleam and Capacitor projects fall back to `system`.
 node:
   versionFromPrototools: true
 
 pnpm:
   versionFromPrototools: true
 
-# syncProjectReferences (default true) was set to false earlier in Stage 6 —
-# re-tested (moon check --all against a clean cache, several times) after the
-# tsconfig.base.json move to config/tsconfig.base.json, and it's no longer
-# needed either way: `web` and `core-api-client` hand-maintain their own
-# tsconfig.json `references`, and there's still no workspace-root
-# tsconfig.json for Moon's auto-sync to fight over (config/tsconfig.base.json
-# is a shared base, not a root project config). Left at its default.
+# `syncProjectReferences` is left at its default: `web` and
+# `core-api-client` hand-maintain their own tsconfig `references`, and there
+# is no workspace-root tsconfig.json for the auto-sync to fight over.
 typescript:
   versionFromPrototools: true
 
@@ -29,8 +21,8 @@ rust:
 
 system: {}
 
-# Stage 11 of PLAN.md: moon-elixir-plugin, which asks Mix for each Elixir
-# project's dependency list and infers the `dependsOn` between them. It runs
+# moon-elixir-plugin asks Mix for each Elixir project's dependency list and
+# infers the `dependsOn` between them. It runs
 # one `elixir` process while the project graph is built, and manages no
 # versions; see
 # ../moon-elixir-plugin/spec/decisions/adr-0001-mix-path-dep-inference.md.

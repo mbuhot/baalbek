@@ -3,9 +3,9 @@
 **Language:** Elixir / Ash
 
 **Purpose:** Jobs, customers, sites, work orders (field service / job
-dispatch domain). Publishes OpenAPI in Stage 6 — out of scope here.
+dispatch domain). `server` publishes its OpenAPI surface.
 
-## Stage 2 (this stage), retrofitted to `ash_boundary` as a fast-follow
+## What is here
 
 - **Ash resources** (`lib/core/{customer,site,job,work_order}.ex`), grouped
   under the `Core` domain (`lib/core.ex`): `Customer` has many `Site`s, a
@@ -21,7 +21,7 @@ dispatch domain). Publishes OpenAPI in Stage 6 — out of scope here.
   their resources, `domain_test.exs` covers the relationships spanning them.
   All run against the real schema/role.
 
-## Stage 8
+## Acceptance criteria and test selection
 
 - **`spec/features/job_dispatch.feature`** — the acceptance criteria for
   dispatching field work, executed by ExUnit through `cucumber`. Steps and

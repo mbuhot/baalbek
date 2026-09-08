@@ -1,7 +1,10 @@
 # Elixir Rustler NIF facade for the `pricing` crate.
 #
-# `boundary` enforces that PricingNative.Native (the raw NIF module) is
-# reachable only from PricingNative.
+# `boundary` enforces that PricingNative.Native, the raw NIF module, is
+# reachable only from PricingNative. Rustler compiles native/pricingnative
+# during `mix compile` and Mix's manifest does not track it, so each task
+# below declares that directory itself. The .so Rustler writes into
+# priv/native is deliberately not an output; adr-0006 says why.
 language: elixir
 layer: library
 
@@ -16,8 +19,6 @@ dependsOn:
 
 tasks:
   build:
-    # priv/native/pricingnative.so is neither an input nor an output: three
-    # tasks write that path in the source tree.
     inputs:
       - "native/**/*"
 

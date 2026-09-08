@@ -1,6 +1,5 @@
-# The capability vocabulary (seed.md §9, PLAN.md "Capabilities: central
-# vocabulary, local claims"). This file names capabilities; it does not say
-# which components serve them.
+# The capability vocabulary: one central list, claimed locally. This file
+# names capabilities; it does not say which components serve them.
 #
 # A component claims its capabilities in its own `moon.yml`, as the project
 # tag `capability/<id>`. An e2e spec claims the same ids as the Playwright

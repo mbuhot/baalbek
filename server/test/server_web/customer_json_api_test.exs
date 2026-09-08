@@ -1,8 +1,8 @@
 defmodule ServerWeb.CustomerJsonApiTest do
   @moduledoc """
   Exercises `/api/json/core/customers` end to end — real HTTP requests
-  through `ServerWeb.Endpoint`, hitting the real `core` schema/role, never
-  a stub (seed.md §7's governing principle).
+  through `ServerWeb.Endpoint`, hitting the real `core` schema and role,
+  never a stub.
   """
 
   use ServerWeb.ConnCase, async: true
@@ -58,8 +58,8 @@ defmodule ServerWeb.CustomerJsonApiTest do
       assert Enum.all?(data, &(&1["type"] == "customer"))
 
       # Matched by id, not by row count: the sandbox transaction still sees
-      # rows anything else committed to the `core` schema (a release run, a
-      # Stage 9 e2e pass), so an absolute count is not this test's to assert.
+      # rows anything else committed to the `core` schema, such as a release
+      # run or an e2e pass, so an absolute count is not this test's to assert.
       mine = Enum.filter(data, &(&1["id"] in [acme.id, widgets.id]))
       names = Enum.map(mine, & &1["attributes"]["name"]) |> Enum.sort()
       assert names == ["Acme Facilities", "Widgets Inc"]

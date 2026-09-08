@@ -104,8 +104,7 @@ rules.
 
 ## Where the reasoning is
 
-`seed.md` is the specification, written as a decision record. `PLAN.md` is the
-stage-by-stage build plan and the decisions taken during the build.
 `spec/decisions/` holds the workspace ADRs, and each component holds its own
 under `<component>/spec/`. An ADR is immutable: a new ADR supersedes an old one,
-and the old text stays as written.
+and the old text stays as written. Between them they are the record of why this
+repository is shaped the way it is.

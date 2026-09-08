@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# `mobile:build-android` (PLAN.md Stage 7): real Gradle build of the
+# `mobile:build-android`: real Gradle build of the
 # Capacitor Android project, producing an installable unsigned debug APK.
 #
 # Kept in a script rather than inline moon.yml `args`: moon statically

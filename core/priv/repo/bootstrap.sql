@@ -1,7 +1,6 @@
--- Bootstrap for `core`'s Postgres role + schema (PLAN.md "Data layer":
--- "One database role per component, granted only on its own schema" /
--- seed.md §5: "Enforcement is role-based... a cross-boundary query is a
--- hard error, not a convention.").
+-- Bootstrap for `core`'s Postgres role and schema: one role per component,
+-- granted only on its own schema, so a cross-boundary query is a hard error
+-- rather than a convention.
 --
 -- This is a *structural* setup step, distinct from Ecto migrations: it
 -- must run once per Postgres cluster/database as a superuser (the `core`
@@ -77,7 +76,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA core GRANT ALL ON TABLES TO core
 ALTER DEFAULT PRIVILEGES IN SCHEMA core GRANT ALL ON SEQUENCES TO core
 ;
 
--- Structural isolation, not convention (seed.md §5): `core` cannot
+-- Structural isolation, not convention: `core` cannot
 -- resolve unqualified objects in `public`, so a query that leaks past
 -- this component's own schema is a hard error rather than something that
 -- happens to work today.

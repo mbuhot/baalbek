@@ -68,8 +68,7 @@ pub fn apply_event(_current: Availability, evt: Event) -> Availability {
 }
 
 /// Rebuild a technician's availability from scratch by folding over their
-/// full ordered event log. This is the event-sourcing property PLAN.md
-/// names directly: "projection tables rebuilt from the log."
+/// full ordered event log.
 pub fn project(events: List(Event)) -> Availability {
   list.fold(events, initial(), apply_event)
 }
@@ -121,8 +120,8 @@ pub fn rebuild(
   Ok(availability)
 }
 
-/// Read the already-materialised projection directly — "availability
-/// queries read projections" (PLAN.md), no replay of the log involved.
+/// Read the already-materialised projection directly, with no replay of
+/// the log.
 /// `Ok(None)` means no projection row exists yet for this technician (no
 /// events have ever been rebuilt for them).
 pub fn current(

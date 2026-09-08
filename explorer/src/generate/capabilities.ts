@@ -30,7 +30,7 @@ export interface ResolvedClaims {
   platformReasons: Map<string, string>;
 }
 
-/** seed.md §9 keeps this input honest by keeping it small: a dozen capabilities, not hundreds. */
+/** Kept small on purpose: a dozen capabilities stay honest where hundreds would not. */
 export const MAX_CAPABILITIES = 16;
 
 /** Project tag naming a capability. Slashes are legal in a moon tag id; colons are not. */

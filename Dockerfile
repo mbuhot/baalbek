@@ -9,9 +9,8 @@
 #   2. the OS-level build dependencies proto's asdf backend needs to compile
 #      Erlang/OTP from source, and that `cargo`/rustler need to build native
 #      extensions,
-#   3. the Postgres 17 *client* libraries/CLI (the Postgres *server* is a
-#      docker-compose service, per PLAN.md's "Sandbox" section — it is
-#      deliberately not baked into this image).
+#   3. the Postgres 17 *client* libraries/CLI. The Postgres *server* is a
+#      docker-compose service, deliberately not baked into this image.
 #
 # Same image serves the devcontainer, `server:image`, and the cold full-graph
 # gate in .github/workflows/image-gate.yml.
@@ -77,8 +76,8 @@ RUN proto install
 #
 # Settings go here, never into the ENV/RUN steps above, which are inputs to
 # `proto install`'s from-source Erlang/OTP build. An OS package added to either
-# group of the script COPYed above invalidates that build; adr-0009 records why
-# PLAN.md's "Adding OS packages after the fact" rule for it.
+# group of the script COPYed above invalidates that build; adr-0009 records
+# why.
 
 # --- OS packages for tasks that run in this image ---------------------------
 # No Docker daemon; the devcontainer gets one from its docker-in-docker feature.
