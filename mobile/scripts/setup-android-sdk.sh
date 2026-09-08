@@ -68,8 +68,9 @@ if [ "$(uname -m)" = "aarch64" ]; then
   if [ ! -e /proc/sys/fs/binfmt_misc/qemu-x86_64 ]; then
     echo "==> Registering qemu-user x86_64 binfmt handler (aarch64 host)"
     command -v qemu-x86_64 >/dev/null || {
-      echo "error: qemu-x86_64 not installed. Run: sudo apt-get install -y qemu-user-binfmt" >&2
-      exit 1
+      echo "==> Installing qemu-user-binfmt (emulates x86_64 for aapt2)"
+      sudo apt-get update -qq
+      sudo apt-get install -y -qq qemu-user-binfmt
     }
     [ -e /proc/sys/fs/binfmt_misc/register ] || sudo mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc
     sudo bash -c 'echo ":qemu-x86_64:M::\x7f\x45\x4c\x46\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x3e\x00:\xff\xff\xff\xff\xff\xfe\xfe\xfc\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/qemu-x86_64:OCF" > /proc/sys/fs/binfmt_misc/register'
@@ -78,6 +79,10 @@ if [ "$(uname -m)" = "aarch64" ]; then
   if ! dpkg-query -W -f='${Status}' libc6:amd64 2>/dev/null | grep -q "install ok installed"; then
     echo "==> Installing amd64 multiarch libraries (aapt2's runtime deps under emulation)"
     sudo dpkg --add-architecture amd64
+    # The base sources declare no Architectures, so adding amd64 makes apt ask
+    # the arm64-only ports mirror for amd64 indices too. Pin them to arm64.
+    sudo sed -i "/^Architectures:/d; /^Components:/a Architectures: arm64" \
+      /etc/apt/sources.list.d/ubuntu.sources
     if [ ! -f /etc/apt/sources.list.d/ubuntu-amd64.sources ]; then
       # ports.ubuntu.com (this host's default) carries arm64 only; amd64
       # packages live on the regular archive mirror. Scoped to amd64 so it
