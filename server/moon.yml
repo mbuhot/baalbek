@@ -107,12 +107,9 @@ tasks:
     deps:
       - "root:sandbox-image"
       - "^:build"
-    command: "bash"
-    args:
-      - "-lc"
-      - >-
-        docker buildx build --builder default --load
-        -f server/Dockerfile -t "${SERVER_IMAGE:-baalbek-server:latest}" .
+    script: >-
+      docker buildx build --builder default --load
+      -f server/Dockerfile -t "${SERVER_IMAGE:-baalbek-server:latest}" .
     toolchain: "system"
     # Uncached: an image in the local daemon is not a file output.
     # `--builder default` shares the BuildKit cache root:sandbox-image writes.

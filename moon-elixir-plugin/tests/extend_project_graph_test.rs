@@ -157,7 +157,11 @@ async fn carries_the_scope_and_provenance_of_each_edge() {
     // `{:fixtures, path: "../lib/test/fixtures", only: [:dev, :test]}` points
     // inside `lib`, which already owns a production edge, so it is dropped
     // rather than downgrading that edge.
-    assert!(app.dependencies.iter().all(|dep| dep.id != Id::raw("fixtures")));
+    assert!(
+        app.dependencies
+            .iter()
+            .all(|dep| dep.id != Id::raw("fixtures"))
+    );
 }
 
 /// A manifest that raises infers nothing for its own project and nothing else
@@ -169,7 +173,11 @@ async fn infers_nothing_for_a_manifest_that_cannot_be_evaluated() {
 
     let output = plugin.extend_project_graph(all_project_sources()).await;
 
-    assert!(!output.extended_projects.contains_key(&Id::raw("unevaluable")));
+    assert!(
+        !output
+            .extended_projects
+            .contains_key(&Id::raw("unevaluable"))
+    );
     assert_eq!(dependency_ids(&output, "app"), ["lib", "facade"]);
 }
 
@@ -250,7 +258,9 @@ async fn registers_as_the_elixir_toolchain() {
     let plugin = sandbox.create_toolchain("elixir").await;
 
     let metadata = plugin
-        .register_toolchain(RegisterToolchainInput { id: Id::raw("elixir") })
+        .register_toolchain(RegisterToolchainInput {
+            id: Id::raw("elixir"),
+        })
         .await;
 
     assert_eq!(metadata.name, "Elixir");

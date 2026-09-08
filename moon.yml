@@ -1,5 +1,8 @@
 # Repo-wide tooling for the root pseudo-project (source "."), not a component
 # from PLAN.md's inventory.
+#
+# Both tasks declare `toolchain: "system"`, and it is not redundant here as it
+# was for timeline: dropped, both become `node, pnpm` tasks.
 language: bash
 layer: tool
 
@@ -27,12 +30,9 @@ tasks:
     # `buildx build`, not `build`: without the Buildx plugin `docker build` falls
     # back to a legacy builder that shares no cache and recompiles OTP.
     # `--builder default` pins the daemon's own BuildKit, the cache CI writes.
-    command: "bash"
-    args:
-      - "-lc"
-      - >-
-        docker buildx build --builder default --load
-        -t "${SANDBOX_IMAGE:-baalbek-sandbox:latest}" -f Dockerfile .
+    script: >-
+      docker buildx build --builder default --load
+      -t "${SANDBOX_IMAGE:-baalbek-sandbox:latest}" -f Dockerfile .
     toolchain: "system"
     options:
       # An image in the local daemon is not a file output, so a cache hit would

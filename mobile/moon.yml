@@ -1,6 +1,9 @@
 # Capacitor wrapper over `web`'s built PWA, built by Gradle and xcodebuild as
 # tier-0 `system` tasks (seed.md §3, "Optional extension: mobile").
 #
+# Every task declares `toolchain: "system"`, and it is not redundant here as it
+# was for timeline: dropped, all three become `node, pnpm` tasks.
+#
 # No `layer:` (stays `unknown`), same reason as core-api-client/moon.yml:
 # `enforceLayerRelationships` forbids one `application` depending on another,
 # and this is the deliberate application -> application edge onto `web`.

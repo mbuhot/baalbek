@@ -18,6 +18,14 @@ env:
   CARGO_TARGET_DIR: "$HOME/.cache/baalbek-cargo-target/moon-elixir-plugin"
 
 tasks:
+  fmt:
+    description: "Fails on a formatting difference `cargo fmt` would make."
+    script: "cargo fmt --check"
+    toolchain: "rust"
+    inputs:
+      - "src/**/*"
+      - "tests/**/*"
+
   build:
     description: "Compiles the plugin and checks the committed artifact came from this source."
     command: "bash scripts/build.sh"
@@ -37,6 +45,7 @@ tasks:
     # `~:build` produces the wasm the integration tests load.
     deps:
       - "~:build"
+      - "~:fmt"
     # `bash -lc`, unlike every other task here: the plugin runs `elixir`, and
     # only a login shell puts proto's working ~/.proto/bin ahead of the asdf
     # shims, which cannot locate an asdf-backed Erlang (adr-0007, adr-0009).

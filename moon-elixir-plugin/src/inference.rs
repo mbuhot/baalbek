@@ -6,7 +6,6 @@ use std::collections::BTreeMap;
 /// The moon dependency scope an inferred edge carries.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InferredScope {
-
     Production,
     Development,
 }
