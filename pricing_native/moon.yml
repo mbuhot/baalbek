@@ -21,7 +21,12 @@ tasks:
   build:
     inputs:
       - "native/**/*"
+    # Serialised against every other cargo task; adr-0014 says why.
+    options:
+      mutex: "cargo-target-dir"
 
   test:
     inputs:
       - "native/**/*"
+    options:
+      mutex: "cargo-target-dir"

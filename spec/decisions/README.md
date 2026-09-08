@@ -37,6 +37,7 @@ decision confined to one component lives in that component's own
 | [0011](adr-0011-what-ci-treats-as-affected.md) | CI runs a changed project's consumers, not just the project | Accepted |
 | [0012](adr-0012-within-app-test-selection-is-mix-test-stale.md) | Within-app test selection is `mix test --stale` | Accepted. Supersedes 0005 |
 | [0013](adr-0013-build-output-lives-off-the-working-tree.md) | Build output lives off the working tree, by moving the storage under it | Accepted |
+| [0014](adr-0014-cargo-tasks-serialise-on-the-target-directory.md) | Every cargo task serialises on the shared target directory | Accepted |
 
 ## Where the other spec directories are
 

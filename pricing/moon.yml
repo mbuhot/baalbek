@@ -29,6 +29,11 @@ tasks:
       - "@group(crate)"
     outputs:
       - "build/libpricing.rlib"
+    # Every cargo task in this workspace shares one target directory, and two
+    # concurrent builds in it break each other's artifact mid-copy. See
+    # ../spec/decisions/adr-0014-cargo-tasks-serialise-on-the-target-directory.md.
+    options:
+      mutex: "cargo-target-dir"
 
   test:
     description: "Runs the crate's `cargo test` suite, with no Elixir and no NIF."
@@ -38,3 +43,5 @@ tasks:
     toolchain: "rust"
     inputs:
       - "@group(crate)"
+    options:
+      mutex: "cargo-target-dir"

@@ -21,6 +21,13 @@ tags:
   - "capability/release-assurance"
 
 tasks:
+  # Compiling any of server's three build trees runs Rustler, so each task
+  # below is serialised against every other cargo task; adr-0014 says why.
+  # `build` itself is inherited from ../.moon/tasks/elixir.yml.
+  build:
+    options:
+      mutex: "cargo-target-dir"
+
   bootstrap:
     description: "Creates `core`'s, `identity`'s and `billing`'s Postgres roles and schemas, then creates and migrates `core`'s test database."
     # Declared here, not inherited: three schemas, and the repo is `core`'s.
@@ -42,12 +49,15 @@ tasks:
       MIX_BUILD_PATH: "build/test"
     # Never cached: a warm cache against a fresh database would skip this.
     options:
+      mutex: "cargo-target-dir"
       cache: false
 
   test:
     description: "Runs the ExUnit suite: real HTTP requests through `ServerWeb.Endpoint` against `core`'s JSON:API routes."
     deps:
       - "~:bootstrap"
+    options:
+      mutex: "cargo-target-dir"
 
   openapi:
     description: "Generates `priv/static/openapi.json` from `Server.Api`'s `AshJsonApi.Domain` definition."
@@ -68,6 +78,8 @@ tasks:
       - "@group(sources)"
     outputs:
       - "priv/static/openapi.json"
+    options:
+      mutex: "cargo-target-dir"
 
   release:
     description: "Assembles the `MIX_ENV=prod` release into /.artifacts/server-release, carrying its own ERTS."
@@ -84,6 +96,8 @@ tasks:
     # No `outputs`: nothing reads the tree, and it is 101 MB.
     inputs:
       - "@group(sources)"
+    options:
+      mutex: "cargo-target-dir"
 
   image:
     description: "Builds the runnable release image the e2e suite runs against (`baalbek-server:latest`, or `$SERVER_IMAGE`)."
