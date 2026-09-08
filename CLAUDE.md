@@ -53,7 +53,8 @@ source: Moon needs a task's outputs inside its project, so the paths stay put an
 moves under them. The devcontainer mounts a named volume over each one; anywhere else, run
 `scripts/mount-build-dirs.sh setup`, which bind-mounts them and does not survive a reboot.
 `check` says whether they are in place, and `root:test` fails when the devcontainer's
-hand-written volume list stops matching the derived one.
+hand-written volume list stops matching the derived one. Each one is a mount point, so
+`rm -rf <project>/build` fails with EBUSY; empty the contents instead.
 
 ## Reviewing
 

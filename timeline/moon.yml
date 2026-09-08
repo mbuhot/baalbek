@@ -1,6 +1,8 @@
 # Event-sourced technician timeline (Gleam).
 #
-# Every task is `system`: no Gleam toolchain plugin exists for Moon yet.
+# Every task runs under `bash -lc`: only a login shell puts $PROTO_HOME/bin
+# ahead of proto's shims, and the shim for an asdf-backed Erlang cannot locate
+# its executable (../spec/decisions/adr-0009-where-ci-runs-moon-ci.md).
 language: gleam
 layer: library
 
@@ -8,21 +10,33 @@ layer: library
 tags:
   - "capability/technician-availability"
 
+fileGroups:
+  # The package set every task resolves against.
+  manifest:
+    - "gleam.toml"
+    - "manifest.toml"
+  # This project's own modules.
+  sources:
+    - "src/**/*"
+
 tasks:
   deps:
     description: "Downloads the third-party Gleam packages into `build/packages`."
-    command: "bash scripts/deps-download.sh"
+    command: "bash"
+    args:
+      - "-lc"
+      - "gleam deps download"
     inputs:
-      - "gleam.toml"
-      - "manifest.toml"
-      - "scripts/deps-download.sh"
-      - "scripts/toolchain-path.sh"
+      - "@group(manifest)"
     outputs:
       - "build/packages/**/*"
 
   bootstrap:
     description: "Creates the timeline Postgres role, schema and tables (idempotent)."
-    command: "bash scripts/bootstrap.sh"
+    command: "bash"
+    args:
+      - "-lc"
+      - "gleam run -m timeline/bootstrap"
     options:
       # A warm Moon cache against a fresh database is a real combination, and a
       # cache hit here would skip the schema every timeline task needs.
@@ -33,14 +47,14 @@ tasks:
     deps:
       - "~:deps"
       - "~:bootstrap"
-    command: "bash scripts/moon-test.sh"
+    command: "bash"
+    args:
+      - "-lc"
+      - "gleam test"
     inputs:
-      - "gleam.toml"
-      - "manifest.toml"
-      - "src/**/*"
+      - "@group(manifest)"
+      - "@group(sources)"
       - "test/**/*"
-      - "scripts/moon-test.sh"
-      - "scripts/toolchain-path.sh"
 
   build:
     description: "Builds this project and its runtime deps into `build/otp` as OTP application directories."
@@ -48,13 +62,14 @@ tasks:
     # See ../server/spec/decisions/adr-0001-release-assembly-and-gleam-packaging.md.
     deps:
       - "~:deps"
-    command: "bash scripts/package-otp.sh"
+    command: "bash"
+    args:
+      - "-lc"
+      - "bash scripts/package-otp.sh"
     inputs:
-      - "gleam.toml"
-      - "manifest.toml"
-      - "src/**/*"
+      - "@group(manifest)"
+      - "@group(sources)"
       - "scripts/package-otp.sh"
       - "scripts/otp-closure.escript"
-      - "scripts/toolchain-path.sh"
     outputs:
       - "build/otp"

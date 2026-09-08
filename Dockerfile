@@ -93,10 +93,11 @@ RUN printf '%s\n' 'export PATH="$PATH:$PROTO_HOME/shims"' >> /etc/profile.d/prot
 USER vscode
 ENV PATH="${PATH}:${PROTO_HOME}/shims"
 
-# Hex and rebar3 come from Mix, not apt or proto. Without them the first
-# `mix deps.get` in a fresh container prompts to install Hex, reads EOF from a
-# non-interactive stdin, and fails. MIX_HOME/HEX_HOME are pinned so they stay
-# found when a caller overrides HOME.
+# Mix keeps its own Hex and rebar3 under MIX_HOME, and finds them there rather
+# than on PATH; proto's rebar3 is the one Gleam shells out to. Without these the
+# first `mix deps.get` in a fresh container prompts to install Hex, reads EOF
+# from a non-interactive stdin, and fails. MIX_HOME/HEX_HOME are pinned so they
+# stay found when a caller overrides HOME.
 ENV MIX_HOME="/home/vscode/.mix" \
     HEX_HOME="/home/vscode/.hex"
 RUN mix local.hex --force && mix local.rebar --force

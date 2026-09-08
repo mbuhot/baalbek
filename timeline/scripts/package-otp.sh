@@ -6,8 +6,6 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-# shellcheck source=timeline/scripts/toolchain-path.sh
-source scripts/toolchain-path.sh
 
 # The dev build (`gleam build`) writes {modules, []} into every .app file it
 # generates; the shipment export writes the real list. Only the latter can

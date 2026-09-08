@@ -8,6 +8,8 @@ rust           = "stable"
 "asdf:erlang"  = "28.4.3"
 "asdf:elixir"  = "1.20.2"
 "asdf:gleam"   = "1.13"
+# Gleam shells out to rebar3 to build a dependency's Erlang-native code.
+"asdf:rebar"   = "3.27.0"
 
 # JDK 21 for Gradle: Capacitor's Android library compiles at
 # JavaVersion.VERSION_21, so javac needs at least that. The Android
