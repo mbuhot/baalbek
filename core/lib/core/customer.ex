@@ -6,7 +6,22 @@ defmodule Core.Customer do
   use Ash.Resource,
     otp_app: :core,
     domain: Core,
-    data_layer: AshPostgres.DataLayer
+    data_layer: AshPostgres.DataLayer,
+    extensions: [AshJsonApi.Resource]
+
+  json_api do
+    type "customer"
+
+    routes do
+      base("/customers")
+
+      get(:read)
+      index :read
+      post(:create)
+      patch(:update)
+      delete(:destroy)
+    end
+  end
 
   postgres do
     table "customers"
@@ -37,7 +52,16 @@ defmodule Core.Customer do
 
     attribute :email, :string, public?: true, description: "The customer's contact email address."
     attribute :phone, :string, public?: true, description: "The customer's contact phone number."
-    timestamps()
+
+    create_timestamp :inserted_at,
+      type: :utc_datetime,
+      public?: true,
+      description: "When this customer was created."
+
+    update_timestamp :updated_at,
+      type: :utc_datetime,
+      public?: true,
+      description: "When this customer was last updated."
   end
 
   relationships do

@@ -6,7 +6,22 @@ defmodule Core.Site do
   use Ash.Resource,
     otp_app: :core,
     domain: Core,
-    data_layer: AshPostgres.DataLayer
+    data_layer: AshPostgres.DataLayer,
+    extensions: [AshJsonApi.Resource]
+
+  json_api do
+    type "site"
+
+    routes do
+      base("/sites")
+
+      get(:read)
+      index :read
+      post(:create)
+      patch(:update)
+      delete(:destroy)
+    end
+  end
 
   postgres do
     table "sites"
@@ -36,13 +51,23 @@ defmodule Core.Site do
       description: "The site's display name."
 
     attribute :address, :string, public?: true, description: "The site's street address."
-    timestamps()
+
+    create_timestamp :inserted_at,
+      type: :utc_datetime,
+      public?: true,
+      description: "When this site was created."
+
+    update_timestamp :updated_at,
+      type: :utc_datetime,
+      public?: true,
+      description: "When this site was last updated."
   end
 
   relationships do
     belongs_to :customer, Core.Customer do
       allow_nil? false
       attribute_writable? true
+      attribute_public? true
       description "The customer this site belongs to."
     end
 

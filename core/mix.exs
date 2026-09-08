@@ -7,6 +7,7 @@ defmodule Core.MixProject do
       version: "0.1.0",
       elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
+      elixirc_paths: elixirc_paths(Mix.env()),
       # `boundary` must be listed BEFORE Mix.compilers(), not after: it hooks
       # itself in via `Mix.Task.Compiler.after_compiler(:elixir, ...)` and
       # `after_compiler(:app, ...)`, and those registrations only fire for
@@ -31,6 +32,9 @@ defmodule Core.MixProject do
     ]
   end
 
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
+
   defp aliases do
     [bootstrap: ["core.bootstrap", "ecto.create --quiet", "ecto.migrate --quiet"]]
   end
@@ -39,6 +43,8 @@ defmodule Core.MixProject do
     [
       {:ash, "~> 3.0"},
       {:ash_postgres, "~> 2.0"},
+      {:ash_json_api, "~> 1.7"},
+      {:open_api_spex, "~> 3.16"},
       {:boundary, "~> 0.10", runtime: false},
       {:ash_boundary, "~> 0.1"},
       {:cucumber, "~> 1.0", only: [:dev, :test]}

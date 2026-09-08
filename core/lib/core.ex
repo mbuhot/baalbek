@@ -12,7 +12,7 @@ defmodule Core do
 
   use Ash.Domain,
     otp_app: :core,
-    extensions: [AshBoundary]
+    extensions: [AshBoundary, AshJsonApi.Domain]
 
   resources do
     resource Core.Customer do

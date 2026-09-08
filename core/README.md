@@ -10,6 +10,12 @@ dispatch domain). `server` publishes its OpenAPI surface.
 - **Ash resources** (`lib/core/{customer,site,job,work_order}.ex`), grouped
   under the `Core` domain (`lib/core.ex`): `Customer` has many `Site`s, a
   `Site` has many `Job`s, a `Job` has many `WorkOrder`s.
+- **Its own JSON:API declaration.** Each resource carries the
+  `AshJsonApi.Resource` extension and a `json_api do routes do ... end end`
+  block naming its paths and actions; `Core` carries `AshJsonApi.Domain`. The
+  HTTP surface is derived from the resources, so a resource change and its
+  exposed contract cannot drift apart. Any consumer serves it by mounting a
+  `use AshJsonApi.Router, domains: [Core]` Plug.
 - **`boundary`**: `Core` uses `ash_boundary` — its `exports` derive from the
   domain DSL, since each resource gets a domain-level `define`. `Core.Data`
   (`lib/core/data.ex`) is a nested internal boundary exporting only
@@ -18,8 +24,10 @@ dispatch domain). `server` publishes its OpenAPI surface.
   dedicated `core` Postgres role (never the superuser). See
   `priv/repo/bootstrap.sql` and `lib/mix/tasks/core.bootstrap.ex`.
 - **ExUnit** (`test/core/`): `customer_test.exs` and `job_test.exs` mirror
-  their resources, `domain_test.exs` covers the relationships spanning them.
-  All run against the real schema/role.
+  their resources, `domain_test.exs` covers the relationships spanning them,
+  and `*_json_api_test.exs` assert each resource's HTTP contract through
+  `Core.JsonApiRouter` — a router built in `test/support/` for this suite
+  alone. All run against the real schema/role.
 
 ## Acceptance criteria and test selection
 

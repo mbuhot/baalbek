@@ -9,7 +9,22 @@ defmodule Core.WorkOrder do
   use Ash.Resource,
     otp_app: :core,
     domain: Core,
-    data_layer: AshPostgres.DataLayer
+    data_layer: AshPostgres.DataLayer,
+    extensions: [AshJsonApi.Resource]
+
+  json_api do
+    type "work_order"
+
+    routes do
+      base("/work_orders")
+
+      get(:read)
+      index :read
+      post(:create)
+      patch(:update)
+      delete(:destroy)
+    end
+  end
 
   postgres do
     table "work_orders"
@@ -50,13 +65,22 @@ defmodule Core.WorkOrder do
       public?: true,
       description: "When this work order was completed."
 
-    timestamps()
+    create_timestamp :inserted_at,
+      type: :utc_datetime,
+      public?: true,
+      description: "When this work order was created."
+
+    update_timestamp :updated_at,
+      type: :utc_datetime,
+      public?: true,
+      description: "When this work order was last updated."
   end
 
   relationships do
     belongs_to :job, Core.Job do
       allow_nil? false
       attribute_writable? true
+      attribute_public? true
       description "The job this work order belongs to."
     end
   end

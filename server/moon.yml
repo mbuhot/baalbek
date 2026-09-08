@@ -60,7 +60,7 @@ tasks:
       mutex: "cargo-target-dir"
 
   openapi:
-    description: "Generates `priv/static/openapi.json` from `Server.Api`'s `AshJsonApi.Domain` definition."
+    description: "Generates `priv/static/openapi.json` from the mounted JSON:API router."
     # `~:bootstrap` because spec generation boots the whole `:server`
     # application, not because it queries the database.
     deps:

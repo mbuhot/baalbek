@@ -30,8 +30,6 @@ config :billing, ash_domains: [Billing.Invoicing]
 config :ash, allow_forbidden_field_for_relationships_by_default?: true
 config :ash, default_string_length_count: :codepoints
 
-config :server, ash_domains: [Server.Api]
-
 config :server, ServerWeb.Endpoint, adapter: Bandit.PhoenixAdapter
 
 import_config "#{config_env()}.exs"
