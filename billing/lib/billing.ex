@@ -5,4 +5,3 @@ defmodule Billing do
 
   use Boundary, deps: [Billing.Repo]
 end
-
