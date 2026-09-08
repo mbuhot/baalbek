@@ -17,11 +17,11 @@ if [ -z "${MOON_BASE:-}" ]; then
   exit 0
 fi
 
-# Read from the first `{` and take one document: under load, moon's stdout has
-# been seen carrying log noise ahead of its JSON and more than one document.
+# Take the document that has `tasks`, not the first one: moon prefixes its
+# stdout with an NDJSON notice when it activates a toolchain.
 targets="$(moon query tasks --affected --upstream deep |
   sed -n '/{/,$p' | sed '1s/^[^{]*//' |
-  jq -r -n 'input.tasks // {} | .[] | .[] | .target')"
+  jq -r -n '[ inputs | select(has("tasks")) ] | first.tasks // {} | .[] | .[] | .target')"
 
 count="$(printf '%s' "$targets" | grep -c . || true)"
 

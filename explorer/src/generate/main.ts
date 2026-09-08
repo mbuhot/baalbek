@@ -9,6 +9,7 @@ import { buildModel } from "./build-model.ts";
 import { parseCapabilities, resolveClaims } from "./capabilities.ts";
 import { parsePlaywrightList, specsByCapability, validateSpecClaims } from "./e2e-specs.ts";
 import { GIT_LOG_FORMAT, parseGitLog } from "./git-stats.ts";
+import type { RawGraph, RawProject, RawTask } from "./moon-graph.ts";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const workspaceRoot = resolve(projectRoot, "..");
@@ -23,6 +24,33 @@ function run(command: string, args: string[]): string {
   });
 }
 
+/**
+ * Reads one JSON document from a command that may print an NDJSON notice line
+ * first: moon does that when it activates a toolchain, and the notice is a
+ * whole object on its own line, so leading lines that parse alone are dropped.
+ */
+function runJson<T>(command: string, args: string[]): T {
+  const raw = run(command, args);
+  try {
+    return JSON.parse(raw) as T;
+  } catch (error) {
+    const lines = raw.split("\n");
+    let start = 0;
+    while (start < lines.length && parsesAlone(lines[start] ?? "")) start += 1;
+    if (start === 0) throw error;
+    return JSON.parse(lines.slice(start).join("\n")) as T;
+  }
+}
+
+function parsesAlone(line: string): boolean {
+  if (line.trim() === "") return true;
+  try {
+    return typeof JSON.parse(line) === "object";
+  } catch {
+    return false;
+  }
+}
+
 /** `e2e:list`'s declared output. Playwright owns the spec parser; this reads what it wrote. */
 const E2E_LIST = resolve(workspaceRoot, "e2e/build/test-list.json");
 
@@ -33,8 +61,8 @@ function fail(heading: string, problems: string[]): never {
 
 const historyLimit = Number(process.env["EXPLORER_HISTORY_LIMIT"] ?? DEFAULT_HISTORY_LIMIT);
 
-const projectGraph = JSON.parse(run("moon", ["project-graph", "--json"]));
-const taskGraph = JSON.parse(run("moon", ["task-graph", "--json"]));
+const projectGraph = runJson<RawGraph<RawProject>>("moon", ["project-graph", "--json"]);
+const taskGraph = runJson<RawGraph<RawTask>>("moon", ["task-graph", "--json"]);
 if (!existsSync(E2E_LIST)) {
   fail("the e2e test list is missing:", [`${E2E_LIST} — run \`moon run e2e:list\``]);
 }

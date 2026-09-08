@@ -14,10 +14,12 @@ trap 'rm -f "$query_file"' EXIT
 moon query tasks > "$query_file"
 echo "moon query tasks: $(wc -c < "$query_file") bytes"
 
-# Read from the first `{` and take one document: under load, moon's stdout has
-# been seen carrying log noise ahead of its JSON and more than one document.
+# Take the document that has `tasks`, not the first one: moon prefixes its
+# stdout with an NDJSON notice when it activates a toolchain, and reading that
+# as the answer reports an empty exclusion list rather than failing.
 excluded="$(sed -n '/{/,$p' "$query_file" | sed '1s/^[^{]*//' | jq -r -n '
-  [ input.tasks // {} | .[] | .[]
+  [ inputs | select(has("tasks")) ] | first // {} | .tasks // {} | to_entries as $p
+  | [ $p[] | .value | to_entries[] | .value
     # `== false`, not `// true`: the `//` operator in jq treats a `false`
     # value as absent, so it would read this very setting as its default.
     | select(.options.runInCI == false)

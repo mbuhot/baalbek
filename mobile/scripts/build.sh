@@ -20,11 +20,11 @@ if ! query_output="$(moon query tasks --project mobile 'taskTag=requires-macos' 
 fi
 rm -f "$query_stderr"
 
-# Read from the first `{` and take one document: under load, moon's stdout has
-# been seen carrying log noise ahead of its JSON and more than one document.
+# Take the document that has `tasks`, not the first one: moon prefixes its
+# stdout with an NDJSON notice when it activates a toolchain.
 macos_tasks="$(printf '%s' "$query_output" |
   sed -n '/{/,$p' | sed '1s/^[^{]*//' |
-  jq -r -n 'input.tasks.mobile // {} | keys[]')"
+  jq -r -n '[ inputs | select(has("tasks")) ] | first.tasks.mobile // {} | keys[]')"
 
 for t in $macos_tasks; do
   if [ "$(uname -s)" = "Darwin" ]; then
