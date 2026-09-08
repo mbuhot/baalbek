@@ -1,9 +1,7 @@
 # Ash resources for the field-service domain: jobs, customers, sites, work
 # orders.
 #
-# Schema `core` and role `core`. `deps`, `build` and `test` come from
-# ../.moon/tasks/elixir.yml, and `bootstrap` from
-# ../.moon/tasks/elixir-repo.yml.
+# Schema `core` and role `core`.
 language: elixir
 layer: library
 

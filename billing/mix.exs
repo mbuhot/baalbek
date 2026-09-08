@@ -13,6 +13,7 @@ defmodule Billing.MixProject do
       # :boundary registers its `after_compiler` callback, so the check
       # silently never runs. Verified fixed here the same way core did.
       compilers: [:boundary] ++ Mix.compilers(),
+      aliases: aliases(),
       deps: deps()
     ]
   end
@@ -22,6 +23,10 @@ defmodule Billing.MixProject do
       mod: {Billing.Application, []},
       extra_applications: [:logger]
     ]
+  end
+
+  defp aliases do
+    [bootstrap: ["billing.bootstrap", "ecto.create --quiet", "ecto.migrate --quiet"]]
   end
 
   defp deps do

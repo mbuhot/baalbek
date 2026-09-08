@@ -1,8 +1,7 @@
 # Elixir Rustler NIF facade for the `pricing` crate.
 #
 # `boundary` enforces that PricingNative.Native (the raw NIF module) is
-# reachable only from PricingNative. `deps`, `build` and `test` come from
-# ../.moon/tasks/elixir.yml.
+# reachable only from PricingNative.
 language: elixir
 layer: library
 

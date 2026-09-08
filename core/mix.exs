@@ -20,6 +20,7 @@ defmodule Core.MixProject do
       # never test/ (ExUnit files are scripts evaluated at runtime, not
       # traced) — see seed.md §3's "Known limitation, accepted".
       compilers: [:boundary] ++ Mix.compilers(),
+      aliases: aliases(),
       deps: deps()
     ]
   end
@@ -29,6 +30,10 @@ defmodule Core.MixProject do
       mod: {Core.Application, []},
       extra_applications: [:logger]
     ]
+  end
+
+  defp aliases do
+    [bootstrap: ["core.bootstrap", "ecto.create --quiet", "ecto.migrate --quiet"]]
   end
 
   defp deps do

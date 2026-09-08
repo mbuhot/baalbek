@@ -1,10 +1,9 @@
 # Tasks inherited by every Elixir project that owns an Ecto repo.
 #
 # `inheritedBy` is required: moon 2.5.4 applies a conditionless
-# `.moon/tasks/*.yml` to every project. The `file` condition selects the
-# projects that own a repo, because `mix $project.bootstrap` exists only where
-# priv/repo/bootstrap.sql does. `server` bootstraps three schemas and owns no
-# repo, so it declares its own `bootstrap` instead (../../server/moon.yml).
+# `.moon/tasks/*.yml` to every project. priv/repo/bootstrap.sql is what marks a
+# repo owner, and such a project must define the `bootstrap` Mix alias the task
+# below runs.
 inheritedBy:
   language: "elixir"
   file: "priv/repo/bootstrap.sql"
@@ -18,7 +17,7 @@ tasks:
     command: "bash"
     args:
       - "-lc"
-      - "mix do $project.bootstrap + ecto.create --quiet + ecto.migrate --quiet"
+      - "mix bootstrap"
     toolchain: "system"
     env:
       MIX_ENV: "test"

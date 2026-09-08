@@ -12,6 +12,14 @@
 inheritedBy:
   language: "elixir"
 
+# Everything a compiled Elixir app is built from.
+fileGroups:
+  sources:
+    - "mix.exs"
+    - "mix.lock"
+    - "config/**/*"
+    - "lib/**/*"
+
 tasks:
   deps-list:
     description: "Carries `$MIX_THIRD_PARTY_DEPS`, the locked dependency names moon-elixir-plugin reads from Mix."
@@ -62,10 +70,7 @@ tasks:
       MIX_ENV: "dev"
       MIX_BUILD_PATH: "build/dev"
     inputs:
-      - "mix.exs"
-      - "mix.lock"
-      - "config/**/*"
-      - "lib/**/*"
+      - "@group(sources)"
     outputs:
       - "build/dev/lib/$project/ebin"
 
@@ -83,10 +88,7 @@ tasks:
       MIX_ENV: "test"
       MIX_BUILD_PATH: "build/test"
     inputs:
-      - "mix.exs"
-      - "mix.lock"
+      - "@group(sources)"
       - ".formatter.exs"
-      - "config/**/*"
-      - "lib/**/*"
       - "spec/**/*"
       - "test/**/*"

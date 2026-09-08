@@ -24,6 +24,7 @@ defmodule Server.MixProject do
         ]
       ],
       releases: releases(),
+      aliases: aliases(),
       deps: deps()
     ]
   end
@@ -37,6 +38,28 @@ defmodule Server.MixProject do
       server: [
         include_executables_for: [:unix],
         applications: [server: :permanent]
+      ]
+    ]
+  end
+
+  defp aliases do
+    [
+      # `server` owns no repo: the three schemas belong to its domain apps, and
+      # the repo being migrated is `core`'s.
+      bootstrap: [
+        "core.bootstrap",
+        "identity.bootstrap",
+        "billing.bootstrap",
+        "ecto.create -r Core.Data.Repo --quiet",
+        "ecto.migrate -r Core.Data.Repo --quiet"
+      ],
+      openapi:
+        "openapi.spec.json --spec ServerWeb.JsonApiRouter --pretty=true priv/static/openapi.json",
+      # Fetches again: moon-elixir-plugin reads the dependency list at the
+      # default MIX_ENV, so no prod list was ever compiled.
+      "release.artifact": [
+        "deps.get --only prod",
+        "release --overwrite --path ../.artifacts/server-release"
       ]
     ]
   end

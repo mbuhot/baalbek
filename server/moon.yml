@@ -1,10 +1,9 @@
 # The Phoenix application: JSON:API over `core`, `identity` and `billing`, plus
 # the release and the OpenAPI document generated from it.
 #
-# No task here names a dependency. `deps`, `build` and `test` come from
-# ../.moon/tasks/elixir.yml, and their `^:build` edge expands to the five Mix
-# path deps moon-elixir-plugin infers from mix.exs. server/README.md says why
-# `server` bootstraps three schemas but owns no Ecto Repo.
+# No task here names a dependency: the inherited `^:build` edge expands to the
+# five Mix path deps moon-elixir-plugin infers from mix.exs. server/README.md
+# says why `server` bootstraps three schemas but owns no Ecto Repo.
 language: elixir
 layer: application
 
@@ -29,16 +28,14 @@ tasks:
     # ../.devcontainer/docker-compose.yml).
     deps:
       - "~:deps"
+      # server's own suite writes to the `timeline` schema from
+      # test/server_web/timeline_router_test.exs, so preparing the database
+      # for it means preparing that schema too.
+      - "timeline:bootstrap"
     command: "bash"
     args:
       - "-lc"
-      # One BEAM start serves the whole chain.
-      - >-
-        mix do core.bootstrap +
-        identity.bootstrap +
-        billing.bootstrap +
-        ecto.create -r Core.Data.Repo --quiet +
-        ecto.migrate -r Core.Data.Repo --quiet
+      - "mix bootstrap"
     toolchain: "system"
     env:
       MIX_ENV: "test"
@@ -51,9 +48,6 @@ tasks:
     description: "Runs the ExUnit suite: real HTTP requests through `ServerWeb.Endpoint` against `core`'s JSON:API routes."
     deps:
       - "~:bootstrap"
-      # The suite writes to the `timeline` schema from
-      # test/server_web/timeline_router_test.exs.
-      - "timeline:bootstrap"
 
   openapi:
     description: "Generates `priv/static/openapi.json` from `Server.Api`'s `AshJsonApi.Domain` definition."
@@ -65,40 +59,31 @@ tasks:
     command: "bash"
     args:
       - "-lc"
-      - "mix openapi.spec.json --spec ServerWeb.JsonApiRouter --pretty=true priv/static/openapi.json"
+      - "mix openapi"
     toolchain: "system"
     env:
       MIX_ENV: "dev"
       MIX_BUILD_PATH: "build/dev"
     inputs:
-      - "mix.exs"
-      - "mix.lock"
-      - "config/**/*"
-      - "lib/**/*"
+      - "@group(sources)"
     outputs:
       - "priv/static/openapi.json"
 
   release:
     description: "Assembles the `MIX_ENV=prod` release into /.artifacts/server-release, carrying its own ERTS."
-    # Fetches again: the plugin reads the dependency list at the default
-    # MIX_ENV, so there is no prod list for `deps` to have compiled.
     deps:
       - "~:deps"
       - "^:build"
     command: "bash"
     args:
       - "-lc"
-      - >-
-        export MIX_ENV=prod &&
-        mix deps.get --only prod &&
-        mix release --overwrite --path ../.artifacts/server-release
+      - "mix release.artifact"
     toolchain: "system"
+    env:
+      MIX_ENV: "prod"
     # No `outputs`: nothing reads the tree, and it is 101 MB.
     inputs:
-      - "mix.exs"
-      - "mix.lock"
-      - "config/**/*"
-      - "lib/**/*"
+      - "@group(sources)"
 
   image:
     description: "Builds the runnable release image the e2e suite runs against (`baalbek-server:latest`, or `$SERVER_IMAGE`)."
@@ -120,8 +105,5 @@ tasks:
     inputs:
       - "Dockerfile"
       - "Dockerfile.dockerignore"
-      - "mix.exs"
-      - "mix.lock"
-      - "config/**/*"
-      - "lib/**/*"
+      - "@group(sources)"
       - "/.prototools"

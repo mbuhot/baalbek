@@ -9,6 +9,13 @@ layer: library
 tags:
   - "capability/quote-pricing"
 
+# Everything the crate is compiled from.
+fileGroups:
+  crate:
+    - "Cargo.toml"
+    - "Cargo.lock"
+    - "src/**/*"
+
 tasks:
   build:
     description: "Compiles the crate and declares the resulting rlib as an output."
@@ -19,9 +26,7 @@ tasks:
       cp "$CARGO_TARGET_DIR/debug/libpricing.rlib" build/libpricing.rlib
     toolchain: "rust"
     inputs:
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "src/**/*"
+      - "@group(crate)"
     outputs:
       - "build/libpricing.rlib"
 
@@ -32,6 +37,4 @@ tasks:
       - "test"
     toolchain: "rust"
     inputs:
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "src/**/*"
+      - "@group(crate)"

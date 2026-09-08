@@ -13,6 +13,7 @@ defmodule Identity.MixProject do
       # :boundary registers its `after_compiler` callback, so the check
       # silently never runs. Verified fixed here the same way core did.
       compilers: [:boundary] ++ Mix.compilers(),
+      aliases: aliases(),
       deps: deps()
     ]
   end
@@ -22,6 +23,10 @@ defmodule Identity.MixProject do
       mod: {Identity.Application, []},
       extra_applications: [:logger]
     ]
+  end
+
+  defp aliases do
+    [bootstrap: ["identity.bootstrap", "ecto.create --quiet", "ecto.migrate --quiet"]]
   end
 
   defp deps do

@@ -3,7 +3,6 @@
 # No task names the `timeline` edge: mix.exs takes one path dep per application
 # under ../timeline/build/otp, moon-elixir-plugin resolves those onto the
 # `timeline` project, and the inherited `^:build` turns that into an edge.
-# `deps`, `build` and `test` come from ../.moon/tasks/elixir.yml.
 language: elixir
 layer: library
 
